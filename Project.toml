@@ -1,0 +1,6 @@
+authors = ["Felipe Noronha <felipenoris@gmail.com>"]
+name = "Oracle"
+uuid = "3328109a-0d39-11e9-3813-abcec9a1b4fe"
+version = "0.0.1"
+
+[deps]
