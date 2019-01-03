@@ -113,3 +113,18 @@ end
 function dpiConn_rollback(connection_handle::Ptr{Cvoid})
     ccall((:dpiConn_rollback, libdpi), dpiResult, (Ptr{Cvoid},), connection_handle)
 end
+
+# int dpiStmt_getNumQueryColumns(dpiStmt *stmt, uint32_t *numQueryColumns)
+function dpiStmt_getNumQueryColumns(stmt_handle::Ptr{Cvoid}, num_query_columns_ref::Ref{UInt32})
+    ccall((:dpiStmt_getNumQueryColumns, libdpi), dpiResult, (Ptr{Cvoid}, Ref{UInt32}), stmt_handle, num_query_columns_ref)
+end
+
+# int dpiStmt_getQueryInfo(dpiStmt *stmt, uint32_t pos, dpiQueryInfo *info)
+function dpiStmt_getQueryInfo(stmt_handle::Ptr{Cvoid}, pos::UInt32, query_info_ref::Ref{dpiQueryInfo})
+    ccall((:dpiStmt_getQueryInfo, libdpi), dpiResult, (Ptr{Cvoid}, UInt32, Ref{dpiQueryInfo}), stmt_handle, pos, query_info_ref)
+end
+
+# int dpiStmt_getInfo(dpiStmt *stmt, dpiStmtInfo *info)
+function dpiStmt_getInfo(stmt_handle::Ptr{Cvoid}, stmt_info_ref::Ref{dpiStmtInfo})
+    ccall((:dpiStmt_getInfo, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiStmtInfo}), stmt_handle, stmt_info_ref)
+end

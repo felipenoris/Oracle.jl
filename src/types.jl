@@ -86,6 +86,71 @@ end
     DPI_MODE_EXEC_ARRAY_DML_ROWCOUNTS = 1048576
 end
 
+@enum dpiOracleTypeNum::UInt32 begin
+    DPI_ORACLE_TYPE_NONE          = 2000
+    DPI_ORACLE_TYPE_VARCHAR       = 2001
+    DPI_ORACLE_TYPE_NVARCHAR      = 2002
+    DPI_ORACLE_TYPE_CHAR          = 2003
+    DPI_ORACLE_TYPE_NCHAR         = 2004
+    DPI_ORACLE_TYPE_ROWID         = 2005
+    DPI_ORACLE_TYPE_RAW           = 2006
+    DPI_ORACLE_TYPE_NATIVE_FLOAT  = 2007
+    DPI_ORACLE_TYPE_NATIVE_DOUBLE = 2008
+    DPI_ORACLE_TYPE_NATIVE_INT    = 2009
+    DPI_ORACLE_TYPE_NUMBER        = 2010
+    DPI_ORACLE_TYPE_DATE          = 2011
+    DPI_ORACLE_TYPE_TIMESTAMP     = 2012
+    DPI_ORACLE_TYPE_TIMESTAMP_TZ  = 2013
+    DPI_ORACLE_TYPE_TIMESTAMP_LTZ = 2014
+    DPI_ORACLE_TYPE_INTERVAL_DS   = 2015
+    DPI_ORACLE_TYPE_INTERVAL_YM   = 2016
+    DPI_ORACLE_TYPE_CLOB          = 2017
+    DPI_ORACLE_TYPE_NCLOB         = 2018
+    DPI_ORACLE_TYPE_BLOB          = 2019
+    DPI_ORACLE_TYPE_BFILE         = 2020
+    DPI_ORACLE_TYPE_STMT          = 2021
+    DPI_ORACLE_TYPE_BOOLEAN       = 2022
+    DPI_ORACLE_TYPE_OBJECT        = 2023
+    DPI_ORACLE_TYPE_LONG_VARCHAR  = 2024
+    DPI_ORACLE_TYPE_LONG_RAW      = 2025
+    DPI_ORACLE_TYPE_NATIVE_UINT   = 2026
+    DPI_ORACLE_TYPE_MAX           = 2027
+end
+
+@enum dpiNativeTypeNum::UInt32 begin
+    DPI_NATIVE_TYPE_INT64       = 3000
+    DPI_NATIVE_TYPE_UINT64      = 3001
+    DPI_NATIVE_TYPE_FLOAT       = 3002
+    DPI_NATIVE_TYPE_DOUBLE      = 3003
+    DPI_NATIVE_TYPE_BYTES       = 3004
+    DPI_NATIVE_TYPE_TIMESTAMP   = 3005
+    DPI_NATIVE_TYPE_INTERVAL_DS = 3006
+    DPI_NATIVE_TYPE_INTERVAL_YM = 3007
+    DPI_NATIVE_TYPE_LOB         = 3008
+    DPI_NATIVE_TYPE_OBJECT      = 3009
+    DPI_NATIVE_TYPE_STMT        = 3010
+    DPI_NATIVE_TYPE_BOOLEAN     = 3011
+    DPI_NATIVE_TYPE_ROWID       = 3012
+end
+
+@enum dpiStatementType::UInt16 begin
+    DPI_STMT_TYPE_UNKNOWN      = 0
+    DPI_STMT_TYPE_SELECT       = 1
+    DPI_STMT_TYPE_UPDATE       = 2
+    DPI_STMT_TYPE_DELETE       = 3
+    DPI_STMT_TYPE_INSERT       = 4
+    DPI_STMT_TYPE_CREATE       = 5
+    DPI_STMT_TYPE_DROP         = 6
+    DPI_STMT_TYPE_ALTER        = 7
+    DPI_STMT_TYPE_BEGIN        = 8
+    DPI_STMT_TYPE_DECLARE      = 9
+    DPI_STMT_TYPE_CALL         = 10
+    DPI_STMT_TYPE_EXPLAIN_PLAN = 15
+    DPI_STMT_TYPE_MERGE        = 16
+    DPI_STMT_TYPE_ROLLBACK     = 17
+    DPI_STMT_TYPE_COMMIT       = 21
+end
+
 struct dpiErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.
     offset::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
@@ -180,6 +245,35 @@ struct dpiPoolCreateParams
     timeout::UInt32 # Specifies the length of time (in seconds) after which idle sessions in the pool are terminated. Note that termination only occurs when the pool is accessed. The default value is 0 which means that no idle sessions are terminated. This value can be set after the pool has been created using the function dpiPool_setTimeout() and acquired using the function dpiPool_getTimeout().
     wait_timeout::UInt32 # Specifies the length of time (in milliseconds) that the caller should wait for a session to become available in the pool before returning with an error. This value is only used if the dpiPoolCreateParams.getMode member is set to the value DPI_MODE_POOL_GET_TIMEDWAIT. The default value is 0. This value can be set after the pool has been created using the function dpiPool_setWaitTimeout() and acquired using the function dpiPool_getWaitTimeout().
     max_lifetime_session::UInt32 # Specifies the maximum length of time (in seconds) a pooled session may exist. Sessions in use will not be closed. They become candidates for termination only when they are released back to the pool and have existed for longer than maxLifetimeSession seconds. Session termination only occurs when the pool is accessed. The default value is 0 which means that there is no maximum length of time that a pooled session may exist. This value can be set after the pool has been created using the function dpiPool_setMaxLifetimeSession() and acquired using the function dpiPool_getMaxLifetimeSession().
+end
+
+struct dpiDataTypeInfo
+    oracle_type_num::dpiOracleTypeNum # Specifies the type of the data. It will be one of the values from the enumeration dpiOracleTypeNum, or 0 if the type is not supported by ODPI-C.
+    default_native_type_num::dpiNativeTypeNum # Specifies the default native type for the data. It will be one of the values from the enumeration dpiNativeTypeNum, or 0 if the type is not supported by ODPI-C.
+    oci_type_code::UInt16 # Specifies the OCI type code for the data, which can be useful if the type is not supported by ODPI-C.
+    db_size_in_bytes::UInt32 # Specifies the size in bytes (from the database’s perspective) of the data. This value is only populated for strings and binary data. For all other data the value is zero.
+    client_size_in_bytes::UInt32 # Specifies the size in bytes (from the client’s perspective) of the data. This value is only populated for strings and binary data. For all other data the value is zero.
+    size_in_chars::UInt32 # Specifies the size in characters of the data. This value is only populated for string data. For all other data the value is zero.
+    precision::Int16 # Specifies the precision of the data. This value is only populated for numeric and interval data. For all other data the value is zero.
+    scale::Int8 # Specifies the scale of the data. This value is only populated for numeric data. For all other data the value is zero.
+    fs_precision::Int16 # Specifies the fractional seconds precision of the data. This value is only populated for timestamp and interval day to second data. For all other data the value is zero.
+    object_type_handle::Ptr{Cvoid} # Specifies a reference to the type of the object. This value is only populated for named type data. For all other data the value is NULL. This reference is owned by the object attribute, object type or statement and a call to dpiObjectType_addRef() must be made if the reference is going to be used beyond the lifetime of the owning object.
+end
+
+struct dpiQueryInfo
+    name::Ptr{UInt8} # Specifies the name of the column which is being queried, as a byte string in the encoding used for CHAR data.
+    name_length::UInt32 # Specifies the length of the dpiQueryInfo.name member, in bytes.
+    type_info::dpiDataTypeInfo # Specifies the type of data of the column that is being queried. It is a structure of type dpiDataTypeInfo.
+    null_ok::Int32 # Specifies if the data that is being queried may return null values (1) or not (0).
+end
+
+struct dpiStmtInfo
+    is_query::Int32
+    is_PLSQL::Int32
+    is_DDL::Int32
+    is_DML::Int32
+    statement_type::dpiStatementType
+    is_returning::Int32
 end
 
 mutable struct Context
