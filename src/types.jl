@@ -77,6 +77,15 @@ end
     DPI_MODE_STARTUP_RESTRICT = 2
 end
 
+@enum dpiExecMode::UInt32 begin
+    DPI_MODE_EXEC_DEFAULT             = 0
+    DPI_MODE_EXEC_DESCRIBE_ONLY       = 16
+    DPI_MODE_EXEC_COMMIT_ON_SUCCESS   = 32
+    DPI_MODE_EXEC_BATCH_ERRORS        = 128
+    DPI_MODE_EXEC_PARSE_ONLY          = 256
+    DPI_MODE_EXEC_ARRAY_DML_ROWCOUNTS = 1048576
+end
+
 struct dpiErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.
     offset::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
@@ -191,26 +200,6 @@ function destroy!(ctx::Context)
     nothing
 end
 
-mutable struct Pool
-    context::Context
-    handle::Ptr{Cvoid}
-
-    function Pool(context::Context, handle::Ptr{Cvoid})
-        new_pool = new(context, handle)
-        finalizer(destroy!, new_pool)
-        return new_pool
-    end
-end
-
-function destroy!(pool::Pool)
-    if pool.handle != C_NULL
-        dpi_result = dpiPool_release(pool.handle)
-        error_check(pool.context, dpi_result)
-        pool.handle = C_NULL
-    end
-    nothing
-end
-
 """
 Connection handles are used to represent connections to the database. These can be standalone connections created by calling the function dpiConn_create() or acquired from a session pool by calling the function dpiPool_acquireConnection(). They can be closed by calling the function dpiConn_close() or releasing the last reference to the connection by calling the function dpiConn_release(). Connection handles are used to create all handles other than session pools and context handles.
 """
@@ -230,6 +219,26 @@ function destroy!(conn::Connection)
         dpi_result = dpiConn_release(conn.handle)
         error_check(conn.context, dpi_result)
         conn.handle = C_NULL
+    end
+    nothing
+end
+
+mutable struct Pool
+    context::Context
+    handle::Ptr{Cvoid}
+
+    function Pool(context::Context, handle::Ptr{Cvoid})
+        new_pool = new(context, handle)
+        finalizer(destroy!, new_pool)
+        return new_pool
+    end
+end
+
+function destroy!(pool::Pool)
+    if pool.handle != C_NULL
+        dpi_result = dpiPool_release(pool.handle)
+        error_check(pool.context, dpi_result)
+        pool.handle = C_NULL
     end
     nothing
 end

@@ -17,6 +17,8 @@ connect_string = "your-connect-string"
 """
 include("credentials.jl")
 
+simple_query(conn::Oracle.Connection, sql::String) = Oracle.execute!(Oracle.Stmt(conn, sql))
+
 ctx = Oracle.Context()
 
 @testset "Create structs" begin
@@ -41,9 +43,7 @@ ctx = Oracle.Context()
 end
 
 @testset "Connection" begin
-    sysadmin_conn_create_params = Oracle.dpiConnCreateParams(ctx)
-    sysadmin_conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA
-    conn = Oracle.Connection(ctx, username, password, connect_string, conn_create_params=sysadmin_conn_create_params)
+    conn = Oracle.Connection(ctx, username, password, connect_string)
 
     @testset "ping" begin
         Oracle.ping(conn)
@@ -58,8 +58,24 @@ end
         println("")
     end
 
+    @testset "Populate test table" begin
+        simple_query(conn, "CREATE TABLE TB_TEST ( ID INT )")
+        simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
+        simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 2 )")
+        Oracle.commit!(conn)
+
+        simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )")
+        Oracle.rollback!(conn)
+    end
+
     @testset "Stmt" begin
         stmt = Oracle.Stmt(conn, "SELECT * FROM TB_TEST")
+        num_columns = Oracle.execute!(stmt)
+        @test num_columns == 1
+    end
+
+    @testset "Drop test table" begin
+        simple_query(conn, "DROP TABLE TB_TEST")
     end
 
     #=

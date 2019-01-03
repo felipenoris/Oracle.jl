@@ -45,3 +45,15 @@ function shutdown_database(conn::Connection, shutdown_mode::dpiShutdownMode=DPI_
     error_check(conn.context, dpi_result)
     nothing
 end
+
+function commit!(conn::Connection)
+    dpi_result = dpiConn_commit(conn.handle)
+    error_check(conn.context, dpi_result)
+    nothing
+end
+
+function rollback!(conn::Connection)
+    dpi_result = dpiConn_rollback(conn.handle)
+    error_check(conn.context, dpi_result)
+    nothing
+end

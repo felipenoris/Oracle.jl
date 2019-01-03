@@ -98,3 +98,18 @@ function dpiConn_prepareStmt(connection_handle::Ptr{Cvoid}, scrollable::Bool, sq
         return ccall((:dpiConn_prepareStmt, libdpi), dpiResult, (Ptr{Cvoid}, Cint, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{Ptr{Cvoid}}), connection_handle, scrollable, sql, sqlLength, tag, tagLength, stmt_handle_ref)
     end
 end
+
+# int dpiStmt_execute(dpiStmt *stmt, dpiExecMode mode, uint32_t *numQueryColumns)
+function dpiStmt_execute(stmt_handle::Ptr{Cvoid}, exec_mode::dpiExecMode, num_query_columns_ref::Ref{UInt32})
+    ccall((:dpiStmt_execute, libdpi), dpiResult, (Ptr{Cvoid}, dpiExecMode, Ref{UInt32}), stmt_handle, exec_mode, num_query_columns_ref)
+end
+
+# int dpiConn_commit(dpiConn *conn)
+function dpiConn_commit(connection_handle::Ptr{Cvoid})
+    ccall((:dpiConn_commit, libdpi), dpiResult, (Ptr{Cvoid},), connection_handle)
+end
+
+# int dpiConn_rollback(dpiConn *conn)
+function dpiConn_rollback(connection_handle::Ptr{Cvoid})
+    ccall((:dpiConn_rollback, libdpi), dpiResult, (Ptr{Cvoid},), connection_handle)
+end
