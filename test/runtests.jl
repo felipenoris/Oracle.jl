@@ -17,8 +17,9 @@ connect_string = "your-connect-string"
 """
 include("credentials.jl")
 
+ctx = Oracle.Context()
+
 @testset "Create structs" begin
-    ctx = Oracle.Context()
 
     @testset "Client Version" begin
         v = Oracle.client_version(ctx)
@@ -40,7 +41,6 @@ include("credentials.jl")
 end
 
 @testset "Connection" begin
-    ctx = Oracle.Context()
     sysadmin_conn_create_params = Oracle.dpiConnCreateParams(ctx)
     sysadmin_conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA
     conn = Oracle.Connection(ctx, username, password, connect_string, conn_create_params=sysadmin_conn_create_params)
@@ -56,6 +56,10 @@ end
         println("release = $release")
         println("server_version = $server_version")
         println("")
+    end
+
+    @testset "Stmt" begin
+        stmt = Oracle.Stmt(conn, "SELECT * FROM TB_TEST")
     end
 
     #=

@@ -100,15 +100,18 @@ struct dpiVersionInfo
     full_version::Int32 # Specifies the full version (all five components) as a number that is suitable for comparison with the result of the macro DPI_ORACLE_VERSION_TO_NUMBER.
 end
 
-struct dpiCommonCreateParams
+mutable struct dpiCommonCreateParams
     create_mode::dpiCreateMode # Specifies the mode used for creating connections. It is expected to be one or more of the values from the enumeration dpiCreateMode, OR’ed together. The default value is DPI_MODE_CREATE_DEFAULT.
     encoding::Cstring # Specifies the encoding to use for CHAR data, as a null-terminated ASCII string. Either an IANA or Oracle specific character set name is expected. NULL is also acceptable which implies the use of the NLS_LANG environment variable (or ASCII, if the NLS_LANG environment variable is not set). The default value is NULL.
     nencoding::Cstring # Specifies the encoding to use for NCHAR data, as a null-terminated ASCII string. Either an IANA or Oracle specific character set name is expected. NULL is also acceptable which implies the use of the NLS_NCHAR environment variable (or the same value as the dpiCommonCreateParams.encoding member if the NLS_NCHAR environment variable is not set). The default value is NULL.
     edition::Ptr{UInt8} # Specifies the edition to be used when creating a standalone connection. It is expected to be NULL (meaning that no edition is set) or a byte string in the encoding specified by the dpiCommonCreateParams.encoding member. The default value is NULL.
     edition_length::UInt32 # Specifies the length of the dpiCommonCreateParams.edition member, in bytes. The default value is 0.
-    driver_name::Ptr{UInt8}
-    driver_name_length::UInt32
+    driver_name::Ptr{UInt8} # Specifies the name of the driver that is being used. It is expected to be NULL or a byte string in the encoding specified by the dpiCommonCreateParams.encoding member. The default value is NULL.
+    driver_name_length::UInt32 # Specifies the length of the dpiCommonCreateParams.driverName member, in bytes. The default value is 0.
 end
+
+edition(p::dpiCommonCreateParams) = p.edition == C_NULL ? nothing : unsafe_string(p.edition, p.edition_length)
+driver_name(p::dpiCommonCreateParams) = p.driver_name == C_NULL ? nothing : unsafe_string(p.driver_name, p.driver_name_length)
 
 struct dpiAppContext
     namespace_name::Ptr{UInt8} # Specifies the value of the “namespace” parameter to sys_context(). It is expected to be a byte string in the encoding specified in the dpiConnCreateParams structure and must not be NULL.
@@ -227,6 +230,26 @@ function destroy!(conn::Connection)
         dpi_result = dpiConn_release(conn.handle)
         error_check(conn.context, dpi_result)
         conn.handle = C_NULL
+    end
+    nothing
+end
+
+mutable struct Stmt
+    connection::Connection
+    handle::Ptr{Cvoid}
+
+    function Stmt(connection::Connection, handle::Ptr{Cvoid})
+        new_stmt = new(connection, handle)
+        finalizer(destroy!, new_stmt)
+        return new_stmt
+    end
+end
+
+function destroy!(stmt::Stmt)
+    if stmt.handle != C_NULL
+        dpi_result = dpiStmt_release(stmt.handle)
+        error_check(stmt.connection.context, dpi_result)
+        stmt.handle = C_NULL
     end
     nothing
 end

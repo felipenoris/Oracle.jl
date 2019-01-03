@@ -81,3 +81,20 @@ end
 function dpiConn_shutdownDatabase(connection_handle::Ptr{Cvoid}, shutdown_mode::dpiShutdownMode)
     ccall((:dpiConn_shutdownDatabase, libdpi), dpiResult, (Ptr{Cvoid}, dpiShutdownMode), connection_handle, shutdown_mode)
 end
+
+# int dpiStmt_release(dpiStmt *stmt)
+function dpiStmt_release(stmt_handle::Ptr{Cvoid})
+    ccall((:dpiStmt_release, libdpi), dpiResult, (Ptr{Cvoid},), stmt_handle)
+end
+
+# int dpiConn_prepareStmt(dpiConn *conn, int scrollable, const char *sql, uint32_t sqlLength, const char *tag, uint32_t tagLength, dpiStmt **stmt)
+function dpiConn_prepareStmt(connection_handle::Ptr{Cvoid}, scrollable::Bool, sql::String, tag::String, stmt_handle_ref::Ref{Ptr{Cvoid}})
+    sqlLength = sizeof(sql)
+
+    if tag == ""
+        return ccall((:dpiConn_prepareStmt, libdpi), dpiResult, (Ptr{Cvoid}, Cint, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{Ptr{Cvoid}}), connection_handle, scrollable, sql, sqlLength, C_NULL, 0, stmt_handle_ref)
+    else
+        tagLength = sizeof(tagLength)
+        return ccall((:dpiConn_prepareStmt, libdpi), dpiResult, (Ptr{Cvoid}, Cint, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{Ptr{Cvoid}}), connection_handle, scrollable, sql, sqlLength, tag, tagLength, stmt_handle_ref)
+    end
+end

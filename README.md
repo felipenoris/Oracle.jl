@@ -6,5 +6,5 @@
 * Unzip and add `instantclient` folder to your LD_LIBRARY_PATH:
 
 ```
-export LD_LIBRARY_PATH=/home/felipenoris/instantclient_XX_Y:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/path-to-folder/instantclient_XX_Y:$LD_LIBRARY_PATH
 ```
