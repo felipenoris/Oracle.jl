@@ -42,3 +42,15 @@ function dpiStmtInfo(stmt::Stmt)
     error_check(stmt.connection.context, dpi_result)
     return stmt_info_ref[]
 end
+
+function fetch!(stmt::Stmt)
+    found_ref = Ref{Int32}(0)
+    buffer_row_index_ref = Ref{UInt32}(0) # This index is used as the array position for getting values from the variables that have been defined for the statement.
+    dpiStmt_fetch(stmt.handle, found_ref, buffer_row_index_ref)
+
+    local found::Bool = false
+    if found_ref[] != 0
+        found = true
+    end
+    return (found, buffer_row_index_ref[])
+end

@@ -128,3 +128,8 @@ end
 function dpiStmt_getInfo(stmt_handle::Ptr{Cvoid}, stmt_info_ref::Ref{dpiStmtInfo})
     ccall((:dpiStmt_getInfo, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiStmtInfo}), stmt_handle, stmt_info_ref)
 end
+
+# int dpiStmt_fetch(dpiStmt *stmt, int *found, uint32_t *bufferRowIndex)
+function dpiStmt_fetch(stmt_handle::Ptr{Cvoid}, found_ref::Ref{Int32}, buffer_row_index_ref::Ref{UInt32})
+    ccall((:dpiStmt_fetch, libdpi), dpiResult, (Ptr{Cvoid}, Ref{Int32}, Ref{UInt32}), stmt_handle, found_ref, buffer_row_index_ref)
+end

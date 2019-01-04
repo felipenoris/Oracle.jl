@@ -86,6 +86,14 @@ end
         println(query_info)
     end
 
+    @testset "fetch" begin
+        stmt = Oracle.Stmt(conn, "SELECT ID FROM TB_TEST")
+        Oracle.execute!(stmt)
+        found, buffer_row_index = Oracle.fetch!(stmt)
+        @test found
+        println("buffer_row_index = $buffer_row_index")
+    end
+
     @testset "Drop test table" begin
         simple_query(conn, "DROP TABLE TB_TEST")
     end
