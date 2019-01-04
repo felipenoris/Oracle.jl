@@ -60,9 +60,9 @@ end
     end
 
     @testset "Populate test table" begin
-        simple_query(conn, "CREATE TABLE TB_TEST ( ID INT )")
+        simple_query(conn, "CREATE TABLE TB_TEST ( ID INT NULL )")
         simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
-        simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 2 )")
+        simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
         Oracle.commit!(conn)
 
         simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )")
@@ -83,15 +83,23 @@ end
 
         query_info = Oracle.dpiQueryInfo(stmt, 1)
         @test Oracle.column_name(query_info) == "ID"
-        println(query_info)
     end
 
     @testset "fetch" begin
         stmt = Oracle.Stmt(conn, "SELECT ID FROM TB_TEST")
         Oracle.execute!(stmt)
+
         found, buffer_row_index = Oracle.fetch!(stmt)
         @test found
-        println("buffer_row_index = $buffer_row_index")
+
+        value = Oracle.query_value(stmt, 1)
+        @test !Oracle.is_null(value)
+
+        found, buffer_row_index = Oracle.fetch!(stmt)
+        @test found
+
+        value = Oracle.query_value(stmt, 1)
+        @test Oracle.is_null(value)
     end
 
     @testset "Drop test table" begin

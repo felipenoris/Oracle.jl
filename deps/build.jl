@@ -1,6 +1,9 @@
 
 const PREFIX = joinpath(@__DIR__, "usr")
 const DOWNLOADS = joinpath(PREFIX, "downloads")
+const DEPS_FILE = joinpath(@__DIR__, "deps.jl")
+const SRC_DIR = joinpath(PREFIX, "src")
+const LIB_DIR = joinpath(PREFIX, "lib")
 #const INSTANT_CLIENT_DOWNLOAD_FILE = "instantclient-basic-linux.x64-18.3.0.0.0dbru.zip"
 #const INSTANT_CLIENT_DOWNLOAD_URL = "https://felipenoris.s3.nl-ams.scw.cloud/$INSTANT_CLIENT_DOWNLOAD_FILE"
 #const INSTANT_CLIENT_LOCAL_FILEPATH = joinpath(DOWNLOADS, INSTANT_CLIENT_DOWNLOAD_FILE)
@@ -34,38 +37,64 @@ function download_source_files()
     end
 end
 
+function untar_source_files(; verbose::Bool=false)
+    # tar -xf $ODPI_SOURCE_LOCAL_FILEPATH -C $SRC_DIR --strip-components=1
+    mkdir_if_not_exists(SRC_DIR)
+    cmd_array = ["tar", "-xf", ODPI_SOURCE_LOCAL_FILEPATH, "-C", SRC_DIR, "--strip-components=1"]
+    actual_cmd = Cmd(cmd_array)
+    verbose && println(actual_cmd)
+    run(Cmd(actual_cmd, dir=PREFIX))
+end
+
+function patch(original_file, patch_file, output_file)
+    @assert isfile(original_file) && isfile(patch_file)
+
+    function copy_content(io_in, io_out)
+        while !eof(io_in)
+            write(io_out, read(io_in, UInt8))
+        end
+    end
+
+    open(output_file, "w") do io_out
+        open(original_file, "r") do io_in
+            copy_content(io_in, io_out)
+        end
+
+        open(patch_file, "r") do io_in
+            copy_content(io_in, io_out)
+        end
+    end
+end
+
 function build_shared_library(; verbose::Bool=false)
     download_source_files()
+    untar_source_files()
+    mkdir_if_not_exists(LIB_DIR)
 
-    src_dir = joinpath(PREFIX, "src")
-    mkdir_if_not_exists(src_dir)
-
-    lib_dir = joinpath(PREFIX, "lib")
-    mkdir_if_not_exists(lib_dir)
-
+    # apply patch
+    original_file = joinpath(SRC_DIR, "embed", "dpi.c")
+    patch_file = joinpath(@__DIR__, "dpi_patch.c")
+    patched_file = joinpath(SRC_DIR, "embed", "dpi_patched.c")
+    patch(original_file, patch_file, patched_file)
 
     @static if Sys.islinux()
         #=
-        tar -xf $ODPI_SOURCE_LOCAL_FILEPATH -C $src_dir --strip-components=1
         cc -c -fPIC -I ../include -ldl -o dpi.o dpi.c
         cc -shared -fPIC -Wl,-soname,libdpi.so.3 -o ../lib/libdpi.so.3.0.0 dpi.o -lc
         =#
 
         build_script = [
-            ["tar", "-xf", ODPI_SOURCE_LOCAL_FILEPATH, "-C", src_dir, "--strip-components=1"],
-            ["cc", "-c", "-fPIC", "-I", joinpath(src_dir, "include"), "-ldl", "-o", joinpath(src_dir, "embed", "dpi.o"), joinpath(src_dir, "embed", "dpi.c")],
-            ["cc", "-shared", "-fPIC", "-Wl,-soname,libdpi.so.3", "-o", SHARED_LIB, joinpath(src_dir, "embed", "dpi.o"), "-lc"]
+            ["cc", "-c", "-fPIC", "-I", joinpath(SRC_DIR, "include"), "-ldl", "-o", joinpath(SRC_DIR, "embed", "dpi.o"), patched_file],
+            ["cc", "-shared", "-fPIC", "-Wl,-soname,libdpi.so.3", "-o", SHARED_LIB, joinpath(SRC_DIR, "embed", "dpi.o"), "-lc"]
         ]
 
     elseif Sys.isapple()
         #=
-        tar -xf $ODPI_SOURCE_LOCAL_FILEPATH -C $src_dir --strip-components=1
         cc -dynamiclib -I ../include -o ../lib/libdpi.dylib dpi.c
         =#
 
         build_script = [
-            ["tar", "-xf", ODPI_SOURCE_LOCAL_FILEPATH, "-C", src_dir, "--strip-components=1"],
-            ["cc", "-dynamiclib", "-I", joinpath(src_dir, "include"), "-o", SHARED_LIB, joinpath(src_dir, "embed", "dpi.c")]
+            ["cc", "-dynamiclib", "-I", joinpath(SRC_DIR, "include"), "-o", SHARED_LIB, patched_file]
         ]
 
     else
@@ -79,7 +108,12 @@ function build_shared_library(; verbose::Bool=false)
     end
 
     @assert isfile(SHARED_LIB) "Failed building libdpi shared library."
-    rm(src_dir, recursive=true)
+    clean()
+end
+
+function clean()
+    rm(SRC_DIR, recursive=true)
+    rm(DOWNLOADS, recursive=true)
 end
 
 function write_deps_file()
@@ -107,7 +141,7 @@ function check_deps()
 end
 """
 
-    open(joinpath(@__DIR__, "deps.jl"), "w") do f
+    open(DEPS_FILE, "w") do f
         write(f, deps_file_content)
     end
 end

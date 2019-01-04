@@ -1,4 +1,27 @@
 
+#
+# functions added by deps/dpi_patch.c
+#
+
+#size_t sizeof_dpiDataBuffer()
+function sizeof_dpiDataBuffer()
+    ccall((:sizeof_dpiDataBuffer, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiData()
+function sizeof_dpiData()
+    ccall((:sizeof_dpiData, libdpi), Csize_t, ())
+end
+
+# int dpiData_isNull(dpiData *data)
+function dpiData_isNull(data_handle::Ptr{dpiData})
+    ccall((:dpiData_isNull, libdpi), Cint, (Ptr{dpiData},), data_handle)
+end
+
+#
+# ODPI public API
+#
+
 # int dpiContext_create(unsigned int majorVersion, unsigned int minorVersion, dpiContext **context, dpiErrorInfo *errorInfo)
 function dpiContext_create(major_version::UInt32, minor_version::UInt32, dpi_context_ref::Ref{Ptr{Cvoid}}, dpi_error_info::Ref{dpiErrorInfo})
     ccall((:dpiContext_create, libdpi), dpiResult, (Cuint, Cuint, Ref{Ptr{Cvoid}}, Ref{dpiErrorInfo}), major_version, minor_version, dpi_context_ref, dpi_error_info)
@@ -132,4 +155,9 @@ end
 # int dpiStmt_fetch(dpiStmt *stmt, int *found, uint32_t *bufferRowIndex)
 function dpiStmt_fetch(stmt_handle::Ptr{Cvoid}, found_ref::Ref{Int32}, buffer_row_index_ref::Ref{UInt32})
     ccall((:dpiStmt_fetch, libdpi), dpiResult, (Ptr{Cvoid}, Ref{Int32}, Ref{UInt32}), stmt_handle, found_ref, buffer_row_index_ref)
+end
+
+# int dpiStmt_getQueryValue(dpiStmt *stmt, uint32_t pos, dpiNativeTypeNum *nativeTypeNum, dpiData **data)
+function dpiStmt_getQueryValue(stmt_handle::Ptr{Cvoid}, pos::UInt32, native_type_num_ref::Ref{dpiNativeTypeNum}, data_handle_ref::Ref{Ptr{dpiData}})
+    ccall((:dpiStmt_getQueryValue, libdpi), dpiResult, (Ptr{Cvoid}, UInt32, Ref{dpiNativeTypeNum}, Ref{Ptr{dpiData}}), stmt_handle, pos, native_type_num_ref, data_handle_ref)
 end

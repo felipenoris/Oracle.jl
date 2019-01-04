@@ -1,6 +1,22 @@
 
 module Oracle
 
+# Compat
+@static if VERSION < v"0.7-"
+    const Nothing = Void
+    const Cvoid   = Void
+else
+    #using Dates
+end
+
+function undef_vector(::Type{T}, len::Integer) where T
+    @static if VERSION < v"0.7-"
+        Vector{T}(len)
+    else
+        Vector{T}(undef, len)
+    end
+end
+
 const DEPS_FILE = joinpath(@__DIR__, "..", "deps", "deps.jl")
 if !isfile(DEPS_FILE)
     error("Oracle.jl is not installed properly, run Pkg.build(\"Oracle\") and restart Julia.")

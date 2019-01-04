@@ -151,6 +151,17 @@ end
     DPI_STMT_TYPE_COMMIT       = 21
 end
 
+# 24 bytes -> sizeof dpiDataBuffer on 64bit arch
+primitive type dpiDataBuffer 24 * 8 end
+
+"""
+This structure is used for passing data to and from the database for variables and for manipulating object attributes and collection values.
+"""
+struct dpiData
+    is_null::Int32 # Specifies if the value refers to a null value (1) or not (0).
+    value::dpiDataBuffer
+end
+
 struct dpiErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.
     offset::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
@@ -355,4 +366,12 @@ function destroy!(stmt::Stmt)
         stmt.handle = C_NULL
     end
     nothing
+end
+
+"""
+High-level type as an aggregation of `dpiNativeTypeNum` and `dpiData`.
+"""
+struct DataValue
+    native_type::dpiNativeTypeNum
+    dpi_data_handle::Ptr{dpiData}
 end
