@@ -10,6 +10,5 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
     dpi_pool_handle_ref = Ref{Ptr{Cvoid}}()
     dpi_result = dpiPool_create(ctx.handle, user, password, connect_string, Ref(common_params), Ref(pool_create_params), dpi_pool_handle_ref)
     error_check(ctx, dpi_result)
-
-    return Pool(dpi_pool_handle_ref[])
+    return Pool(ctx, dpi_pool_handle_ref[])
 end

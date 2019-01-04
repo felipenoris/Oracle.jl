@@ -99,9 +99,7 @@ end
     =#
 end
 
-#=
 @testset "Pool" begin
     ctx = Oracle.Context()
     pool = Oracle.Pool(ctx, username, password, connect_string)
 end
-=#
