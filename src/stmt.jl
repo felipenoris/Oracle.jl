@@ -60,29 +60,6 @@ function fetch!(stmt::Stmt)
     return (found, buffer_row_index_ref[])
 end
 
-function is_null(val::DataValue)
-#=
-    # DataValue.dpi_data::dpiData
-
-    if val.dpi_data.is_null == 0
-        return false
-    elseif val.dpi_data.is_null == 1
-        return true
-    else
-        error("Unexpected value for dpiData.is_null field: $(val.dpi_data.is_null)")
-    end
-=#
-
-    is_null_as_cint = dpiData_isNull(val.dpi_data_handle)
-    if is_null_as_cint == 0
-        return false
-    elseif is_null_as_cint == 1
-        return true
-    else
-        error("Unexpected value for dpiData.is_null field: $(Int(is_null_as_cint))")
-    end
-end
-
 function query_value(stmt::Stmt, column_index::UInt32) :: DataValue
     native_type_ref = Ref{dpiNativeTypeNum}()
     data_handle_ref = Ref{Ptr{dpiData}}()

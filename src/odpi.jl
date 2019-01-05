@@ -161,3 +161,33 @@ end
 function dpiStmt_getQueryValue(stmt_handle::Ptr{Cvoid}, pos::UInt32, native_type_num_ref::Ref{dpiNativeTypeNum}, data_handle_ref::Ref{Ptr{dpiData}})
     ccall((:dpiStmt_getQueryValue, libdpi), dpiResult, (Ptr{Cvoid}, UInt32, Ref{dpiNativeTypeNum}, Ref{Ptr{dpiData}}), stmt_handle, pos, native_type_num_ref, data_handle_ref)
 end
+
+# int dpiData_getBool(dpiData *data)
+function dpiData_getBool(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getBool, libdpi), Cint, (Ptr{dpiData},), dpi_data_handle)
+end
+
+# double dpiData_getDouble(dpiData *data)
+function dpiData_getDouble(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getDouble, libdpi), Cdouble, (Ptr{dpiData},), dpi_data_handle)
+end
+
+# float dpiData_getFloat(dpiData *data)
+function dpiData_getFloat(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getFloat, libdpi), Cfloat, (Ptr{dpiData},), dpi_data_handle)
+end
+
+# int64_t dpiData_getInt64(dpiData *data)
+function dpiData_getInt64(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getInt64, libdpi), Int64, (Ptr{dpiData},), dpi_data_handle)
+end
+
+# uint64_t dpiData_getUint64(dpiData *data)
+function dpiData_getUint64(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getUint64, libdpi), UInt64, (Ptr{dpiData},), dpi_data_handle)
+end
+
+# dpiBytes *dpiData_getBytes(dpiData *data)
+function dpiData_getBytes(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getBytes, libdpi), Ptr{dpiBytes}, (Ptr{dpiData},), dpi_data_handle)
+end

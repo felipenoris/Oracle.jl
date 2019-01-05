@@ -287,6 +287,20 @@ struct dpiStmtInfo
     is_returning::Int32
 end
 
+struct dpiBytes
+    ptr::Ptr{UInt8}
+    length::UInt32
+    encoding::Cstring
+end
+
+Base.show(io::IO, ptr::Ptr{dpiBytes}) = show(io, unsafe_load(ptr))
+
+function Base.show(io::IO, ora_str::dpiBytes)
+    str = unsafe_string(ora_str.ptr, ora_str.length)
+    enc = unsafe_string(ora_str.encoding)
+    print(io, "dpiBytes(", str, ", ", enc, ")")
+end
+
 mutable struct Context
     handle::Ptr{Cvoid}
 
