@@ -157,6 +157,11 @@ function dpiStmt_fetch(stmt_handle::Ptr{Cvoid}, found_ref::Ref{Int32}, buffer_ro
     ccall((:dpiStmt_fetch, libdpi), dpiResult, (Ptr{Cvoid}, Ref{Int32}, Ref{UInt32}), stmt_handle, found_ref, buffer_row_index_ref)
 end
 
+# int dpiStmt_fetchRows(dpiStmt *stmt, uint32_t maxRows, uint32_t *bufferRowIndex, uint32_t *numRowsFetched, int *moreRows)
+function dpiStmt_fetchRows(stmt_handle::Ptr{Cvoid}, max_rows::UInt32, buffer_row_index_ref::Ref{UInt32}, num_rows_fetched_ref::Ref{UInt32}, more_rows_ref::Ref{Int32})
+    ccall((:dpiStmt_fetchRows, libdpi), dpiResult, (Ptr{Cvoid}, UInt32, Ref{UInt32}, Ref{UInt32}, Ref{Int32}), stmt_handle, max_rows, buffer_row_index_ref, num_rows_fetched_ref, more_rows_ref)
+end
+
 # int dpiStmt_getQueryValue(dpiStmt *stmt, uint32_t pos, dpiNativeTypeNum *nativeTypeNum, dpiData **data)
 function dpiStmt_getQueryValue(stmt_handle::Ptr{Cvoid}, pos::UInt32, native_type_num_ref::Ref{dpiNativeTypeNum}, data_handle_ref::Ref{Ptr{dpiData}})
     ccall((:dpiStmt_getQueryValue, libdpi), dpiResult, (Ptr{Cvoid}, UInt32, Ref{dpiNativeTypeNum}, Ref{Ptr{dpiData}}), stmt_handle, pos, native_type_num_ref, data_handle_ref)

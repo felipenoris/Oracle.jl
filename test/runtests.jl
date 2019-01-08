@@ -85,16 +85,16 @@ end
     stmt = Oracle.Stmt(conn, "SELECT ID FROM TB_TEST")
     Oracle.execute!(stmt)
 
-    found, buffer_row_index = Oracle.fetch!(stmt)
-    @test found
+    result = Oracle.fetch!(stmt)
+    @test result.found
 
     value = Oracle.query_value(stmt, 1)
     @test !Oracle.is_null(value)
     @test value[] == 1.0
     @test isa(value[], Float64)
 
-    found, buffer_row_index = Oracle.fetch!(stmt)
-    @test found
+    result = Oracle.fetch!(stmt)
+    @test result.found
 
     value = Oracle.query_value(stmt, 1)
     @test Oracle.is_null(value)
@@ -118,10 +118,10 @@ end
     num_columns = Oracle.execute!(stmt)
     @test num_columns == 3
 
-    found, buffer_row_index = Oracle.fetch!(stmt)
-    @test found
+    result = Oracle.fetch!(stmt)
+    @test result.found
 
-    while found
+    while result.found
 
         value_id = Oracle.query_value(stmt, 1)
         value_name = Oracle.query_value(stmt, 2)
@@ -131,10 +131,41 @@ end
         println("value_name = ", value_name[])
         println("value amount = ", value_amount[])
 
-        found, buffer_row_index = Oracle.fetch!(stmt)
+        result = Oracle.fetch!(stmt)
     end
 
     simple_query(conn, "DROP TABLE TB_TEST_DATATYPES")
+end
+
+@testset "Fetch Many" begin
+    simple_query(conn, "CREATE TABLE TB_TEST_FETCH_MANY ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
+    for i in 1:10
+        simple_query(conn, "INSERT INTO TB_TEST_FETCH_MANY ( ID, VAL ) VALUES ( $i, $(10i))")
+    end
+
+    stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
+    num_cols = Oracle.execute!(stmt)
+    @test num_cols == 2
+
+    fetch_rows_result = Oracle.fetch_rows!(stmt, 3)
+    println(fetch_rows_result)
+
+    value_id = Oracle.query_value(stmt, 1)
+    value_val = Oracle.query_value(stmt, 2)
+
+    @test value_id[] == 3
+    @test value_val[] == 30
+
+    @test value_id[-2] == 1
+    @test value_val[-2] == 10
+
+    @test value_id[-1] == 2
+    @test value_val[-1] == 20
+
+    @test value_id[0] == 3
+    @test value_val[0] == 30
+
+    simple_query(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end
 
 #=

@@ -389,3 +389,14 @@ struct DataValue
     native_type::dpiNativeTypeNum
     dpi_data_handle::Ptr{dpiData}
 end
+
+struct CursorSchema
+    stmt::Stmt
+    column_query_info::Vector{dpiQueryInfo}
+    column_names::Vector{String}
+end
+
+struct Cursor
+    stmt::Stmt
+    schema::CursorSchema
+end

@@ -43,6 +43,11 @@ function dpiStmtInfo(stmt::Stmt)
     return stmt_info_ref[]
 end
 
+struct FetchResult
+    found::Bool
+    buffer_row_index::UInt32
+end
+
 """
     fetch!(stmt::Stmt)
 
@@ -57,7 +62,25 @@ function fetch!(stmt::Stmt)
     if found_ref[] != 0
         found = true
     end
-    return (found, buffer_row_index_ref[])
+    return FetchResult(found, buffer_row_index_ref[])
+end
+
+struct FetchRowsResult
+    buffer_row_index::UInt32
+    num_rows_fetched::UInt32
+    more_rows::Int32
+end
+Base.show(io::IO, result::FetchRowsResult) = print(io, "FetchRowsResult(", Int(result.buffer_row_index), ", " ,Int(result.num_rows_fetched), ", ",Int(result.more_rows), ")")
+
+function fetch_rows!(stmt::Stmt, max_rows::Integer) :: FetchRowsResult
+    # dpiStmt_fetchRows(stmt_handle::Ptr{Cvoid}, max_rows::UInt32, buffer_row_index_ref::Ref{UInt32}, num_rows_fetched_ref::Ref{UInt32}, more_rows_ref::Ref{Int32})
+    buffer_row_index_ref = Ref{UInt32}()
+    num_rows_fetched_ref = Ref{UInt32}()
+    more_rows_ref = Ref{Int32}()
+
+    dpi_result = dpiStmt_fetchRows(stmt.handle, UInt32(max_rows), buffer_row_index_ref, num_rows_fetched_ref, more_rows_ref)
+    error_check(stmt.connection.context, dpi_result)
+    return FetchRowsResult(buffer_row_index_ref[], num_rows_fetched_ref[], more_rows_ref[])
 end
 
 function query_value(stmt::Stmt, column_index::UInt32) :: DataValue
@@ -68,3 +91,14 @@ function query_value(stmt::Stmt, column_index::UInt32) :: DataValue
     return DataValue(native_type_ref[], data_handle_ref[])
 end
 query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
+
+function is_query(stmt::Stmt) :: Bool
+    stmt_info = dpiStmtInfo(stmt)
+    if stmt_info.is_query == 1
+        return true
+    elseif stmt_info.is_query == 0
+        return false
+    else
+        error("Invalid value for dpiStmtInfo.is_query: ", stmt_info.is_query)
+    end
+end

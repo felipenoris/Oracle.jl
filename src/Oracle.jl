@@ -33,6 +33,10 @@ include("pool.jl")
 
 function __init__()
     check_deps() # defined in DEPS_FILE
+
+    # check size of structs affected by C unions
+    @assert sizeof(dpiDataBuffer) == sizeof_dpiDataBuffer()
+    @assert sizeof(dpiData) == sizeof_dpiData()
 end
 
 @inline function error_check(ctx::Context, dpi_result::dpiResult)
