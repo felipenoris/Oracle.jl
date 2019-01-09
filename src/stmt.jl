@@ -19,6 +19,12 @@ function execute!(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT) :: U
     return num_query_columns_ref[]
 end
 
+function close!(stmt::Stmt; tag::String="")
+    dpi_result = dpiStmt_close(stmt.handle, tag)
+    error_check(stmt.connection.context, dpi_result)
+    nothing
+end
+
 function num_query_columns(stmt::Stmt) :: UInt32
     num_query_columns_ref = Ref{UInt32}(0)
     dpi_result = dpiStmt_getNumQueryColumns(stmt.handle, num_query_columns_ref)

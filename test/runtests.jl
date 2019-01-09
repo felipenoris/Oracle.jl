@@ -17,7 +17,11 @@ connect_string = "your-connect-string"
 """
 include("credentials.jl")
 
-simple_query(conn::Oracle.Connection, sql::String) = Oracle.execute!(Oracle.Stmt(conn, sql))
+function simple_query(conn::Oracle.Connection, sql::String)
+    stmt = Oracle.Stmt(conn, sql)
+    Oracle.execute!(stmt)
+    Oracle.close!(stmt)
+end
 
 ctx = Oracle.Context()
 conn = Oracle.Connection(ctx, username, password, connect_string)
@@ -142,6 +146,8 @@ end
         iter += 1
     end
 
+    Oracle.close!(stmt)
+
     simple_query(conn, "DROP TABLE TB_TEST_DATATYPES")
 end
 
@@ -175,6 +181,8 @@ end
 
     @test value_id[0] == 3
     @test value_val[0] == 30
+
+    Oracle.close!(stmt)
 
     simple_query(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end

@@ -117,8 +117,18 @@ function dpiConn_prepareStmt(connection_handle::Ptr{Cvoid}, scrollable::Bool, sq
     if tag == ""
         return ccall((:dpiConn_prepareStmt, libdpi), dpiResult, (Ptr{Cvoid}, Cint, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{Ptr{Cvoid}}), connection_handle, scrollable, sql, sqlLength, C_NULL, 0, stmt_handle_ref)
     else
-        tagLength = sizeof(tagLength)
+        tagLength = sizeof(tag)
         return ccall((:dpiConn_prepareStmt, libdpi), dpiResult, (Ptr{Cvoid}, Cint, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{Ptr{Cvoid}}), connection_handle, scrollable, sql, sqlLength, tag, tagLength, stmt_handle_ref)
+    end
+end
+
+# int dpiStmt_close(dpiStmt *stmt, const char *tag, uint32_t tagLength)
+function dpiStmt_close(stmt_handle::Ptr{Cvoid}, tag::String)
+    if tag == ""
+        return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, C_NULL, 0)
+    else
+        tagLength = sizeof(tag)
+        return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, tag, tagLength)
     end
 end
 
