@@ -3,7 +3,7 @@ function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::
     stmt_handle_ref = Ref{Ptr{Cvoid}}()
     dpi_result = dpiConn_prepareStmt(connection.handle, scrollable, sql, tag, stmt_handle_ref)
     error_check(connection.context, dpi_result)
-    return Stmt(connection, stmt_handle_ref[])
+    return Stmt(connection, stmt_handle_ref[], scrollable)
 end
 
 """
@@ -16,6 +16,7 @@ function execute!(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT) :: U
     num_query_columns_ref = Ref{UInt32}(0)
     dpi_result = dpiStmt_execute(stmt.handle, exec_mode, num_query_columns_ref)
     error_check(stmt.connection.context, dpi_result)
+    stmt.executed = true
     return num_query_columns_ref[]
 end
 
@@ -26,6 +27,7 @@ function close!(stmt::Stmt; tag::String="")
 end
 
 function num_query_columns(stmt::Stmt) :: UInt32
+    @assert stmt.executed "Cannot query number of query columns on a non-executed statement."
     num_query_columns_ref = Ref{UInt32}(0)
     dpi_result = dpiStmt_getNumQueryColumns(stmt.handle, num_query_columns_ref)
     error_check(stmt.connection.context, dpi_result)
@@ -49,11 +51,6 @@ function dpiStmtInfo(stmt::Stmt)
     return stmt_info_ref[]
 end
 
-struct FetchResult
-    found::Bool
-    buffer_row_index::UInt32
-end
-
 """
     fetch!(stmt::Stmt)
 
@@ -71,15 +68,7 @@ function fetch!(stmt::Stmt)
     return FetchResult(found, buffer_row_index_ref[])
 end
 
-struct FetchRowsResult
-    buffer_row_index::UInt32
-    num_rows_fetched::UInt32
-    more_rows::Int32
-end
-Base.show(io::IO, result::FetchRowsResult) = print(io, "FetchRowsResult(", Int(result.buffer_row_index), ", " ,Int(result.num_rows_fetched), ", ",Int(result.more_rows), ")")
-
-function fetch_rows!(stmt::Stmt, max_rows::Integer) :: FetchRowsResult
-    # dpiStmt_fetchRows(stmt_handle::Ptr{Cvoid}, max_rows::UInt32, buffer_row_index_ref::Ref{UInt32}, num_rows_fetched_ref::Ref{UInt32}, more_rows_ref::Ref{Int32})
+function fetch_rows!(stmt::Stmt, max_rows::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE) :: FetchRowsResult
     buffer_row_index_ref = Ref{UInt32}()
     num_rows_fetched_ref = Ref{UInt32}()
     more_rows_ref = Ref{Int32}()

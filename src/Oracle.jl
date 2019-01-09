@@ -29,6 +29,7 @@ include("context.jl")
 include("connection.jl")
 include("stmt.jl")
 include("data_value.jl")
+include("cursor.jl")
 include("pool.jl")
 
 function __init__()

@@ -365,9 +365,11 @@ end
 mutable struct Stmt
     connection::Connection
     handle::Ptr{Cvoid}
+    scrollable::Bool
+    executed::Bool
 
-    function Stmt(connection::Connection, handle::Ptr{Cvoid})
-        new_stmt = new(connection, handle)
+    function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
+        new_stmt = new(connection, handle, scrollable, false)
         finalizer(destroy!, new_stmt)
         return new_stmt
     end
@@ -390,13 +392,37 @@ struct DataValue
     dpi_data_handle::Ptr{dpiData}
 end
 
+struct FetchResult
+    found::Bool
+    buffer_row_index::UInt32
+end
+
+struct FetchRowsResult
+    buffer_row_index::UInt32
+    num_rows_fetched::UInt32
+    more_rows::Int32
+end
+
+Base.show(io::IO, result::FetchRowsResult) = print(io, "FetchRowsResult(", Int(result.buffer_row_index), ", " ,Int(result.num_rows_fetched), ", ",Int(result.more_rows), ")")
+
 struct CursorSchema
     stmt::Stmt
     column_query_info::Vector{dpiQueryInfo}
     column_names::Vector{String}
 end
 
-struct Cursor
+mutable struct Cursor
     stmt::Stmt
     schema::CursorSchema
+    fetch_array_size::UInt32
+end
+
+struct ResultSetRow
+    cursor::Cursor
+    offset::Int # after Oracle.fetch_rows!, the DataValue points to the last element of the fetched array. This offset is a negative value to get one value from that array.
+end
+
+struct CursorIteratorState
+    next_offset::Int
+    last_fetch_rows_result::FetchRowsResult
 end

@@ -187,6 +187,21 @@ end
     simple_query(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end
 
+@testset "Cursor" begin
+    simple_query(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
+    for i in 1:10
+        simple_query(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL ) VALUES ( $i, $(10i))")
+    end
+
+    row_number = 0
+    for row in Oracle.query(conn, "SELECT ID, VAL FROM TB_TEST_CURSOR", fetch_array_size=3)
+        row_number += 1
+    end
+    @test row_number == 10
+
+    simple_query(conn, "DROP TABLE TB_TEST_CURSOR")
+end
+
 #=
 @testset "shutdown/startup" begin
     # The connection needs to have been established at least with authorization mode set to DPI_MODE_AUTH_SYSDBA or DPI_MODE_AUTH_SYSOPER
