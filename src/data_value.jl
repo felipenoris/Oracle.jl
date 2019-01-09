@@ -40,8 +40,14 @@ function parse_julia_value(val::DataValue, offset::Integer=0)
         return dpiData_getUint64(dpi_data_handle)
 
     elseif val.native_type == DPI_NATIVE_TYPE_BYTES
-        return dpiData_getBytes(dpi_data_handle)
-
+        ptr_bytes = dpiData_getBytes(dpi_data_handle) # get a Ptr{dpiBytes}
+        ora_string = unsafe_load(ptr_bytes) # get a dpiBytes
+        enc = unsafe_string(ora_string.encoding)
+        if enc == "ASCII" || enc == "UTF-8"
+            return unsafe_string(ora_string.ptr, ora_string.length)
+        else
+            error("String encoding not supported: $enc.")
+        end
     else
         error("data type not supported")
     end

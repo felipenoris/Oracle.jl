@@ -121,17 +121,25 @@ end
     result = Oracle.fetch!(stmt)
     @test result.found
 
+    iter = 1
+    id_values = [1, 2, 3]
+    amount_values = [123.45, 10, .1]
+
     while result.found
 
         value_id = Oracle.query_value(stmt, 1)
         value_name = Oracle.query_value(stmt, 2)
         value_amount = Oracle.query_value(stmt, 3)
 
-        println("value_id = ", value_id[])
-        println("value_name = ", value_name[])
-        println("value amount = ", value_amount[])
+        if iter == 1
+            @test "hello world" == value_name[]
+        end
+
+        @test id_values[iter] == value_id[]
+        @test amount_values[iter] == value_amount[]
 
         result = Oracle.fetch!(stmt)
+        iter += 1
     end
 
     simple_query(conn, "DROP TABLE TB_TEST_DATATYPES")
@@ -148,7 +156,10 @@ end
     @test num_cols == 2
 
     fetch_rows_result = Oracle.fetch_rows!(stmt, 3)
-    println(fetch_rows_result)
+
+    @test fetch_rows_result.buffer_row_index == 0
+    @test fetch_rows_result.num_rows_fetched == 3
+    @test fetch_rows_result.more_rows == 1
 
     value_id = Oracle.query_value(stmt, 1)
     value_val = Oracle.query_value(stmt, 2)
