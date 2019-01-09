@@ -57,3 +57,9 @@ function rollback!(conn::Connection)
     error_check(conn.context, dpi_result)
     nothing
 end
+
+function close!(conn::Connection; close_mode::dpiConnCloseMode=DPI_MODE_CONN_CLOSE_DEFAULT, tag::String="")
+    dpi_result = dpiConn_close(conn.handle, close_mode=close_mode, tag=tag)
+    error_check(conn.context, dpi_result)
+    nothing
+end

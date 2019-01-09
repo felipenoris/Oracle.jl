@@ -20,7 +20,7 @@ function execute!(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT) :: U
 end
 
 function close!(stmt::Stmt; tag::String="")
-    dpi_result = dpiStmt_close(stmt.handle, tag)
+    dpi_result = dpiStmt_close(stmt.handle, tag=tag)
     error_check(stmt.connection.context, dpi_result)
     nothing
 end

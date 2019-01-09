@@ -122,8 +122,18 @@ function dpiConn_prepareStmt(connection_handle::Ptr{Cvoid}, scrollable::Bool, sq
     end
 end
 
+# int dpiConn_close(dpiConn *conn, dpiConnCloseMode mode, const char *tag, uint32_t tagLength)
+function dpiConn_close(connection_handle::Ptr{Cvoid}; close_mode::dpiConnCloseMode=DPI_MODE_CONN_CLOSE_DEFAULT, tag::String="")
+    if tag == ""
+        return ccall((:dpiConn_close, libdpi), dpiResult, (Ptr{Cvoid}, dpiConnCloseMode, Ptr{UInt8}, UInt32), connection_handle, close_mode, C_NULL, 0)
+    else
+        tagLength = sizeof(tag)
+        return ccall((:dpiConn_close, libdpi), dpiResult, (Ptr{Cvoid}, dpiConnCloseMode, Ptr{UInt8}, UInt32), connection_handle, close_mode, tag, tagLength)
+    end
+end
+
 # int dpiStmt_close(dpiStmt *stmt, const char *tag, uint32_t tagLength)
-function dpiStmt_close(stmt_handle::Ptr{Cvoid}, tag::String)
+function dpiStmt_close(stmt_handle::Ptr{Cvoid}; tag::String="")
     if tag == ""
         return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, C_NULL, 0)
     else
