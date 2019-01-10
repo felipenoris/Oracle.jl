@@ -1,4 +1,19 @@
 
+#=
+for i in iter   # or  "for i = iter"
+    # body
+end
+
+is translated into:
+
+next = iterate(iter)
+while next !== nothing
+    (i, state) = next
+    # body
+    next = iterate(iter, state)
+end
+=#
+
 function CursorSchema(stmt::Stmt)
     @assert is_query(stmt) "Cannot create a Cursor for a statement that is not a Query."
 
@@ -79,21 +94,10 @@ first_offset(result::FetchRowsResult) = -Int(result.num_rows_fetched) + 1
 
 function query(conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT, fetch_array_size::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
     stmt = Stmt(conn, sql; scrollable=scrollable, tag=tag)
+    return query(stmt; exec_mode=exec_mode, fetch_array_size=fetch_array_size)
+end
+
+function query(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT, fetch_array_size::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
     execute!(stmt; exec_mode=exec_mode)
     return Cursor(stmt; fetch_array_size=fetch_array_size)
 end
-
-#=
-for i in iter   # or  "for i = iter"
-    # body
-end
-
-is translated into:
-
-next = iterate(iter)
-while next !== nothing
-    (i, state) = next
-    # body
-    next = iterate(iter, state)
-end
-=#
