@@ -9,7 +9,7 @@ else
     #using Dates
 end
 
-function undef_vector(::Type{T}, len::Integer) where T
+function undef_vector(::Type{T}, len::Integer) where {T}
     @static if VERSION < v"0.7-"
         Vector{T}(len)
     else
@@ -30,6 +30,7 @@ include("connection.jl")
 include("stmt.jl")
 include("data_value.jl")
 include("cursor.jl")
+include("result_set_row.jl")
 include("pool.jl")
 
 function __init__()

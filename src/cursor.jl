@@ -20,18 +20,18 @@ function CursorSchema(stmt::Stmt)
     num_columns = num_query_columns(stmt)
 
     column_query_info = Vector{dpiQueryInfo}()
-    column_names = Vector{String}()
+    column_names_index = Dict{String, Int}()
 
     for column_index in 1:num_columns
         q_info = dpiQueryInfo(stmt, column_index)
         push!(column_query_info, q_info)
-        push!(column_names, column_name(q_info))
+        column_names_index[column_name(q_info)] = column_index
     end
 
-    return CursorSchema(stmt, column_query_info, column_names)
+    return CursorSchema(stmt, column_query_info, column_names_index)
 end
 
-num_query_columns(schema::CursorSchema) = length(schema.column_names)
+num_query_columns(schema::CursorSchema) = length(schema.column_names_index)
 num_query_columns(cursor::Cursor) = num_query_columns(cursor.schema)
 num_query_columns(row::ResultSetRow) = num_query_columns(row.cursor)
 
@@ -83,7 +83,7 @@ function Base.iterate(cursor::Cursor, state::CursorIteratorState)
             offset = first_offset(fetch_rows_result)
             return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
         else
-            # there are no more rows to fetch, so we exausted this cursor
+            # there are no more rows to fetch, so we finished reading from this Cursor
             close!(cursor.stmt)
             return nothing
         end

@@ -188,14 +188,29 @@ end
 end
 
 @testset "Cursor" begin
-    simple_query(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
+    simple_query(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL, VAL_FLT NUMBER(4,2), STR VARCHAR2(255) )")
     for i in 1:10
-        simple_query(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL ) VALUES ( $i, $(10i))")
+        simple_query(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( $i, $(10i), 10.01, 'hey you')")
     end
 
     row_number = 0
-    for row in Oracle.query(conn, "SELECT ID, VAL FROM TB_TEST_CURSOR", fetch_array_size=3)
+    for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR", fetch_array_size=3)
         row_number += 1
+        @test row["ID"] == row_number
+        @test isa(row["ID"], Int)
+        @test row["ID"] == row[1]
+
+        @test row["VAL"] == row_number * 10
+        @test isa(row["VAL"], Int)
+        @test row["VAL"] == row[2]
+
+        @test row["VAL_FLT"] == 10.01
+        @test isa(row["VAL_FLT"], Float64)
+        @test row["VAL_FLT"] == row[3]
+
+        @test row["STR"] == "hey you"
+        @test isa(row["STR"], String)
+        @test row["STR"] == row[4]
     end
     @test row_number == 10
 

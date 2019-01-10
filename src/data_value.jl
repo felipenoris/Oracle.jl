@@ -15,7 +15,7 @@ function is_null(ptr::Ptr{dpiData})
     end
 end
 
-function parse_julia_value(val::DataValue, offset::Integer=0)
+function parse_native_value(val::DataValue, offset::Integer=0)
 
     dpi_data_handle = val.dpi_data_handle + offset*SIZEOF_DPI_DATA
 
@@ -53,5 +53,5 @@ function parse_julia_value(val::DataValue, offset::Integer=0)
     end
 end
 
-Base.getindex(val::DataValue) = parse_julia_value(val)
-Base.getindex(val::DataValue, offset::Integer) = parse_julia_value(val, offset)
+Base.getindex(val::DataValue) = parse_native_value(val)
+Base.getindex(val::DataValue, offset::Integer) = parse_native_value(val, offset)

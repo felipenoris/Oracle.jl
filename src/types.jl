@@ -408,7 +408,7 @@ Base.show(io::IO, result::FetchRowsResult) = print(io, "FetchRowsResult(", Int(r
 struct CursorSchema
     stmt::Stmt
     column_query_info::Vector{dpiQueryInfo}
-    column_names::Vector{String}
+    column_names_index::Dict{String, Int}
 end
 
 mutable struct Cursor
@@ -420,6 +420,7 @@ end
 struct ResultSetRow
     cursor::Cursor
     offset::Int # after Oracle.fetch_rows!, the DataValue points to the last element of the fetched array. This offset is a negative value to get one value from that array.
+    data::Vector{Any}
 end
 
 struct CursorIteratorState
