@@ -55,3 +55,16 @@ end
 
 Base.getindex(val::DataValue) = parse_native_value(val)
 Base.getindex(val::DataValue, offset::Integer) = parse_native_value(val, offset)
+
+encoding(ora_string::dpiBytes) = unsafe_string(ora_string.encoding)
+
+function encoding(ora_string_ptr::Ptr{dpiBytes})
+    ora_string = unsafe_load(ora_string_ptr)
+    return encoding(ora_string)
+end
+
+function encoding(val::DataValue)
+    @assert val.native_type == DPI_NATIVE_TYPE_BYTES "Native type must be Oracle.DPI_NATIVE_TYPE_BYTES. Found: $(val.native_type)."
+    ptr_bytes = dpiData_getBytes(val.dpi_data_handle)
+    return encoding(ptr_bytes)
+end

@@ -24,7 +24,20 @@ function simple_query(conn::Oracle.Connection, sql::String)
 end
 
 ctx = Oracle.Context()
-conn = Oracle.Connection(ctx, username, password, connect_string)
+
+# TODO: reference to ptr_set_encoding is unsafe because it must be valid as long as the connection is active.
+# This needs refactoring to make it safe.
+const ENCODING = "UTF-8"
+ptr_set_encoding = pointer(ENCODING)
+
+common_params = Oracle.dpiCommonCreateParams(ctx)
+common_params.encoding = ptr_set_encoding
+common_params.nencoding = ptr_set_encoding
+
+conn_create_params = Oracle.dpiConnCreateParams(ctx)
+#conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA # in case the database user is sysdba
+
+conn = Oracle.Connection(ctx, username, password, connect_string, common_params=common_params,conn_create_params=conn_create_params)
 
 # Client Version
 let
@@ -40,8 +53,21 @@ let
     println("### SERVER VERSION ###")
     println("release = $release")
     println("server_version = $server_version")
-    println("")
 end
+
+# Database Encoding
+let
+    for row in Oracle.query(conn, "select value from nls_database_parameters where parameter='NLS_CHARACTERSET'")
+        println("Database NLS_CHARACTERSET = ", row["VALUE"])
+    end
+end
+
+# Connection Encoding Info
+let
+    println("Connection encoding info: ", conn.encoding_info)
+end
+
+println("")
 
 @testset "Create structs" begin
     common_create_params = Oracle.dpiCommonCreateParams(ctx)
@@ -127,7 +153,11 @@ end
 
     iter = 1
     id_values = [1, 2, 3]
+    name_values = [ "hello world", "the bomb 💣", "ãéí" ]
     amount_values = [123.45, 10, .1]
+
+    println("")
+    println("Printing out UTF-8 strings")
 
     while result.found
 
@@ -135,16 +165,17 @@ end
         value_name = Oracle.query_value(stmt, 2)
         value_amount = Oracle.query_value(stmt, 3)
 
-        if iter == 1
-            @test "hello world" == value_name[]
-        end
+        println(value_name[])
 
         @test id_values[iter] == value_id[]
+        @test name_values[iter] == value_name[]
         @test amount_values[iter] == value_amount[]
 
         result = Oracle.fetch!(stmt)
         iter += 1
     end
+
+    println("")
 
     Oracle.close!(stmt)
 
@@ -225,9 +256,11 @@ end
 end
 =#
 
+#=
 @testset "Pool" begin
     ctx = Oracle.Context()
     pool = Oracle.Pool(ctx, username, password, connect_string)
 end
+=#
 
 Oracle.close!(conn)

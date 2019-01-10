@@ -301,6 +301,36 @@ function Base.show(io::IO, ora_str::dpiBytes)
     print(io, "dpiBytes(", str, ", ", enc, ")")
 end
 
+#=
+This structure is used for transferring encoding information from ODPI-C.
+All of the information here remains valid as long as a reference is held
+to the standalone connection or session pool from which the information was taken.
+=#
+struct dpiEncodingInfo
+    encoding::Cstring # The encoding used for CHAR data, as a null-terminated ASCII string.
+    max_bytes_per_character::Int32 # The maximum number of bytes required for each character in the encoding used for CHAR data. This value is used when calculating the size of buffers required when lengths in characters are provided.
+    nencoding::Cstring # The encoding used for NCHAR data, as a null-terminated ASCII string.
+    nmax_bytes_per_character::Int32 # The maximum number of bytes required for each character in the encoding used for NCHAR data. Since this information is not directly available from Oracle it is only accurate if the encodings used for CHAR and NCHAR data are identical or one of ASCII or UTF-8; otherwise a value of 4 is assumed. This value is used when calculating the size of buffers required when lengths in characters are provided.
+end
+
+"Mirrors ODPI-C's dpiEncodingInfo struct, but using Julia types."
+struct EncodingInfo
+    encoding::String
+    max_bytes_per_character::Int
+    nencoding::String
+    nmax_bytes_per_character::Int
+
+    function EncodingInfo(dpi_encoding_info_ref::Ref{dpiEncodingInfo})
+        dpi_encoding_info = dpi_encoding_info_ref[]
+        return new(
+            unsafe_string(dpi_encoding_info.encoding),
+            Int(dpi_encoding_info.max_bytes_per_character),
+            unsafe_string(dpi_encoding_info.nencoding),
+            Int(dpi_encoding_info.nmax_bytes_per_character)
+        )
+    end
+end
+
 mutable struct Context
     handle::Ptr{Cvoid}
 
@@ -325,12 +355,20 @@ Connection handles are used to represent connections to the database. These can 
 mutable struct Connection
     context::Context
     handle::Ptr{Cvoid}
+    encoding_info::EncodingInfo
 
     function Connection(context::Context, handle::Ptr{Cvoid})
-        new_connection = new(context, handle)
+        new_connection = new(context, handle, EncodingInfo(context, handle))
         finalizer(destroy!, new_connection)
         return new_connection
     end
+end
+
+function EncodingInfo(context::Context, connection_handle::Ptr{Cvoid})
+    dpi_encoding_info_ref = Ref{dpiEncodingInfo}()
+    dpi_result = dpiConn_getEncodingInfo(connection_handle, dpi_encoding_info_ref)
+    error_check(context, dpi_result)
+    return EncodingInfo(dpi_encoding_info_ref)
 end
 
 function destroy!(conn::Connection)

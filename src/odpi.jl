@@ -157,6 +157,11 @@ function dpiConn_rollback(connection_handle::Ptr{Cvoid})
     ccall((:dpiConn_rollback, libdpi), dpiResult, (Ptr{Cvoid},), connection_handle)
 end
 
+# int dpiConn_getEncodingInfo(dpiConn *conn, dpiEncodingInfo *info)
+function dpiConn_getEncodingInfo(connection_handle::Ptr{Cvoid}, dpi_encoding_info_ref::Ref{dpiEncodingInfo})
+    ccall((:dpiConn_getEncodingInfo, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiEncodingInfo}), connection_handle, dpi_encoding_info_ref)
+end
+
 # int dpiStmt_getNumQueryColumns(dpiStmt *stmt, uint32_t *numQueryColumns)
 function dpiStmt_getNumQueryColumns(stmt_handle::Ptr{Cvoid}, num_query_columns_ref::Ref{UInt32})
     ccall((:dpiStmt_getNumQueryColumns, libdpi), dpiResult, (Ptr{Cvoid}, Ref{UInt32}), stmt_handle, num_query_columns_ref)
