@@ -192,6 +192,12 @@ function dpiStmt_getQueryValue(stmt_handle::Ptr{Cvoid}, pos::UInt32, native_type
     ccall((:dpiStmt_getQueryValue, libdpi), dpiResult, (Ptr{Cvoid}, UInt32, Ref{dpiNativeTypeNum}, Ref{Ptr{dpiData}}), stmt_handle, pos, native_type_num_ref, data_handle_ref)
 end
 
+# int dpiStmt_bindValueByName(dpiStmt *stmt, const char *name, uint32_t nameLength, dpiNativeTypeNum nativeTypeNum, dpiData *data)
+function dpiStmt_bindValueByName(stmt_handle::Ptr{Cvoid}, name::String, native_type::dpiNativeTypeNum, dpi_data_ref::Ref{dpiData})
+    nameLength = sizeof(name)
+    ccall((:dpiStmt_bindValueByName, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, dpiNativeTypeNum, Ref{dpiData}), stmt_handle, name, nameLength, native_type, dpi_data_ref)
+end
+
 # int dpiData_getBool(dpiData *data)
 function dpiData_getBool(dpi_data_handle::Ptr{dpiData})
     ccall((:dpiData_getBool, libdpi), Cint, (Ptr{dpiData},), dpi_data_handle)
@@ -220,4 +226,20 @@ end
 # dpiBytes *dpiData_getBytes(dpiData *data)
 function dpiData_getBytes(dpi_data_handle::Ptr{dpiData})
     ccall((:dpiData_getBytes, libdpi), Ptr{dpiBytes}, (Ptr{dpiData},), dpi_data_handle)
+end
+
+# void dpiData_setBytes(dpiData *data, char *ptr, uint32_t length)
+function dpiData_setBytes(dpi_data_ref::Ref{dpiData}, str::String)
+    strLength = sizeof(str)
+    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{dpiData}, Ptr{UInt8}, UInt32), dpi_data_ref, str, strLength)
+end
+
+# void dpiData_setDouble(dpiData *data, double value)
+function dpiData_setDouble(dpi_data_ref::Ref{dpiData}, value::Float64)
+    ccall((:dpiData_setDouble, libdpi), Cvoid, (Ref{dpiData}, Cdouble), dpi_data_ref, value)
+end
+
+# void dpiData_setInt64(dpiData *data, int64_t value)
+function dpiData_setInt64(dpi_data_ref::Ref{dpiData}, value::Int64)
+    ccall((:dpiData_setInt64, libdpi), Cvoid, (Ref{dpiData}, Int64), dpi_data_ref, value)
 end

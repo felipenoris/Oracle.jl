@@ -248,6 +248,33 @@ end
     simple_query(conn, "DROP TABLE TB_TEST_CURSOR")
 end
 
+@testset "Bind" begin
+    simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4), STR VARCHAR(255) )")
+
+    stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR ) VALUES ( :id, :flt, :str )")
+
+    for i in 1:10
+        stmt[:id] = 1 + i
+        stmt[:flt] = 10.23 + i
+        stmt[:str] = "hey you $i"
+        Oracle.execute!(stmt)
+    end
+    Oracle.commit!(conn)
+
+    let
+        row_number = 1
+        for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
+            @test row["ID"] == 1 + row_number
+            @test row["FLT"] == 10.23 + row_number
+            @test row["STR"] == "hey you $row_number"
+
+            row_number += 1
+        end
+    end
+
+    simple_query(conn, "DROP TABLE TB_BIND")
+end
+
 #=
 @testset "shutdown/startup" begin
     # The connection needs to have been established at least with authorization mode set to DPI_MODE_AUTH_SYSDBA or DPI_MODE_AUTH_SYSOPER
