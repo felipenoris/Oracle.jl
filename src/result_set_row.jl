@@ -25,6 +25,14 @@ function parse_value(column_info::dpiQueryInfo, num::Float64)
     end
 end
 
+function parse_value(column_info::dpiQueryInfo, ts::dpiTimestamp)
+    if column_info.type_info.oracle_type_num == DPI_ORACLE_TYPE_DATE
+        return Date(ts.year, ts.month, ts.day)
+    else
+        error("oracle_type_num $(column_info.type_info.oracle_type_num) not supported.")
+    end
+end
+
 function parse_value(column_info::dpiQueryInfo, val::T) :: T where {T}
     # catches all other cases
     val

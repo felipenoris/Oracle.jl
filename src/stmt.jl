@@ -110,5 +110,6 @@ bind!(stmt::Stmt, value, name::Symbol) = bind!(stmt, value, String(name))
 bind!(stmt::Stmt, value::String, name::String) = _bind_aux!(stmt, value, name, DPI_NATIVE_TYPE_BYTES, dpiData_setBytes)
 bind!(stmt::Stmt, value::Float64, name::String) = _bind_aux!(stmt, value, name, DPI_NATIVE_TYPE_DOUBLE, dpiData_setDouble)
 bind!(stmt::Stmt, value::Int64, name::String) = _bind_aux!(stmt, value, name, DPI_NATIVE_TYPE_INT64, dpiData_setInt64)
+bind!(stmt::Stmt, value::Date, name::String) = _bind_aux!(stmt, dpiTimestamp(value), name, DPI_NATIVE_TYPE_TIMESTAMP, dpiData_setTimestamp)
 
 Base.setindex!(stmt::Stmt, value, key) = bind!(stmt, value, key)

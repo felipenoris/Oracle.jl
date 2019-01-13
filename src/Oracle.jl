@@ -6,7 +6,7 @@ module Oracle
     const Nothing = Void
     const Cvoid   = Void
 else
-    #using Dates
+    using Dates
 end
 
 function undef_vector(::Type{T}, len::Integer) where {T}

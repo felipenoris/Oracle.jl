@@ -228,6 +228,11 @@ function dpiData_getBytes(dpi_data_handle::Ptr{dpiData})
     ccall((:dpiData_getBytes, libdpi), Ptr{dpiBytes}, (Ptr{dpiData},), dpi_data_handle)
 end
 
+# dpiTimestamp *dpiData_getTimestamp(dpiData *data)
+function dpiData_getTimestamp(dpi_data_handle::Ptr{dpiData})
+    ccall((:dpiData_getTimestamp, libdpi), Ptr{dpiTimestamp}, (Ptr{dpiData},), dpi_data_handle)
+end
+
 # void dpiData_setBytes(dpiData *data, char *ptr, uint32_t length)
 function dpiData_setBytes(dpi_data_ref::Ref{dpiData}, str::String)
     strLength = sizeof(str)
@@ -242,4 +247,9 @@ end
 # void dpiData_setInt64(dpiData *data, int64_t value)
 function dpiData_setInt64(dpi_data_ref::Ref{dpiData}, value::Int64)
     ccall((:dpiData_setInt64, libdpi), Cvoid, (Ref{dpiData}, Int64), dpi_data_ref, value)
+end
+
+# void dpiData_setTimestamp(dpiData *data, int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint32_t fsecond, int8_t tzHourOffset, int8_t tzMinuteOffset)
+function dpiData_setTimestamp(dpi_data_ref::Ref{dpiData}, ts::dpiTimestamp)
+    ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ref{dpiData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ref, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
 end

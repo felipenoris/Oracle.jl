@@ -48,8 +48,12 @@ function parse_native_value(val::DataValue, offset::Integer=0)
         else
             error("String encoding not supported: $enc.")
         end
+
+    elseif val.native_type == DPI_NATIVE_TYPE_TIMESTAMP
+        ptr_native_timestamp = dpiData_getTimestamp(dpi_data_handle)
+        return unsafe_load(ptr_native_timestamp)
     else
-        error("data type not supported")
+        error("Data Type not supported: $(Int(val.native_type))")
     end
 end
 

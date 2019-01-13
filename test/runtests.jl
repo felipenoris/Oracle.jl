@@ -5,7 +5,7 @@ if VERSION < v"0.7-"
     using Base.Test
 else
     using Test
-#    using Dates
+    using Dates
 end
 
 @assert isfile(joinpath(@__DIR__, "credentials.jl")) """
@@ -182,6 +182,18 @@ end
     simple_query(conn, "DROP TABLE TB_TEST_DATATYPES")
 end
 
+@testset "Timestamp" begin
+    simple_query(conn, "CREATE TABLE TB_DATE ( DT DATE NULL )")
+    simple_query(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31', 'yyyy-mm-dd') )")
+    Oracle.commit!(conn)
+
+    for row in Oracle.query(conn, "SELECT DT FROM TB_DATE")
+        @test row["DT"] == Date(2018, 12, 31)
+    end
+
+    simple_query(conn, "DROP TABLE TB_DATE")
+end
+
 @testset "Fetch Many" begin
     simple_query(conn, "CREATE TABLE TB_TEST_FETCH_MANY ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
     for i in 1:10
@@ -249,14 +261,15 @@ end
 end
 
 @testset "Bind" begin
-    simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4), STR VARCHAR(255) )")
+    simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4), STR VARCHAR(255), DT DATE )")
 
-    stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR ) VALUES ( :id, :flt, :str )")
+    stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
 
     for i in 1:10
         stmt[:id] = 1 + i
         stmt[:flt] = 10.23 + i
         stmt[:str] = "hey you $i"
+        stmt[:dt] = Date(2018,12,31) + Dates.Day(i)
         Oracle.execute!(stmt)
     end
     Oracle.commit!(conn)
@@ -267,6 +280,7 @@ end
             @test row["ID"] == 1 + row_number
             @test row["FLT"] == 10.23 + row_number
             @test row["STR"] == "hey you $row_number"
+            @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
 
             row_number += 1
         end

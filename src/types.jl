@@ -162,6 +162,20 @@ struct dpiData
     value::dpiDataBuffer
 end
 
+struct dpiTimestamp
+    year::Int16
+    month::UInt8
+    day::UInt8
+    hour::UInt8
+    minute::UInt8
+    second::UInt8
+    fsecond::UInt32 # Specifies the fractional seconds for the timestamp, in nanoseconds.
+    tzHourOffset::Int8 # Specifies the hours offset from UTC. This value is only used for timestamp with time zone and timestamp with local time zone columns.
+    tzMinuteOffset::Int8 # Specifies the minutes offset from UTC. This value is only used for timestamp with time zone and timestamp with local time zone columns. Note that this value will be negative in the western hemisphere. For example, when the timezone is -03:30, tzHourOffset will be -3 and tzMinuteOffset will be -30.
+end
+
+dpiTimestamp(date::Date) = dpiTimestamp(Int16(year(date)), UInt8(month(date)), UInt8(day(date)), 0, 0, 0, 0, 0, 0)
+
 struct dpiErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.
     offset::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
