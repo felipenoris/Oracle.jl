@@ -210,7 +210,7 @@ end
 
 # float dpiData_getFloat(dpiData *data)
 function dpiData_getFloat(dpi_data_handle::Ptr{dpiData})
-    ccall((:dpiData_getFloat, libdpi), Cfloat, (Ptr{dpiData},), dpi_data_handle)
+    ccall((:dpiData_getFloat, libdpi), Float32, (Ptr{dpiData},), dpi_data_handle)
 end
 
 # int64_t dpiData_getInt64(dpiData *data)
@@ -252,4 +252,9 @@ end
 # void dpiData_setTimestamp(dpiData *data, int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint32_t fsecond, int8_t tzHourOffset, int8_t tzMinuteOffset)
 function dpiData_setTimestamp(dpi_data_ref::Ref{dpiData}, ts::dpiTimestamp)
     ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ref{dpiData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ref, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
+end
+
+# void dpiData_setNull(dpiData *data)
+function dpiData_setNull(dpi_data_ref::Ref{dpiData})
+    ccall((:dpiData_setNull, libdpi), Cvoid, (Ref{dpiData},), dpi_data_ref)
 end

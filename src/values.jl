@@ -15,6 +15,35 @@ function is_null(ptr::Ptr{dpiData})
     end
 end
 
+#=
+"""
+    julia_type(native_type::dpiNativeTypeNum) :: DataType
+
+Returns the equivalente julia type for an Oracle native type.
+"""
+function julia_type(nt::dpiNativeTypeNum) :: DataType
+    nt == DPI_NATIVE_TYPE_DOUBLE    && return Float64
+    nt == DPI_NATIVE_TYPE_BOOLEAN   && return Bool
+    nt == DPI_NATIVE_TYPE_FLOAT     && return Float32
+    nt == DPI_NATIVE_TYPE_INT64     && return Int64
+    nt == DPI_NATIVE_TYPE_UINT64    && return UInt64
+    nt == DPI_NATIVE_TYPE_BYTES     && return String
+    nt == DPI_NATIVE_TYPE_TIMESTAMP && return dpiTimestamp
+
+    error("Native type $native_type not supported by method `Oracle.julia_type`.")
+end
+=#
+
+dpiNativeTypeNum(::Type{Float64})      = DPI_NATIVE_TYPE_DOUBLE
+dpiNativeTypeNum(::Type{Bool})         = DPI_NATIVE_TYPE_BOOLEAN
+dpiNativeTypeNum(::Type{Float32})      = DPI_NATIVE_TYPE_FLOAT
+dpiNativeTypeNum(::Type{Int64})        = DPI_NATIVE_TYPE_INT64
+dpiNativeTypeNum(::Type{UInt64})       = DPI_NATIVE_TYPE_UINT64
+dpiNativeTypeNum(::Type{String})       = DPI_NATIVE_TYPE_BYTES
+dpiNativeTypeNum(::Type{dpiTimestamp}) = DPI_NATIVE_TYPE_TIMESTAMP
+dpiNativeTypeNum(::Type{Date})         = DPI_NATIVE_TYPE_TIMESTAMP
+dpiNativeTypeNum(::Type{DateTime})     = DPI_NATIVE_TYPE_TIMESTAMP
+
 function parse_native_value(val::NativeValue, offset::Integer=0)
 
     dpi_data_handle = val.dpi_data_handle + offset*SIZEOF_DPI_DATA

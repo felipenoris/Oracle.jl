@@ -98,7 +98,7 @@ function is_query(stmt::Stmt) :: Bool
     end
 end
 
-function _bind_aux!(stmt::Stmt, value::T, name::String, native_type::dpiNativeTypeNum, set_data_function::F) where {T, F<:Function}
+@inline function _bind_aux!(stmt::Stmt, value::T, name::String, native_type::dpiNativeTypeNum, set_data_function::F) where {T, F<:Function}
     dpi_data_ref = Ref{dpiData}()
     set_data_function(dpi_data_ref, value)
     dpi_result = dpiStmt_bindValueByName(stmt.handle, name, native_type, dpi_data_ref)
@@ -111,5 +111,20 @@ bind!(stmt::Stmt, value::String, name::String) = _bind_aux!(stmt, value, name, D
 bind!(stmt::Stmt, value::Float64, name::String) = _bind_aux!(stmt, value, name, DPI_NATIVE_TYPE_DOUBLE, dpiData_setDouble)
 bind!(stmt::Stmt, value::Int64, name::String) = _bind_aux!(stmt, value, name, DPI_NATIVE_TYPE_INT64, dpiData_setInt64)
 bind!(stmt::Stmt, value::Date, name::String) = _bind_aux!(stmt, dpiTimestamp(value), name, DPI_NATIVE_TYPE_TIMESTAMP, dpiData_setTimestamp)
+bind!(stmt::Stmt, value::Missing, name::Symbol, native_type) = bind!(stmt, value, String(name), native_type)
+
+function bind!(stmt::Stmt, value::Missing, name::String, native_type::dpiNativeTypeNum)
+    @assert ismissing(value) # sanity check
+    dpi_data_ref = Ref{dpiData}()
+    dpiData_setNull(dpi_data_ref)
+    dpi_result = dpiStmt_bindValueByName(stmt.handle, name, native_type, dpi_data_ref) # native type is not examined since the value is passed as a NULL
+    error_check(stmt.connection.context, dpi_result)
+    nothing
+end
+
+function bind!(stmt::Stmt, value::Missing, name::String, julia_type::Type{T}) where {T}
+    bind!(stmt, value, name, dpiNativeTypeNum(julia_type))
+end
 
 Base.setindex!(stmt::Stmt, value, key) = bind!(stmt, value, key)
+Base.setindex!(stmt::Stmt, value, key, type_information) = bind!(stmt, value, key, type_information)

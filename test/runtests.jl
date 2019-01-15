@@ -35,7 +35,7 @@ common_params.encoding = ptr_set_encoding
 common_params.nencoding = ptr_set_encoding
 
 conn_create_params = Oracle.dpiConnCreateParams(ctx)
-#conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA # in case the database user is sysdba
+conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA # in case the database user is sysdba
 
 conn = Oracle.Connection(ctx, username, password, connect_string, common_params=common_params,conn_create_params=conn_create_params)
 
@@ -261,7 +261,7 @@ end
 end
 
 @testset "Bind" begin
-    simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4), STR VARCHAR(255), DT DATE )")
+    simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
     stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
 
@@ -284,6 +284,27 @@ end
 
             row_number += 1
         end
+    end
+
+    simple_query(conn, "DELETE FROM TB_BIND")
+
+    stmt[:id, Int] = missing
+    stmt[:flt, Float64] = missing
+    stmt[:str, String] = missing
+    stmt[:dt, Date] = missing
+    Oracle.execute!(stmt)
+    Oracle.commit!(conn)
+
+    let
+        row_number = 0
+        for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
+            @test ismissing(row["ID"])
+            @test ismissing(row["FLT"])
+            @test ismissing(row["STR"])
+            @test ismissing(row["DT"])
+            row_number += 1
+        end
+        @test row_number == 1
     end
 
     simple_query(conn, "DROP TABLE TB_BIND")
