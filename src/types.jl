@@ -175,6 +175,7 @@ struct dpiTimestamp
 end
 
 dpiTimestamp(date::Date) = dpiTimestamp(Int16(year(date)), UInt8(month(date)), UInt8(day(date)), 0, 0, 0, 0, 0, 0)
+dpiTimestamp(datetime::DateTime) = dpiTimestamp(Int16(year(datetime)), UInt8(month(datetime)), UInt8(day(datetime)), UInt8(hour(datetime)), UInt8(minute(datetime)), UInt8(second(datetime)), UInt32( millisecond(datetime)*1E6 ), 0, 0)
 
 struct dpiErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.

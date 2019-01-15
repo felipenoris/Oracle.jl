@@ -185,10 +185,20 @@ end
 @testset "Timestamp" begin
     simple_query(conn, "CREATE TABLE TB_DATE ( DT DATE NULL )")
     simple_query(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31', 'yyyy-mm-dd') )")
+    simple_query(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31 11:55:35 P.M.', 'yyyy-mm-dd HH:MI:SS A.M.') )")
     Oracle.commit!(conn)
 
-    for row in Oracle.query(conn, "SELECT DT FROM TB_DATE")
-        @test row["DT"] == Date(2018, 12, 31)
+    let
+        dates = [ Date(2018, 12, 31), DateTime(2018, 12, 31, 23, 55, 35) ]
+
+        row_number = 1
+
+        for row in Oracle.query(conn, "SELECT DT FROM TB_DATE")
+            @test row["DT"] == dates[row_number]
+            @test isa(row["DT"], DateTime) # Oracle DATE columns stores DateTime up to seconds.
+
+            row_number += 1
+        end
     end
 
     simple_query(conn, "DROP TABLE TB_DATE")
@@ -261,53 +271,79 @@ end
 end
 
 @testset "Bind" begin
-    simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
-    stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
+    @testset "bind int, flt, str, date" begin
+        simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
-    for i in 1:10
-        stmt[:id] = 1 + i
-        stmt[:flt] = 10.23 + i
-        stmt[:str] = "hey you $i"
-        stmt[:dt] = Date(2018,12,31) + Dates.Day(i)
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
+
+        for i in 1:10
+            stmt[:id] = 1 + i
+            stmt[:flt] = 10.23 + i
+            stmt[:str] = "hey you $i"
+            stmt[:dt] = Date(2018,12,31) + Dates.Day(i)
+            Oracle.execute!(stmt)
+        end
+        Oracle.commit!(conn)
+
+        let
+            row_number = 1
+            for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
+                @test row["ID"] == 1 + row_number
+                @test row["FLT"] == 10.23 + row_number
+                @test row["STR"] == "hey you $row_number"
+                @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
+
+                row_number += 1
+            end
+        end
+
+        simple_query(conn, "DELETE FROM TB_BIND")
+
+        stmt[:id, Int] = missing
+        stmt[:flt, Float64] = missing
+        stmt[:str, String] = missing
+        stmt[:dt, Date] = missing
         Oracle.execute!(stmt)
-    end
-    Oracle.commit!(conn)
+        Oracle.commit!(conn)
 
-    let
-        row_number = 1
-        for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
-            @test row["ID"] == 1 + row_number
-            @test row["FLT"] == 10.23 + row_number
-            @test row["STR"] == "hey you $row_number"
-            @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
+        let
+            row_number = 0
+            for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
+                @test ismissing(row["ID"])
+                @test ismissing(row["FLT"])
+                @test ismissing(row["STR"])
+                @test ismissing(row["DT"])
+                row_number += 1
+            end
 
-            row_number += 1
+            @test row_number == 1
         end
+
+        simple_query(conn, "DROP TABLE TB_BIND")
     end
 
-    simple_query(conn, "DELETE FROM TB_BIND")
+    @testset "Bind DateTime" begin
+        simple_query(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP NULL )")
 
-    stmt[:id, Int] = missing
-    stmt[:flt, Float64] = missing
-    stmt[:str, String] = missing
-    stmt[:dt, Date] = missing
-    Oracle.execute!(stmt)
-    Oracle.commit!(conn)
+        ts_now = Dates.now()
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP ( TS ) VALUES ( :ts )")
+        stmt[:ts] = ts_now
+        Oracle.execute!(stmt)
+        Oracle.commit!(conn)
 
-    let
-        row_number = 0
-        for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
-            @test ismissing(row["ID"])
-            @test ismissing(row["FLT"])
-            @test ismissing(row["STR"])
-            @test ismissing(row["DT"])
-            row_number += 1
+        let row_number = 0
+            for row in Oracle.query(conn, "SELECT TS FROM TB_BIND_TIMESTAMP")
+                @test row["TS"] == ts_now
+                @test isa(row["TS"], DateTime)
+                row_number += 1
+            end
+
+            @test row_number == 1
         end
-        @test row_number == 1
-    end
 
-    simple_query(conn, "DROP TABLE TB_BIND")
+        simple_query(conn, "DROP TABLE TB_BIND_TIMESTAMP")
+    end
 end
 
 #=

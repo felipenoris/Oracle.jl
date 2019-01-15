@@ -118,8 +118,18 @@ function parse_value(column_info::dpiQueryInfo, num::Float64)
 end
 
 function parse_value(column_info::dpiQueryInfo, ts::dpiTimestamp)
-    if column_info.type_info.oracle_type_num == DPI_ORACLE_TYPE_DATE
-        return Date(ts.year, ts.month, ts.day)
+    ora_type = column_info.type_info.oracle_type_num
+
+    if ora_type == DPI_ORACLE_TYPE_DATE
+        @assert ts.fsecond == 0
+        @assert ts.tzHourOffset == 0
+        @assert ts.tzMinuteOffset == 0
+        return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second)
+
+    elseif ora_type == DPI_ORACLE_TYPE_TIMESTAMP
+        @assert ts.tzHourOffset == 0
+        @assert ts.tzMinuteOffset == 0
+        return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond * (1e-6) )
     else
         error("oracle_type_num $(column_info.type_info.oracle_type_num) not supported.")
     end
