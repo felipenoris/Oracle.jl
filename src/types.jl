@@ -439,7 +439,7 @@ end
 """
 High-level type as an aggregation of `dpiNativeTypeNum` and `dpiData`.
 """
-struct DataValue
+struct NativeValue
     native_type::dpiNativeTypeNum
     dpi_data_handle::Ptr{dpiData}
 end
@@ -471,7 +471,7 @@ end
 
 struct ResultSetRow
     cursor::Cursor
-    offset::Int # after Oracle.fetch_rows!, the DataValue points to the last element of the fetched array. This offset is a negative value to get one value from that array.
+    offset::Int # after Oracle.fetch_rows!, the NativeValue points to the last element of the fetched array. This offset is a negative value to get one value from that array.
     data::Vector{Any}
 end
 

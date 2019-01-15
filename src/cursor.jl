@@ -101,3 +101,22 @@ function query(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT, fetch_a
     execute!(stmt; exec_mode=exec_mode)
     return Cursor(stmt; fetch_array_size=fetch_array_size)
 end
+
+function ResultSetRow(cursor::Cursor, offset::Int)
+    data = Vector{Any}()
+
+    # parse data from Cursor
+    for column_index in 1:num_query_columns(cursor)
+        native_value = query_value(cursor.stmt, column_index)[offset]
+        push!(data, parse_value(cursor.schema.column_query_info[column_index], native_value))
+    end
+
+    return ResultSetRow(cursor, offset, data)
+end
+
+Base.getindex(row::ResultSetRow, column_index::Integer) = row.data[column_index]
+
+function Base.getindex(row::ResultSetRow, column_name::AbstractString)
+    column_index = row.cursor.schema.column_names_index[column_name]
+    return row.data[column_index]
+end

@@ -78,12 +78,12 @@ function fetch_rows!(stmt::Stmt, max_rows::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
     return FetchRowsResult(buffer_row_index_ref[], num_rows_fetched_ref[], more_rows_ref[])
 end
 
-function query_value(stmt::Stmt, column_index::UInt32) :: DataValue
+function query_value(stmt::Stmt, column_index::UInt32) :: NativeValue
     native_type_ref = Ref{dpiNativeTypeNum}()
     data_handle_ref = Ref{Ptr{dpiData}}()
     dpi_result = dpiStmt_getQueryValue(stmt.handle, column_index, native_type_ref, data_handle_ref)
     error_check(stmt.connection.context, dpi_result)
-    return DataValue(native_type_ref[], data_handle_ref[])
+    return NativeValue(native_type_ref[], data_handle_ref[])
 end
 query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
 

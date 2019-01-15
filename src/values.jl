@@ -1,7 +1,7 @@
 
 const SIZEOF_DPI_DATA = sizeof(Oracle.dpiData)
 
-is_null(val::DataValue, offset::Integer=0) = is_null(val.dpi_data_handle + offset*SIZEOF_DPI_DATA)
+is_null(val::NativeValue, offset::Integer=0) = is_null(val.dpi_data_handle + offset*SIZEOF_DPI_DATA)
 
 function is_null(ptr::Ptr{dpiData})
     is_null_as_cint = dpiData_isNull(ptr)
@@ -15,7 +15,7 @@ function is_null(ptr::Ptr{dpiData})
     end
 end
 
-function parse_native_value(val::DataValue, offset::Integer=0)
+function parse_native_value(val::NativeValue, offset::Integer=0)
 
     dpi_data_handle = val.dpi_data_handle + offset*SIZEOF_DPI_DATA
 
@@ -57,8 +57,8 @@ function parse_native_value(val::DataValue, offset::Integer=0)
     end
 end
 
-Base.getindex(val::DataValue) = parse_native_value(val)
-Base.getindex(val::DataValue, offset::Integer) = parse_native_value(val, offset)
+Base.getindex(val::NativeValue) = parse_native_value(val)
+Base.getindex(val::NativeValue, offset::Integer) = parse_native_value(val, offset)
 
 encoding(ora_string::dpiBytes) = unsafe_string(ora_string.encoding)
 
@@ -67,8 +67,36 @@ function encoding(ora_string_ptr::Ptr{dpiBytes})
     return encoding(ora_string)
 end
 
-function encoding(val::DataValue)
+function encoding(val::NativeValue)
     @assert val.native_type == DPI_NATIVE_TYPE_BYTES "Native type must be Oracle.DPI_NATIVE_TYPE_BYTES. Found: $(val.native_type)."
     ptr_bytes = dpiData_getBytes(val.dpi_data_handle)
     return encoding(ptr_bytes)
+end
+
+
+function parse_value(column_info::dpiQueryInfo, m::Missing) :: Missing
+    @assert ismissing(m) # sanity check
+    @assert column_info.null_ok == 1 # if we got a null value, it must be ok for the schema to have a null value in this columns
+    return missing
+end
+
+function parse_value(column_info::dpiQueryInfo, num::Float64)
+    if column_info.type_info.oracle_type_num == DPI_ORACLE_TYPE_NUMBER && column_info.type_info.scale <= 0
+        return Int(num)
+    else
+        return num
+    end
+end
+
+function parse_value(column_info::dpiQueryInfo, ts::dpiTimestamp)
+    if column_info.type_info.oracle_type_num == DPI_ORACLE_TYPE_DATE
+        return Date(ts.year, ts.month, ts.day)
+    else
+        error("oracle_type_num $(column_info.type_info.oracle_type_num) not supported.")
+    end
+end
+
+function parse_value(column_info::dpiQueryInfo, val::T) :: T where {T}
+    # catches all other cases
+    val
 end
