@@ -27,6 +27,11 @@ function execute!(stmt::Stmt{StmtOtherType}; exec_mode::OraExecMode=ORA_MODE_EXE
     return GenericStmtExecutionResult(stmt, num_columns)
 end
 
+function execute!(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
+    stmt = Stmt(connection, sql; scrollable=scrollable, tag=tag)
+    return execute!(stmt, exec_mode=exec_mode)
+end
+
 """
     raw_execute!(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
 

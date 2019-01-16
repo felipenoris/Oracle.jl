@@ -18,12 +18,6 @@ connect_string = "your-connect-string"
 """
 include("credentials.jl")
 
-function simple_query(conn::Oracle.Connection, sql::String)
-    stmt = Oracle.Stmt(conn, sql)
-    Oracle.execute!(stmt)
-    Oracle.close!(stmt)
-end
-
 #conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
 conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
 
@@ -62,12 +56,12 @@ println("")
 end
 
 @testset "query/commit/rollback" begin
-    simple_query(conn, "CREATE TABLE TB_TEST ( ID INT NULL )")
-    simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
-    simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
+    Oracle.execute!(conn, "CREATE TABLE TB_TEST ( ID INT NULL )")
+    Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
+    Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
     Oracle.commit!(conn)
 
-    simple_query(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )")
+    Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )")
     Oracle.rollback!(conn)
 end
 
@@ -109,15 +103,15 @@ end
 end
 
 @testset "Drop" begin
-    simple_query(conn, "DROP TABLE TB_TEST")
+    Oracle.execute!(conn, "DROP TABLE TB_TEST")
 end
 
 @testset "parse data" begin
-    simple_query(conn, "CREATE TABLE TB_TEST_DATATYPES ( ID NUMBER(38,0) NULL, name VARCHAR2(255) NULL,  amount NUMBER(15,2) NULL)")
+    Oracle.execute!(conn, "CREATE TABLE TB_TEST_DATATYPES ( ID NUMBER(38,0) NULL, name VARCHAR2(255) NULL,  amount NUMBER(15,2) NULL)")
 
-    simple_query(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 1, 'hello world', 123.45 )")
-    simple_query(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 2, '📚📚📚📚⏳😀⌛😭', 10 )")
-    simple_query(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 3, 'áÁàÀãÃâÂéÉíÍóÓõÕúÚçÇ', .1 )")
+    Oracle.execute!(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 1, 'hello world', 123.45 )")
+    Oracle.execute!(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 2, '📚📚📚📚⏳😀⌛😭', 10 )")
+    Oracle.execute!(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 3, 'áÁàÀãÃâÂéÉíÍóÓõÕúÚçÇ', .1 )")
     Oracle.commit!(conn)
 
     stmt = Oracle.Stmt(conn, "SELECT ID, name, amount FROM TB_TEST_DATATYPES")
@@ -155,13 +149,13 @@ end
 
     Oracle.close!(stmt)
 
-    simple_query(conn, "DROP TABLE TB_TEST_DATATYPES")
+    Oracle.execute!(conn, "DROP TABLE TB_TEST_DATATYPES")
 end
 
 @testset "Timestamp" begin
-    simple_query(conn, "CREATE TABLE TB_DATE ( DT DATE NULL )")
-    simple_query(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31', 'yyyy-mm-dd') )")
-    simple_query(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31 11:55:35 P.M.', 'yyyy-mm-dd HH:MI:SS A.M.') )")
+    Oracle.execute!(conn, "CREATE TABLE TB_DATE ( DT DATE NULL )")
+    Oracle.execute!(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31', 'yyyy-mm-dd') )")
+    Oracle.execute!(conn, "INSERT INTO TB_DATE (DT) VALUES ( TO_DATE('2018-12-31 11:55:35 P.M.', 'yyyy-mm-dd HH:MI:SS A.M.') )")
     Oracle.commit!(conn)
 
     let
@@ -177,13 +171,13 @@ end
         end
     end
 
-    simple_query(conn, "DROP TABLE TB_DATE")
+    Oracle.execute!(conn, "DROP TABLE TB_DATE")
 end
 
 @testset "Fetch Many" begin
-    simple_query(conn, "CREATE TABLE TB_TEST_FETCH_MANY ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
+    Oracle.execute!(conn, "CREATE TABLE TB_TEST_FETCH_MANY ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
     for i in 1:10
-        simple_query(conn, "INSERT INTO TB_TEST_FETCH_MANY ( ID, VAL ) VALUES ( $i, $(10i))")
+        Oracle.execute!(conn, "INSERT INTO TB_TEST_FETCH_MANY ( ID, VAL ) VALUES ( $i, $(10i))")
     end
 
     stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
@@ -213,16 +207,16 @@ end
 
     Oracle.close!(stmt)
 
-    simple_query(conn, "DROP TABLE TB_TEST_FETCH_MANY")
+    Oracle.execute!(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end
 
 @testset "Cursor" begin
-    simple_query(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(15,0) NULL, VAL_FLT NUMBER(4,2), STR VARCHAR2(255) )")
+    Oracle.execute!(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(15,0) NULL, VAL_FLT NUMBER(4,2), STR VARCHAR2(255) )")
 
     num_iterations = 10
 
     for i in 1:num_iterations
-        simple_query(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( $i, $(10i), 10.01, '📚📚📚📚⏳😀⌛😭')")
+        Oracle.execute!(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( $i, $(10i), 10.01, '📚📚📚📚⏳😀⌛😭')")
     end
 
     row_number = 0
@@ -246,13 +240,13 @@ end
     end
     @test row_number == num_iterations
 
-    simple_query(conn, "DROP TABLE TB_TEST_CURSOR")
+    Oracle.execute!(conn, "DROP TABLE TB_TEST_CURSOR")
 end
 
 @testset "Bind" begin
 
     @testset "bind int, flt, str, date" begin
-        simple_query(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
+        Oracle.execute!(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
 
@@ -277,7 +271,7 @@ end
             end
         end
 
-        simple_query(conn, "DELETE FROM TB_BIND")
+        Oracle.execute!(conn, "DELETE FROM TB_BIND")
 
         stmt[:id, Int] = missing
         stmt[:flt, Float64] = missing
@@ -299,11 +293,11 @@ end
             @test row_number == 1
         end
 
-        simple_query(conn, "DROP TABLE TB_BIND")
+        Oracle.execute!(conn, "DROP TABLE TB_BIND")
     end
 
     @testset "Bind DateTime" begin
-        simple_query(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP NULL )")
+        Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP NULL )")
 
         ts_now = Dates.now()
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP ( TS ) VALUES ( :ts )")
@@ -321,7 +315,7 @@ end
             @test row_number == 1
         end
 
-        simple_query(conn, "DROP TABLE TB_BIND_TIMESTAMP")
+        Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
     end
 end
 
