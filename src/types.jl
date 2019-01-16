@@ -1,16 +1,16 @@
 
 # 24 bytes -> sizeof dpiDataBuffer on 64bit arch
-primitive type dpiDataBuffer 24 * 8 end
+primitive type OraDataBuffer 24 * 8 end
 
 """
 This structure is used for passing data to and from the database for variables and for manipulating object attributes and collection values.
 """
-struct dpiData
+struct OraData
     is_null::Int32 # Specifies if the value refers to a null value (1) or not (0).
-    value::dpiDataBuffer
+    value::OraDataBuffer
 end
 
-struct dpiTimestamp
+struct OraTimestamp
     year::Int16
     month::UInt8
     day::UInt8
@@ -22,14 +22,14 @@ struct dpiTimestamp
     tzMinuteOffset::Int8 # Specifies the minutes offset from UTC. This value is only used for timestamp with time zone and timestamp with local time zone columns. Note that this value will be negative in the western hemisphere. For example, when the timezone is -03:30, tzHourOffset will be -3 and tzMinuteOffset will be -30.
 end
 
-dpiTimestamp(date::Date) = dpiTimestamp(Int16(Dates.year(date)), UInt8(Dates.month(date)), UInt8(Dates.day(date)), 0, 0, 0, 0, 0, 0)
-dpiTimestamp(datetime::DateTime) = dpiTimestamp(Int16(Dates.year(datetime)), UInt8(Dates.month(datetime)), UInt8(Dates.day(datetime)), UInt8(Dates.hour(datetime)), UInt8(Dates.minute(datetime)), UInt8(Dates.second(datetime)), UInt32( Dates.millisecond(datetime)*1E6 ), 0, 0)
+OraTimestamp(date::Date) = OraTimestamp(Int16(Dates.year(date)), UInt8(Dates.month(date)), UInt8(Dates.day(date)), 0, 0, 0, 0, 0, 0)
+OraTimestamp(datetime::DateTime) = OraTimestamp(Int16(Dates.year(datetime)), UInt8(Dates.month(datetime)), UInt8(Dates.day(datetime)), UInt8(Dates.hour(datetime)), UInt8(Dates.minute(datetime)), UInt8(Dates.second(datetime)), UInt32( Dates.millisecond(datetime)*1E6 ), 0, 0)
 
-struct dpiErrorInfo <: Exception
+struct OraErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.
     offset::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
-    message::Ptr{UInt8} # The error message as a byte string in the encoding specified by the dpiErrorInfo.encoding member.
-    message_length::UInt32 # The length of the dpiErrorInfo.message member, in bytes.
+    message::Ptr{UInt8} # The error message as a byte string in the encoding specified by the OraErrorInfo.encoding member.
+    message_length::UInt32 # The length of the OraErrorInfo.message member, in bytes.
     encoding::Cstring # The encoding in which the error message is encoded as a null-terminated string. For OCI errors this is the CHAR encoding used when the connection was created. For ODPI-C specific errors this is UTF-8.
     fn_name::Cstring # The public ODPI-C function name which was called in which the error took place. This is a null-terminated ASCII string.
     action::Cstring # The internal action that was being performed when the error took place. This is a null-terminated ASCII string.
@@ -37,9 +37,9 @@ struct dpiErrorInfo <: Exception
     is_recoverable::Int32 # A boolean value indicating if the error is recoverable. This member always has a value of 0 unless both client and server are at release 12.1 or higher.
 end
 
-Base.showerror(io::IO, err::dpiErrorInfo) = print(io, unsafe_string(err.message, err.message_length))
+Base.showerror(io::IO, err::OraErrorInfo) = print(io, unsafe_string(err.message, err.message_length))
 
-struct dpiVersionInfo
+struct OraVersionInfo
     version::Int32 # Specifies the major version of the Oracle Client or Database.
     release::Int32 # Specifies the release version of the Oracle Client or Database.
     update::Int32 # Specifies the update version of the Oracle Client or Database.
@@ -48,41 +48,41 @@ struct dpiVersionInfo
     full_version::Int32 # Specifies the full version (all five components) as a number that is suitable for comparison with the result of the macro DPI_ORACLE_VERSION_TO_NUMBER.
 end
 
-mutable struct dpiCommonCreateParams
-    create_mode::dpiCreateMode # Specifies the mode used for creating connections. It is expected to be one or more of the values from the enumeration dpiCreateMode, OR’ed together. The default value is DPI_MODE_CREATE_DEFAULT.
+mutable struct OraCommonCreateParams
+    create_mode::OraCreateMode # Specifies the mode used for creating connections. It is expected to be one or more of the values from the enumeration OraCreateMode, OR’ed together. The default value is DPI_MODE_CREATE_DEFAULT.
     encoding::Cstring # Specifies the encoding to use for CHAR data, as a null-terminated ASCII string. Either an IANA or Oracle specific character set name is expected. NULL is also acceptable which implies the use of the NLS_LANG environment variable (or ASCII, if the NLS_LANG environment variable is not set). The default value is NULL.
-    nencoding::Cstring # Specifies the encoding to use for NCHAR data, as a null-terminated ASCII string. Either an IANA or Oracle specific character set name is expected. NULL is also acceptable which implies the use of the NLS_NCHAR environment variable (or the same value as the dpiCommonCreateParams.encoding member if the NLS_NCHAR environment variable is not set). The default value is NULL.
-    edition::Ptr{UInt8} # Specifies the edition to be used when creating a standalone connection. It is expected to be NULL (meaning that no edition is set) or a byte string in the encoding specified by the dpiCommonCreateParams.encoding member. The default value is NULL.
-    edition_length::UInt32 # Specifies the length of the dpiCommonCreateParams.edition member, in bytes. The default value is 0.
-    driver_name::Ptr{UInt8} # Specifies the name of the driver that is being used. It is expected to be NULL or a byte string in the encoding specified by the dpiCommonCreateParams.encoding member. The default value is NULL.
-    driver_name_length::UInt32 # Specifies the length of the dpiCommonCreateParams.driverName member, in bytes. The default value is 0.
+    nencoding::Cstring # Specifies the encoding to use for NCHAR data, as a null-terminated ASCII string. Either an IANA or Oracle specific character set name is expected. NULL is also acceptable which implies the use of the NLS_NCHAR environment variable (or the same value as the OraCommonCreateParams.encoding member if the NLS_NCHAR environment variable is not set). The default value is NULL.
+    edition::Ptr{UInt8} # Specifies the edition to be used when creating a standalone connection. It is expected to be NULL (meaning that no edition is set) or a byte string in the encoding specified by the OraCommonCreateParams.encoding member. The default value is NULL.
+    edition_length::UInt32 # Specifies the length of the OraCommonCreateParams.edition member, in bytes. The default value is 0.
+    driver_name::Ptr{UInt8} # Specifies the name of the driver that is being used. It is expected to be NULL or a byte string in the encoding specified by the OraCommonCreateParams.encoding member. The default value is NULL.
+    driver_name_length::UInt32 # Specifies the length of the OraCommonCreateParams.driverName member, in bytes. The default value is 0.
 end
 
-edition(p::dpiCommonCreateParams) = p.edition == C_NULL ? nothing : unsafe_string(p.edition, p.edition_length)
-driver_name(p::dpiCommonCreateParams) = p.driver_name == C_NULL ? nothing : unsafe_string(p.driver_name, p.driver_name_length)
+edition(p::OraCommonCreateParams) = p.edition == C_NULL ? nothing : unsafe_string(p.edition, p.edition_length)
+driver_name(p::OraCommonCreateParams) = p.driver_name == C_NULL ? nothing : unsafe_string(p.driver_name, p.driver_name_length)
 
-struct dpiAppContext
-    namespace_name::Ptr{UInt8} # Specifies the value of the “namespace” parameter to sys_context(). It is expected to be a byte string in the encoding specified in the dpiConnCreateParams structure and must not be NULL.
-    namespace_name_length::UInt32 # Specifies the length of the dpiAppContext.namespaceName member, in bytes.
-    name::Ptr{UInt8} # Specifies the value of the “parameter” parameter to sys_context(). It is expected to be a byte string in the encoding specified in the dpiConnCreateParams structure and must not be NULL.
-    name_length::UInt32 # Specifies the length of the dpiAppContext.name member, in bytes.
-    value::Ptr{UInt8} # Specifies the value that will be returned from sys_context(). It is expected to be a byte string in the encoding specified in the dpiConnCreateParams structure and must not be NULL.
-    value_length::UInt32 # Specifies the length of the dpiAppContext.value member, in bytes.
+struct OraAppContext
+    namespace_name::Ptr{UInt8} # Specifies the value of the “namespace” parameter to sys_context(). It is expected to be a byte string in the encoding specified in the OraConnCreateParams structure and must not be NULL.
+    namespace_name_length::UInt32 # Specifies the length of the OraAppContext.namespaceName member, in bytes.
+    name::Ptr{UInt8} # Specifies the value of the “parameter” parameter to sys_context(). It is expected to be a byte string in the encoding specified in the OraConnCreateParams structure and must not be NULL.
+    name_length::UInt32 # Specifies the length of the OraAppContext.name member, in bytes.
+    value::Ptr{UInt8} # Specifies the value that will be returned from sys_context(). It is expected to be a byte string in the encoding specified in the OraConnCreateParams structure and must not be NULL.
+    value_length::UInt32 # Specifies the length of the OraAppContext.value member, in bytes.
 end
 
 """
 This structure is used for creating connections to the database, whether standalone or acquired from a session pool. All members are initialized to default values using the dpiContext_initConnCreateParams() function. Care should be taken to ensure a copy of this structure exists only as long as needed to create the connection since it can contain a clear text copy of credentials used for connecting to the database.
 """
-mutable struct dpiConnCreateParams
-    auth_mode::dpiAuthMode
+mutable struct OraConnCreateParams
+    auth_mode::OraAuthMode
     connection_class::Ptr{UInt8}
     connection_class_length::UInt32
-    purity::dpiPurity
+    purity::OraPurity
     new_password::Ptr{UInt8}
     new_password_length::UInt32
-    app_context::Ptr{dpiAppContext} # Specifies the application context that will be set when the connection is created. This value is only used when creating standalone connections. It is expected to be NULL or an array of dpiAppContext structures. The context specified here can be used in logon triggers, for example. The default value is NULL.
-    num_app_context::UInt32 # Specifies the number of elements found in the dpiConnCreateParams.appContext member. The default value is 0.
-    external_auth::Int32 # Specifies whether external authentication should be used to create the connection. If this value is 0, the user name and password values must be specified in the call to dpiConn_create(); otherwise, the user name and password values must be zero length or NULL. The default value is 0.
+    app_context::Ptr{OraAppContext} # Specifies the application context that will be set when the connection is created. This value is only used when creating standalone connections. It is expected to be NULL or an array of OraAppContext structures. The context specified here can be used in logon triggers, for example. The default value is NULL.
+    num_app_context::UInt32 # Specifies the number of elements found in the OraConnCreateParams.appContext member. The default value is 0.
+    external_auth::Int32 # Specifies whether external authentication should be used to create the connection. If this value is 0, the user name and password values must be specified in the call to OraConn_create(); otherwise, the user name and password values must be zero length or NULL. The default value is 0.
     external_handle::Ptr{Cvoid} # Specifies an OCI service context handle created externally that will be used instead of creating a connection. The default value is NULL.
     pool_handle::Ptr{Cvoid} # Specifies the session pool from which to acquire a connection or NULL if a standalone connection should be created. The default value is NULL.
     tag::Ptr{UInt8}
@@ -105,25 +105,25 @@ are acquired from that session pool.
 All members are initialized to default values using
 the dpiContext_initPoolCreateParams() function.
 """
-struct dpiPoolCreateParams
-    min_sessions::UInt32 # Specifies the minimum number of sessions to be created by the session pool. This value is ignored if the dpiPoolCreateParams.homogeneous member has a value of 0. The default value is 1.
+struct OraPoolCreateParams
+    min_sessions::UInt32 # Specifies the minimum number of sessions to be created by the session pool. This value is ignored if the OraPoolCreateParams.homogeneous member has a value of 0. The default value is 1.
     max_sessions::UInt32 # Specifies the maximum number of sessions that can be created by the session pool. Values of 1 and higher are acceptable. The default value is 1.
-    session_increment::UInt32 # Specifies the number of sessions that will be created by the session pool when more sessions are required and the number of sessions is less than the maximum allowed. This value is ignored if the dpiPoolCreateParams.homogeneous member has a value of 0. This value added to the dpiPoolCreateParams.minSessions member value must not exceed the dpiPoolCreateParams.maxSessions member value. The default value is 0.
+    session_increment::UInt32 # Specifies the number of sessions that will be created by the session pool when more sessions are required and the number of sessions is less than the maximum allowed. This value is ignored if the OraPoolCreateParams.homogeneous member has a value of 0. This value added to the OraPoolCreateParams.minSessions member value must not exceed the OraPoolCreateParams.maxSessions member value. The default value is 0.
     ping_interval::Int32 # Specifies the number of seconds since a connection has last been used before a ping will be performed to verify that the connection is still valid. A negative value disables this check. The default value is 60.
     ping_timeout::Int32 # Specifies the number of milliseconds to wait when performing a ping to verify the connection is still valid before the connection is considered invalid and is dropped. The default value is 5000 (5 seconds). This value is ignored in clients 12.2 and later since a much faster internal check is done by the Oracle client.
     homogeneous::Int32 # Specifies whether the pool is homogeneous or not. In a homogeneous pool all connections use the same credentials whereas in a heterogeneous pool other credentials are permitted. The default value is 1.
     external_auth::Int32 # Specifies whether external authentication should be used to create the sessions in the pool. If this value is 0, the user name and password values must be specified in the call to dpiPool_create(); otherwise, the user name and password values must be zero length or NULL. The default value is 0. External authentication cannot be used with homogeneous pools.
-    get_mode::dpiPoolGetMode # Specifies the mode to use when sessions are acquired from the pool. It is expected to be one of the values from the enumeration dpiPoolGetMode. The default value is DPI_MODE_POOL_GET_NOWAIT. This value can be set after the pool has been created using the function dpiPool_setGetMode() and acquired using the function dpiPool_getGetMode().
+    get_mode::OraPoolGetMode # Specifies the mode to use when sessions are acquired from the pool. It is expected to be one of the values from the enumeration OraPoolGetMode. The default value is DPI_MODE_POOL_GET_NOWAIT. This value can be set after the pool has been created using the function dpiPool_setGetMode() and acquired using the function dpiPool_getGetMode().
     out_pool_name::Ptr{UInt8} # This member is populated upon successful creation of a pool using the function dpiPool_create(). It is a byte string in the encoding used for CHAR data. Any value specified prior to creating the session pool is ignored.
-    out_pool_name_length::UInt32 # This member is populated upon successful creation of a pool using the function dpiPool_create(). It is the length of the dpiPoolCreateParams.outPoolName member, in bytes. Any value specified prior to creating the session pool is ignored.
+    out_pool_name_length::UInt32 # This member is populated upon successful creation of a pool using the function dpiPool_create(). It is the length of the OraPoolCreateParams.outPoolName member, in bytes. Any value specified prior to creating the session pool is ignored.
     timeout::UInt32 # Specifies the length of time (in seconds) after which idle sessions in the pool are terminated. Note that termination only occurs when the pool is accessed. The default value is 0 which means that no idle sessions are terminated. This value can be set after the pool has been created using the function dpiPool_setTimeout() and acquired using the function dpiPool_getTimeout().
-    wait_timeout::UInt32 # Specifies the length of time (in milliseconds) that the caller should wait for a session to become available in the pool before returning with an error. This value is only used if the dpiPoolCreateParams.getMode member is set to the value DPI_MODE_POOL_GET_TIMEDWAIT. The default value is 0. This value can be set after the pool has been created using the function dpiPool_setWaitTimeout() and acquired using the function dpiPool_getWaitTimeout().
+    wait_timeout::UInt32 # Specifies the length of time (in milliseconds) that the caller should wait for a session to become available in the pool before returning with an error. This value is only used if the OraPoolCreateParams.getMode member is set to the value DPI_MODE_POOL_GET_TIMEDWAIT. The default value is 0. This value can be set after the pool has been created using the function dpiPool_setWaitTimeout() and acquired using the function dpiPool_getWaitTimeout().
     max_lifetime_session::UInt32 # Specifies the maximum length of time (in seconds) a pooled session may exist. Sessions in use will not be closed. They become candidates for termination only when they are released back to the pool and have existed for longer than maxLifetimeSession seconds. Session termination only occurs when the pool is accessed. The default value is 0 which means that there is no maximum length of time that a pooled session may exist. This value can be set after the pool has been created using the function dpiPool_setMaxLifetimeSession() and acquired using the function dpiPool_getMaxLifetimeSession().
 end
 
-struct dpiDataTypeInfo
-    oracle_type_num::dpiOracleTypeNum # Specifies the type of the data. It will be one of the values from the enumeration dpiOracleTypeNum, or 0 if the type is not supported by ODPI-C.
-    default_native_type_num::dpiNativeTypeNum # Specifies the default native type for the data. It will be one of the values from the enumeration dpiNativeTypeNum, or 0 if the type is not supported by ODPI-C.
+struct OraDataTypeInfo
+    oracle_type_num::OraOracleTypeNum # Specifies the type of the data. It will be one of the values from the enumeration OraOracleTypeNum, or 0 if the type is not supported by ODPI-C.
+    default_native_type_num::OraNativeTypeNum # Specifies the default native type for the data. It will be one of the values from the enumeration OraNativeTypeNum, or 0 if the type is not supported by ODPI-C.
     oci_type_code::UInt16 # Specifies the OCI type code for the data, which can be useful if the type is not supported by ODPI-C.
     db_size_in_bytes::UInt32 # Specifies the size in bytes (from the database’s perspective) of the data. This value is only populated for strings and binary data. For all other data the value is zero.
     client_size_in_bytes::UInt32 # Specifies the size in bytes (from the client’s perspective) of the data. This value is only populated for strings and binary data. For all other data the value is zero.
@@ -131,37 +131,37 @@ struct dpiDataTypeInfo
     precision::Int16 # Specifies the precision of the data. This value is only populated for numeric and interval data. For all other data the value is zero.
     scale::Int8 # Specifies the scale of the data. This value is only populated for numeric data. For all other data the value is zero.
     fs_precision::Int16 # Specifies the fractional seconds precision of the data. This value is only populated for timestamp and interval day to second data. For all other data the value is zero.
-    object_type_handle::Ptr{Cvoid} # Specifies a reference to the type of the object. This value is only populated for named type data. For all other data the value is NULL. This reference is owned by the object attribute, object type or statement and a call to dpiObjectType_addRef() must be made if the reference is going to be used beyond the lifetime of the owning object.
+    object_type_handle::Ptr{Cvoid} # Specifies a reference to the type of the object. This value is only populated for named type data. For all other data the value is NULL. This reference is owned by the object attribute, object type or statement and a call to OraObjectType_addRef() must be made if the reference is going to be used beyond the lifetime of the owning object.
 end
 
-struct dpiQueryInfo
+struct OraQueryInfo
     name::Ptr{UInt8} # Specifies the name of the column which is being queried, as a byte string in the encoding used for CHAR data.
-    name_length::UInt32 # Specifies the length of the dpiQueryInfo.name member, in bytes.
-    type_info::dpiDataTypeInfo # Specifies the type of data of the column that is being queried. It is a structure of type dpiDataTypeInfo.
+    name_length::UInt32 # Specifies the length of the OraQueryInfo.name member, in bytes.
+    type_info::OraDataTypeInfo # Specifies the type of data of the column that is being queried. It is a structure of type OraDataTypeInfo.
     null_ok::Int32 # Specifies if the data that is being queried may return null values (1) or not (0).
 end
 
-struct dpiStmtInfo
+struct OraStmtInfo
     is_query::Int32
     is_PLSQL::Int32
     is_DDL::Int32
     is_DML::Int32
-    statement_type::dpiStatementType
+    statement_type::OraStatementType
     is_returning::Int32
 end
 
-struct dpiBytes
+struct OraBytes
     ptr::Ptr{UInt8}
     length::UInt32
     encoding::Cstring
 end
 
-Base.show(io::IO, ptr::Ptr{dpiBytes}) = show(io, unsafe_load(ptr))
+Base.show(io::IO, ptr::Ptr{OraBytes}) = show(io, unsafe_load(ptr))
 
-function Base.show(io::IO, ora_str::dpiBytes)
+function Base.show(io::IO, ora_str::OraBytes)
     str = unsafe_string(ora_str.ptr, ora_str.length)
     enc = unsafe_string(ora_str.encoding)
-    print(io, "dpiBytes(", str, ", ", enc, ")")
+    print(io, "OraBytes(", str, ", ", enc, ")")
 end
 
 #=
@@ -169,27 +169,27 @@ This structure is used for transferring encoding information from ODPI-C.
 All of the information here remains valid as long as a reference is held
 to the standalone connection or session pool from which the information was taken.
 =#
-struct dpiEncodingInfo
+struct OraEncodingInfo
     encoding::Cstring # The encoding used for CHAR data, as a null-terminated ASCII string.
     max_bytes_per_character::Int32 # The maximum number of bytes required for each character in the encoding used for CHAR data. This value is used when calculating the size of buffers required when lengths in characters are provided.
     nencoding::Cstring # The encoding used for NCHAR data, as a null-terminated ASCII string.
     nmax_bytes_per_character::Int32 # The maximum number of bytes required for each character in the encoding used for NCHAR data. Since this information is not directly available from Oracle it is only accurate if the encodings used for CHAR and NCHAR data are identical or one of ASCII or UTF-8; otherwise a value of 4 is assumed. This value is used when calculating the size of buffers required when lengths in characters are provided.
 end
 
-"Mirrors ODPI-C's dpiEncodingInfo struct, but using Julia types."
+"Mirrors ODPI-C's OraEncodingInfo struct, but using Julia types."
 struct EncodingInfo
     encoding::String
     max_bytes_per_character::Int
     nencoding::String
     nmax_bytes_per_character::Int
 
-    function EncodingInfo(dpi_encoding_info_ref::Ref{dpiEncodingInfo})
-        dpi_encoding_info = dpi_encoding_info_ref[]
+    function EncodingInfo(encoding_info_ref::Ref{OraEncodingInfo})
+        encoding_info = encoding_info_ref[]
         return new(
-            unsafe_string(dpi_encoding_info.encoding),
-            Int(dpi_encoding_info.max_bytes_per_character),
-            unsafe_string(dpi_encoding_info.nencoding),
-            Int(dpi_encoding_info.nmax_bytes_per_character)
+            unsafe_string(encoding_info.encoding),
+            Int(encoding_info.max_bytes_per_character),
+            unsafe_string(encoding_info.nencoding),
+            Int(encoding_info.nmax_bytes_per_character)
         )
     end
 end
@@ -228,16 +228,16 @@ mutable struct Connection
 end
 
 function EncodingInfo(context::Context, connection_handle::Ptr{Cvoid})
-    dpi_encoding_info_ref = Ref{dpiEncodingInfo}()
-    dpi_result = dpiConn_getEncodingInfo(connection_handle, dpi_encoding_info_ref)
-    error_check(context, dpi_result)
-    return EncodingInfo(dpi_encoding_info_ref)
+    encoding_info_ref = Ref{OraEncodingInfo}()
+    result = dpiConn_getEncodingInfo(connection_handle, encoding_info_ref)
+    error_check(context, result)
+    return EncodingInfo(encoding_info_ref)
 end
 
 function destroy!(conn::Connection)
     if conn.handle != C_NULL
-        dpi_result = dpiConn_release(conn.handle)
-        error_check(conn.context, dpi_result)
+        result = dpiConn_release(conn.handle)
+        error_check(conn.context, result)
         conn.handle = C_NULL
     end
     nothing
@@ -256,8 +256,8 @@ end
 
 function destroy!(pool::Pool)
     if pool.handle != C_NULL
-        dpi_result = dpiPool_release(pool.handle)
-        error_check(pool.context, dpi_result)
+        result = dpiPool_release(pool.handle)
+        error_check(pool.context, result)
         pool.handle = C_NULL
     end
     nothing
@@ -277,8 +277,8 @@ end
 
 function destroy!(stmt::Stmt)
     if stmt.handle != C_NULL
-        dpi_result = dpiStmt_release(stmt.handle)
-        error_check(stmt.connection.context, dpi_result)
+        result = dpiStmt_release(stmt.handle)
+        error_check(stmt.connection.context, result)
         stmt.handle = C_NULL
     end
     nothing
@@ -288,8 +288,8 @@ end
 High-level type as an aggregation of `dpiNativeTypeNum` and `dpiData`.
 """
 struct NativeValue
-    native_type::dpiNativeTypeNum
-    dpi_data_handle::Ptr{dpiData}
+    native_type::OraNativeTypeNum
+    data_handle::Ptr{OraData}
 end
 
 struct FetchResult
@@ -307,7 +307,7 @@ Base.show(io::IO, result::FetchRowsResult) = print(io, "FetchRowsResult(", Int(r
 
 struct CursorSchema
     stmt::Stmt
-    column_query_info::Vector{dpiQueryInfo}
+    column_query_info::Vector{OraQueryInfo}
     column_names_index::Dict{String, Int}
 end
 

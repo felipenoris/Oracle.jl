@@ -31,14 +31,14 @@ ctx = Oracle.Context()
 const ENCODING = "UTF-8"
 ptr_set_encoding = pointer(ENCODING)
 
-common_params = Oracle.dpiCommonCreateParams(ctx)
+common_params = Oracle.OraCommonCreateParams(ctx)
 common_params.encoding = ptr_set_encoding
 common_params.nencoding = ptr_set_encoding
 
-conn_create_params = Oracle.dpiConnCreateParams(ctx)
-#conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA # in case the database user is sysdba
+conn_create_params = Oracle.OraConnCreateParams(ctx)
+conn_create_params.auth_mode = Oracle.ORA_MODE_AUTH_SYSDBA # in case the database user is sysdba
 
-conn = Oracle.Connection(ctx, username, password, connect_string, common_params=common_params,conn_create_params=conn_create_params)
+conn = Oracle.Connection(ctx, username, password, connect_string, common_params=common_params, conn_create_params=conn_create_params)
 
 # Client Version
 let
@@ -71,14 +71,14 @@ end
 println("")
 
 @testset "Create structs" begin
-    common_create_params = Oracle.dpiCommonCreateParams(ctx)
-    pool_create_params = Oracle.dpiPoolCreateParams(ctx)
-    conn_create_params = Oracle.dpiConnCreateParams(ctx)
+    common_create_params = Oracle.OraCommonCreateParams(ctx)
+    pool_create_params = Oracle.OraPoolCreateParams(ctx)
+    conn_create_params = Oracle.OraConnCreateParams(ctx)
 
     @testset "mutate conn_create_params" begin
-        sysadmin_conn_create_params = Oracle.dpiConnCreateParams(ctx)
-        sysadmin_conn_create_params.auth_mode = Oracle.DPI_MODE_AUTH_SYSDBA
-        @test sysadmin_conn_create_params.auth_mode == Oracle.DPI_MODE_AUTH_SYSDBA
+        sysadmin_conn_create_params = Oracle.OraConnCreateParams(ctx)
+        sysadmin_conn_create_params.auth_mode = Oracle.ORA_MODE_AUTH_SYSDBA
+        @test sysadmin_conn_create_params.auth_mode == Oracle.ORA_MODE_AUTH_SYSDBA
     end
 end
 
@@ -98,17 +98,17 @@ end
 
 @testset "Stmt" begin
     stmt = Oracle.Stmt(conn, "SELECT * FROM TB_TEST")
-    stmt_info = Oracle.dpiStmtInfo(stmt)
+    stmt_info = Oracle.OraStmtInfo(stmt)
     @test stmt_info.is_query == 1
     @test stmt_info.is_DDL == 0
     @test stmt_info.is_DML == 0
-    @test stmt_info.statement_type == Oracle.DPI_STMT_TYPE_SELECT
+    @test stmt_info.statement_type == Oracle.ORA_STMT_TYPE_SELECT
 
     num_columns = Oracle.execute!(stmt)
     @test num_columns == 1
     @test num_columns == Oracle.num_query_columns(stmt)
 
-    query_info = Oracle.dpiQueryInfo(stmt, 1)
+    query_info = Oracle.OraQueryInfo(stmt, 1)
     @test Oracle.column_name(query_info) == "ID"
 end
 
@@ -349,7 +349,7 @@ end
 
 #=
 @testset "shutdown/startup" begin
-    # The connection needs to have been established at least with authorization mode set to DPI_MODE_AUTH_SYSDBA or DPI_MODE_AUTH_SYSOPER
+    # The connection needs to have been established at least with authorization mode set to ORA_MODE_AUTH_SYSDBA or ORA_MODE_AUTH_SYSOPER
     Oracle.shutdown_database(conn)
     Oracle.startup_database(conn)
 end

@@ -19,11 +19,11 @@ function CursorSchema(stmt::Stmt)
 
     num_columns = num_query_columns(stmt)
 
-    column_query_info = Vector{dpiQueryInfo}()
+    column_query_info = Vector{OraQueryInfo}()
     column_names_index = Dict{String, Int}()
 
     for column_index in 1:num_columns
-        q_info = dpiQueryInfo(stmt, column_index)
+        q_info = OraQueryInfo(stmt, column_index)
         push!(column_query_info, q_info)
         column_names_index[column_name(q_info)] = column_index
     end
@@ -35,7 +35,7 @@ num_query_columns(schema::CursorSchema) = length(schema.column_names_index)
 num_query_columns(cursor::Cursor) = num_query_columns(cursor.schema)
 num_query_columns(row::ResultSetRow) = num_query_columns(row.cursor)
 
-function Cursor(stmt::Stmt; fetch_array_size::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
+function Cursor(stmt::Stmt; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     schema = CursorSchema(stmt)
     return Cursor(stmt, schema, fetch_array_size)
 end
@@ -128,12 +128,12 @@ end
 
 first_offset(result::FetchRowsResult) = -Int(result.num_rows_fetched) + 1
 
-function query(conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT, fetch_array_size::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
+function query(conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     stmt = Stmt(conn, sql; scrollable=scrollable, tag=tag)
     return query(stmt; exec_mode=exec_mode, fetch_array_size=fetch_array_size)
 end
 
-function query(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT, fetch_array_size::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
+function query(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     execute!(stmt; exec_mode=exec_mode)
     return Cursor(stmt; fetch_array_size=fetch_array_size)
 end

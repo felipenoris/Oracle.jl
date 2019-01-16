@@ -24,18 +24,18 @@ function __init__()
     check_deps() # defined in DEPS_FILE
 
     # check size of structs affected by C unions
-    @assert sizeof(dpiDataBuffer) == sizeof_dpiDataBuffer()
-    @assert sizeof(dpiData) == sizeof_dpiData()
+    @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer()
+    @assert sizeof(OraData) == sizeof_dpiData()
 end
 
-@inline function error_check(ctx::Context, dpi_result::dpiResult)
-    if dpi_result == DPI_FAILURE
-        error_info_ref = Ref{dpiErrorInfo}()
+@inline function error_check(ctx::Context, result::OraResult)
+    if result == ORA_FAILURE
+        error_info_ref = Ref{OraErrorInfo}()
         dpiContext_getError(ctx.handle, error_info_ref)
         error_info = error_info_ref[]
         throw(error_info)
     end
-    @assert dpi_result == DPI_SUCCESS
+    @assert result == ORA_SUCCESS
 
     nothing
 end
