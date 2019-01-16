@@ -58,9 +58,6 @@ mutable struct OraCommonCreateParams
     driver_name_length::UInt32 # Specifies the length of the OraCommonCreateParams.driverName member, in bytes. The default value is 0.
 end
 
-edition(p::OraCommonCreateParams) = p.edition == C_NULL ? nothing : unsafe_string(p.edition, p.edition_length)
-driver_name(p::OraCommonCreateParams) = p.driver_name == C_NULL ? nothing : unsafe_string(p.driver_name, p.driver_name_length)
-
 struct OraAppContext
     namespace_name::Ptr{UInt8} # Specifies the value of the “namespace” parameter to sys_context(). It is expected to be a byte string in the encoding specified in the OraConnCreateParams structure and must not be NULL.
     namespace_name_length::UInt32 # Specifies the length of the OraAppContext.namespaceName member, in bytes.
@@ -326,4 +323,19 @@ end
 struct CursorIteratorState
     next_offset::Int
     last_fetch_rows_result::FetchRowsResult
+end
+
+"Safe version of OraCommonCreateParams"
+mutable struct CommonCreateParams
+    create_mode::Union{Nothing, OraCreateMode}
+    encoding::String
+    nencoding::String
+    edition::Union{Nothing, String}
+    driver_name::Union{Nothing, String}
+end
+
+"Safe version of OraConnCreateParams"
+mutable struct ConnCreateParams
+    auth_mode::OraAuthMode
+    pool::Union{Nothing, Pool}
 end

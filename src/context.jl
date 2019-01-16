@@ -21,10 +21,3 @@ function client_version(ctx::Context) :: OraVersionInfo
     dpiContext_getClientVersion(ctx.handle, version_info_ref)
     return version_info_ref[]
 end
-
-function OraCommonCreateParams(ctx::Context)
-    common_create_params_ref = Ref{OraCommonCreateParams}(OraCommonCreateParams(ORA_MODE_CREATE_DEFAULT, C_NULL, C_NULL, C_NULL, 0, C_NULL, 0))
-    result = dpiContext_initCommonCreateParams(ctx.handle, common_create_params_ref)
-    error_check(ctx, result)
-    return common_create_params_ref[]
-end

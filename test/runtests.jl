@@ -26,19 +26,8 @@ end
 
 ctx = Oracle.Context()
 
-# TODO: reference to ptr_set_encoding is unsafe because it must be valid as long as the connection is active.
-# This needs refactoring to make it safe.
-const ENCODING = "UTF-8"
-ptr_set_encoding = pointer(ENCODING)
-
-common_params = Oracle.OraCommonCreateParams(ctx)
-common_params.encoding = ptr_set_encoding
-common_params.nencoding = ptr_set_encoding
-
-conn_create_params = Oracle.OraConnCreateParams(ctx)
-conn_create_params.auth_mode = Oracle.ORA_MODE_AUTH_SYSDBA # in case the database user is sysdba
-
-conn = Oracle.Connection(ctx, username, password, connect_string, common_params=common_params, conn_create_params=conn_create_params)
+conn = Oracle.Connection(ctx, username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
+#conn = Oracle.Connection(ctx, username, password, connect_string) # in case the database user is a regular user
 
 # Client Version
 let
@@ -69,18 +58,6 @@ let
 end
 
 println("")
-
-@testset "Create structs" begin
-    common_create_params = Oracle.OraCommonCreateParams(ctx)
-    pool_create_params = Oracle.OraPoolCreateParams(ctx)
-    conn_create_params = Oracle.OraConnCreateParams(ctx)
-
-    @testset "mutate conn_create_params" begin
-        sysadmin_conn_create_params = Oracle.OraConnCreateParams(ctx)
-        sysadmin_conn_create_params.auth_mode = Oracle.ORA_MODE_AUTH_SYSDBA
-        @test sysadmin_conn_create_params.auth_mode == Oracle.ORA_MODE_AUTH_SYSDBA
-    end
-end
 
 @testset "ping" begin
     Oracle.ping(conn)
