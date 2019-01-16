@@ -24,8 +24,8 @@ function simple_query(conn::Oracle.Connection, sql::String)
     Oracle.close!(stmt)
 end
 
-#conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
-conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
+conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
+#conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
 
 # Client Version
 let
@@ -73,15 +73,15 @@ end
 
 @testset "Stmt" begin
     stmt = Oracle.Stmt(conn, "SELECT * FROM TB_TEST")
-    stmt_info = Oracle.OraStmtInfo(stmt)
-    @test stmt_info.is_query == 1
-    @test stmt_info.is_DDL == 0
-    @test stmt_info.is_DML == 0
-    @test stmt_info.statement_type == Oracle.ORA_STMT_TYPE_SELECT
 
-    num_columns = Oracle.execute!(stmt)
-    @test num_columns == 1
-    @test num_columns == Oracle.num_query_columns(stmt)
+    @test stmt.info.is_query
+    @test !stmt.info.is_DDL
+    @test !stmt.info.is_DML
+    @test stmt.info.statement_type == Oracle.ORA_STMT_TYPE_SELECT
+
+    query_result = Oracle.execute!(stmt)
+    @test isa(query_result, Oracle.QueryExecutionResult)
+    @test query_result.num_columns == 1
 
     query_info = Oracle.OraQueryInfo(stmt, 1)
     @test Oracle.column_name(query_info) == "ID"
@@ -121,8 +121,8 @@ end
     Oracle.commit!(conn)
 
     stmt = Oracle.Stmt(conn, "SELECT ID, name, amount FROM TB_TEST_DATATYPES")
-    num_columns = Oracle.execute!(stmt)
-    @test num_columns == 3
+    query_result = Oracle.execute!(stmt)
+    @test query_result.num_columns == 3
 
     result = Oracle.fetch!(stmt)
     @test result.found
@@ -187,8 +187,8 @@ end
     end
 
     stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
-    num_cols = Oracle.execute!(stmt)
-    @test num_cols == 2
+    result = Oracle.execute!(stmt)
+    @test result.num_columns == 2
 
     fetch_rows_result = Oracle.fetch_rows!(stmt, 3)
 

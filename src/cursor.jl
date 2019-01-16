@@ -14,10 +14,9 @@ while next !== nothing
 end
 =#
 
-function CursorSchema(stmt::Stmt)
-    @assert is_query(stmt) "Cannot create a Cursor for a statement that is not a Query."
-
-    num_columns = num_query_columns(stmt)
+function CursorSchema(execution_result::QueryExecutionResult)
+    stmt = execution_result.stmt
+    num_columns = execution_result.num_columns
 
     column_query_info = Vector{OraQueryInfo}()
     column_names_index = Dict{String, Int}()
@@ -31,13 +30,15 @@ function CursorSchema(stmt::Stmt)
     return CursorSchema(stmt, column_query_info, column_names_index)
 end
 
-num_query_columns(schema::CursorSchema) = length(schema.column_names_index)
-num_query_columns(cursor::Cursor) = num_query_columns(cursor.schema)
-num_query_columns(row::ResultSetRow) = num_query_columns(row.cursor)
+num_columns(schema::CursorSchema) = length(schema.column_names_index)
+num_columns(row::ResultSetRow) = num_columns(row.cursor)
+num_columns(cursor::Cursor) = cursor.execution_result.num_columns
 
-function Cursor(stmt::Stmt; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    schema = CursorSchema(stmt)
-    return Cursor(stmt, schema, fetch_array_size)
+stmt(cursor::Cursor) = cursor.execution_result.stmt
+
+function Cursor(execution_result::QueryExecutionResult; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+    schema = CursorSchema(execution_result)
+    return Cursor(execution_result, schema, fetch_array_size)
 end
 
 @inline function has_more_rows(r::FetchRowsResult)
@@ -54,7 +55,7 @@ end
     # Iteration protocol for Julia v0.6
 
     function Base.start(cursor::Cursor)
-        fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+        fetch_rows_result = Oracle.fetch_rows!(stmt(cursor), cursor.fetch_array_size)
         return CursorIteratorState(first_offset(fetch_rows_result), fetch_rows_result)
     end
 
@@ -66,12 +67,12 @@ end
 
         if !has_more_rows(state.last_fetch_rows_result)
             # there are no more rows to fetch
-            close!(cursor.stmt)
+            close!(stmt(cursor))
             return true
         end
 
         # sometimes after we fetch rows we discover that the result is empty
-        fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+        fetch_rows_result = Oracle.fetch_rows!(stmt(cursor), cursor.fetch_array_size)
 
         if fetch_rows_result.num_rows_fetched == 0
             # fetch returned no more rows
@@ -98,7 +99,7 @@ else
     =#
     function Base.iterate(cursor::Cursor)
         # this is the first iteration
-        fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+        fetch_rows_result = Oracle.fetch_rows!(stmt(cursor), cursor.fetch_array_size)
 
         # check for empty result
         if fetch_rows_result.num_rows_fetched == 0
@@ -117,11 +118,11 @@ else
         else
             # fetch more results if has more rows to fetch
             if has_more_rows(state.last_fetch_rows_result)
-                fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+                fetch_rows_result = Oracle.fetch_rows!(stmt(cursor), cursor.fetch_array_size)
 
                 # it's strange, but sometimes `has_more_rows` returns true, and `fetch_rows!` returns `num_rows_fetched == 0`
                 if fetch_rows_result.num_rows_fetched == 0
-                    close!(cursor.stmt)
+                    close!(stmt(cursor))
                     return nothing
                 end
 
@@ -129,7 +130,7 @@ else
                 return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
             else
                 # there are no more rows to fetch, so we finished reading from this Cursor
-                close!(cursor.stmt)
+                close!(stmt(cursor))
                 return nothing
             end
         end
@@ -144,16 +145,19 @@ function query(conn::Connection, sql::String; scrollable::Bool=false, tag::Strin
 end
 
 function query(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    execute!(stmt; exec_mode=exec_mode)
-    return Cursor(stmt; fetch_array_size=fetch_array_size)
+    return query( execute!(stmt; exec_mode=exec_mode) ; fetch_array_size=fetch_array_size)
+end
+
+function query(result::QueryExecutionResult; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+    return Cursor(result; fetch_array_size=fetch_array_size)
 end
 
 function ResultSetRow(cursor::Cursor, offset::Int)
     data = Vector{Any}()
 
     # parse data from Cursor
-    for column_index in 1:num_query_columns(cursor)
-        native_value = query_value(cursor.stmt, column_index)[offset]
+    for column_index in 1:num_columns(cursor)
+        native_value = query_value(stmt(cursor), column_index)[offset]
         push!(data, parse_value(cursor.schema.column_query_info[column_index], native_value))
     end
 

@@ -6,17 +6,38 @@ function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::
     return Stmt(connection, stmt_handle_ref[], scrollable)
 end
 
+function execute!(stmt::Stmt{StmtQueryType}; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: QueryExecutionResult
+    num_columns = raw_execute!(stmt, exec_mode)
+    return QueryExecutionResult(stmt, num_columns)
+end
+
+function execute!(stmt::Stmt{StmtDMLType}; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: DMLExecutionResult
+    num_columns = raw_execute!(stmt, exec_mode)
+    @assert num_columns == 0 "num_columns should be zero for non-query statements."
+
+    row_count_ref = Ref{UInt64}()
+    result = dpiStmt_getRowCount(stmt.handle, row_count_ref)
+    error_check(context(stmt), result)
+
+    return DMLExecutionResult(stmt, row_count_ref[])
+end
+
+function execute!(stmt::Stmt{StmtOtherType}; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: GenericStmtExecutionResult
+    num_columns = raw_execute!(stmt, exec_mode)
+    return GenericStmtExecutionResult(stmt, num_columns)
+end
+
 """
-    execute!(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    raw_execute!(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
 
 Returns the number of columns which are being queried.
 If the statement does not refer to a query, the value is set to 0.
 """
-function execute!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
-    num_query_columns_ref = Ref{UInt32}(0)
-    result = dpiStmt_execute(stmt.handle, exec_mode, num_query_columns_ref)
+function raw_execute!(stmt::Stmt, exec_mode::OraExecMode) :: UInt32
+    num_columns_ref = Ref{UInt32}(0)
+    result = dpiStmt_execute(stmt.handle, exec_mode, num_columns_ref)
     error_check(context(stmt), result)
-    return num_query_columns_ref[]
+    return num_columns_ref[]
 end
 
 function close!(stmt::Stmt; tag::String="")
@@ -25,11 +46,11 @@ function close!(stmt::Stmt; tag::String="")
     nothing
 end
 
-function num_query_columns(stmt::Stmt) :: UInt32
-    num_query_columns_ref = Ref{UInt32}(0)
-    result = dpiStmt_getNumQueryColumns(stmt.handle, num_query_columns_ref)
+function num_columns(stmt::Stmt) :: UInt32
+    num_columns_ref = Ref{UInt32}(0)
+    result = dpiStmt_getNumQueryColumns(stmt.handle, num_columns_ref)
     error_check(context(stmt), result)
-    return num_query_columns_ref[]
+    return num_columns_ref[]
 end
 
 function OraQueryInfo(stmt::Stmt, column_index::UInt32)
@@ -41,13 +62,6 @@ end
 
 OraQueryInfo(stmt::Stmt, column_index::Integer) = OraQueryInfo(stmt, UInt32(column_index))
 column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_info.name_length)
-
-function OraStmtInfo(stmt::Stmt)
-    stmt_info_ref = Ref{OraStmtInfo}()
-    result = dpiStmt_getInfo(stmt.handle, stmt_info_ref)
-    error_check(context(stmt), result)
-    return stmt_info_ref[]
-end
 
 """
     fetch!(stmt::Stmt)
@@ -84,17 +98,6 @@ function query_value(stmt::Stmt, column_index::UInt32) :: NativeValue
     return NativeValue(native_type_ref[], data_handle_ref[])
 end
 query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
-
-function is_query(stmt::Stmt) :: Bool
-    stmt_info = OraStmtInfo(stmt)
-    if stmt_info.is_query == 1
-        return true
-    elseif stmt_info.is_query == 0
-        return false
-    else
-        error("Invalid value for OraStmtInfo.is_query: ", stmt_info.is_query)
-    end
-end
 
 @inline function _bind_aux!(stmt::Stmt, value::T, name::String, native_type::OraNativeTypeNum, set_data_function::F) where {T, F<:Function}
     data_ref = Ref{OraData}()
