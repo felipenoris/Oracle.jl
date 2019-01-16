@@ -67,7 +67,6 @@ function Connection(ctx::Context, user::String, password::String, connect_string
         nencoding::String=DEFAULT_CONNECTION_NENCODING,
         edition::Union{Nothing, String}=nothing,
         driver_name::Union{Nothing, String}=nothing,
-
         auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT,
         pool::Union{Nothing, Pool}=nothing
     )
@@ -76,6 +75,27 @@ function Connection(ctx::Context, user::String, password::String, connect_string
     conn_create_params = ConnCreateParams(auth_mode, pool)
 
     return Connection(ctx, user, password, connect_string, common_params, conn_create_params)
+end
+
+function Connection(user::String, password::String, connect_string::String;
+        create_mode::Union{Nothing, OraCreateMode}=nothing,
+        encoding::String=DEFAULT_CONNECTION_ENCODING,
+        nencoding::String=DEFAULT_CONNECTION_NENCODING,
+        edition::Union{Nothing, String}=nothing,
+        driver_name::Union{Nothing, String}=nothing,
+        auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT,
+        pool::Union{Nothing, Pool}=nothing
+    )
+
+    return Connection(Context(), user, password, connect_string,
+                create_mode=create_mode,
+                encoding=encoding,
+                nencoding=nencoding,
+                edition=edition,
+                driver_name=driver_name,
+                auth_mode=auth_mode,
+                pool=pool
+            )
 end
 
 function server_version(conn::Connection)
