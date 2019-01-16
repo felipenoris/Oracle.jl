@@ -147,8 +147,6 @@ end
 
     println("")
 
-    Oracle.close!(stmt)
-
     Oracle.execute!(conn, "DROP TABLE TB_TEST_DATATYPES")
 end
 
@@ -204,8 +202,6 @@ end
 
     @test value_id[0] == 3
     @test value_val[0] == 30
-
-    Oracle.close!(stmt)
 
     Oracle.execute!(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end
