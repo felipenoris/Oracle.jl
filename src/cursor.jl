@@ -59,28 +59,35 @@ end
     end
 
     function Base.done(cursor::Cursor, state::CursorIteratorState)
-        is_done = state.next_offset > 0 && !has_more_rows(state.last_fetch_rows_result)
-        if is_done
-            close!(cursor.stmt)
+        if state.next_offset <= 0
+            # next row was already fetched
+            return false
         end
-        return is_done
+
+        if !has_more_rows(state.last_fetch_rows_result)
+            # there are no more rows to fetch
+            close!(cursor.stmt)
+            return true
+        end
+
+        # sometimes after we fetch rows we discover that the result is empty
+        fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+
+        if fetch_rows_result.num_rows_fetched == 0
+            # fetch returned no more rows
+            return true
+        else
+            # mutate current state
+            state.next_offset = first_offset(fetch_rows_result)
+            state.last_fetch_rows_result = fetch_rows_result
+            return false
+        end
     end
 
     function Base.next(cursor::Cursor, state::CursorIteratorState)
-        if state.next_offset <= 0
-            # next row was already fetched
-            (ResultSetRow(cursor, state.next_offset), CursorIteratorState(state.next_offset + 1, state.last_fetch_rows_result))
-        else
-            # fetch more result
-            @assert has_more_rows(state.last_fetch_rows_result) # sanity check
-            fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
-
-            # there should be more rows to fetch
-            @assert fetch_rows_result.num_rows_fetched != 0
-
-            offset = first_offset(fetch_rows_result)
-            return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
-        end
+        # next row was already fetched
+        @assert state.next_offset <= 0 "Cursor in inconsistent state."
+        return (ResultSetRow(cursor, state.next_offset), CursorIteratorState(state.next_offset + 1, state.last_fetch_rows_result))
     end
 
 else
@@ -112,8 +119,11 @@ else
             if has_more_rows(state.last_fetch_rows_result)
                 fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
 
-                # there should be more rows to fetch
-                @assert fetch_rows_result.num_rows_fetched != 0
+                # it's strange, but sometimes `has_more_rows` returns true, and `fetch_rows!` returns `num_rows_fetched == 0`
+                if fetch_rows_result.num_rows_fetched == 0
+                    close!(cursor.stmt)
+                    return nothing
+                end
 
                 offset = first_offset(fetch_rows_result)
                 return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))

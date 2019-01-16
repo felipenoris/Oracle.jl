@@ -24,8 +24,8 @@ function simple_query(conn::Oracle.Connection, sql::String)
     Oracle.close!(stmt)
 end
 
-conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
-#conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
+#conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
+conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
 
 # Client Version
 let
@@ -217,8 +217,11 @@ end
 end
 
 @testset "Cursor" begin
-    simple_query(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL, VAL_FLT NUMBER(4,2), STR VARCHAR2(255) )")
-    for i in 1:10
+    simple_query(conn, "CREATE TABLE TB_TEST_CURSOR ( ID NUMBER(4,0) NULL, VAL NUMBER(15,0) NULL, VAL_FLT NUMBER(4,2), STR VARCHAR2(255) )")
+
+    num_iterations = 10
+
+    for i in 1:num_iterations
         simple_query(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( $i, $(10i), 10.01, '📚📚📚📚⏳😀⌛😭')")
     end
 
@@ -241,7 +244,7 @@ end
         @test isa(row["STR"], String)
         @test row["STR"] == row[4]
     end
-    @test row_number == 10
+    @test row_number == num_iterations
 
     simple_query(conn, "DROP TABLE TB_TEST_CURSOR")
 end

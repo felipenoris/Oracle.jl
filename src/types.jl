@@ -320,9 +320,19 @@ struct ResultSetRow
     data::Vector{Any}
 end
 
-struct CursorIteratorState
-    next_offset::Int
-    last_fetch_rows_result::FetchRowsResult
+@static if VERSION < v"0.7-"
+
+    # needs to be mutable in Julia v0.6 because we change next_offset during Base.done(cursor)
+    mutable struct CursorIteratorState
+        next_offset::Int
+        last_fetch_rows_result::FetchRowsResult
+    end
+else
+
+    struct CursorIteratorState
+        next_offset::Int
+        last_fetch_rows_result::FetchRowsResult
+    end
 end
 
 "Safe version of OraCommonCreateParams"
