@@ -1,4 +1,13 @@
 
+# Compat
+@static if VERSION < v"0.7-"
+    _is_linux() = is_linux()
+    _is_apple() = is_apple()
+else
+    _is_linux() = Sys.islinux()
+    _is_apple() = Sys.isapple()
+end
+
 const PREFIX = joinpath(@__DIR__, "usr")
 const DOWNLOADS = joinpath(PREFIX, "downloads")
 const DEPS_FILE = joinpath(@__DIR__, "deps.jl")
@@ -11,9 +20,9 @@ const LIB_DIR = joinpath(PREFIX, "lib")
 const ODPI_SOURCE_URL = "https://github.com/oracle/odpi/archive/v3.0.0.tar.gz"
 const ODPI_SOURCE_LOCAL_FILEPATH = joinpath(DOWNLOADS, "odpi_source.tar.gz")
 
-@static if Sys.islinux()
+@static if _is_linux()
     const SHARED_LIB = joinpath(PREFIX, "lib", "libdpi.so.3.0.0")
-elseif Sys.isapple()
+elseif _is_apple()
     const SHARED_LIB = joinpath(PREFIX, "lib", "libdpi.3.0.0.dylib")
 else
     error("Target system not supported.")
@@ -77,7 +86,7 @@ function build_shared_library(; verbose::Bool=false)
     patched_file = joinpath(SRC_DIR, "embed", "dpi_patched.c")
     patch(original_file, patch_file, patched_file)
 
-    @static if Sys.islinux()
+    if _is_linux()
         #=
         cc -c -fPIC -I ../include -ldl -o dpi.o dpi.c
         cc -shared -fPIC -Wl,-soname,libdpi.so.3 -o ../lib/libdpi.so.3.0.0 dpi.o -lc
@@ -88,7 +97,7 @@ function build_shared_library(; verbose::Bool=false)
             ["cc", "-shared", "-fPIC", "-Wl,-soname,libdpi.so.3", "-o", SHARED_LIB, joinpath(SRC_DIR, "embed", "dpi.o"), "-lc"]
         ]
 
-    elseif Sys.isapple()
+    elseif _is_apple()
         #=
         cc -dynamiclib -I ../include -o ../lib/libdpi.dylib dpi.c
         =#

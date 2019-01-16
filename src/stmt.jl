@@ -110,7 +110,7 @@ bind!(stmt::Stmt, value::Float64, name::String) = _bind_aux!(stmt, value, name, 
 bind!(stmt::Stmt, value::Int64, name::String) = _bind_aux!(stmt, value, name, DPI_NATIVE_TYPE_INT64, dpiData_setInt64)
 bind!(stmt::Stmt, value::Missing, name::Symbol, native_type) = bind!(stmt, value, String(name), native_type)
 
-function bind!(stmt::Stmt, value::T, name::String) where {T<:TimeType}
+function bind!(stmt::Stmt, value::T, name::String) where {T<:Dates.TimeType}
     _bind_aux!(stmt, dpiTimestamp(value), name, DPI_NATIVE_TYPE_TIMESTAMP, dpiData_setTimestamp)
 end
 

@@ -3,6 +3,7 @@ import Oracle
 
 if VERSION < v"0.7-"
     using Base.Test
+    using Missings
 else
     using Test
     using Dates

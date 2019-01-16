@@ -50,30 +50,29 @@ end
     end
 end
 
-#=
-Cursor is an iterator where state::CursorIteratorState
-=#
-function Base.iterate(cursor::Cursor)
-    # this is the first iteration
-    fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+@static if VERSION < v"0.7-"
+    # Iteration protocol for Julia v0.6
 
-    # check for empty result
-    if fetch_rows_result.num_rows_fetched == 0
-        return nothing
+    function Base.start(cursor::Cursor)
+        fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+        return CursorIteratorState(first_offset(fetch_rows_result), fetch_rows_result)
     end
 
-    # If we fetch 3 rows, offsets are: -2, -1, 0. So we start at offset -2.
-    offset = first_offset(fetch_rows_result)
-    return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
-end
+    function Base.done(cursor::Cursor, state::CursorIteratorState)
+        is_done = state.next_offset > 0 && !has_more_rows(state.last_fetch_rows_result)
+        if is_done
+            close!(cursor.stmt)
+        end
+        return is_done
+    end
 
-function Base.iterate(cursor::Cursor, state::CursorIteratorState)
-    if state.next_offset <= 0
-        # next row was already fetched
-        return (ResultSetRow(cursor, state.next_offset), CursorIteratorState(state.next_offset + 1, state.last_fetch_rows_result))
-    else
-        # fetch more results if has more rows to fetch
-        if has_more_rows(state.last_fetch_rows_result)
+    function Base.next(cursor::Cursor, state::CursorIteratorState)
+        if state.next_offset <= 0
+            # next row was already fetched
+            (ResultSetRow(cursor, state.next_offset), CursorIteratorState(state.next_offset + 1, state.last_fetch_rows_result))
+        else
+            # fetch more result
+            @assert has_more_rows(state.last_fetch_rows_result) # sanity check
             fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
 
             # there should be more rows to fetch
@@ -81,10 +80,48 @@ function Base.iterate(cursor::Cursor, state::CursorIteratorState)
 
             offset = first_offset(fetch_rows_result)
             return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
-        else
-            # there are no more rows to fetch, so we finished reading from this Cursor
-            close!(cursor.stmt)
+        end
+    end
+
+else
+    # Iteration protocol for Julia v0.7 and v1.0
+
+    #=
+    Cursor is an iterator where state::CursorIteratorState
+    =#
+    function Base.iterate(cursor::Cursor)
+        # this is the first iteration
+        fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+
+        # check for empty result
+        if fetch_rows_result.num_rows_fetched == 0
             return nothing
+        end
+
+        # If we fetch 3 rows, offsets are: -2, -1, 0. So we start at offset -2.
+        offset = first_offset(fetch_rows_result)
+        return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
+    end
+
+    function Base.iterate(cursor::Cursor, state::CursorIteratorState)
+        if state.next_offset <= 0
+            # next row was already fetched
+            return (ResultSetRow(cursor, state.next_offset), CursorIteratorState(state.next_offset + 1, state.last_fetch_rows_result))
+        else
+            # fetch more results if has more rows to fetch
+            if has_more_rows(state.last_fetch_rows_result)
+                fetch_rows_result = Oracle.fetch_rows!(cursor.stmt, cursor.fetch_array_size)
+
+                # there should be more rows to fetch
+                @assert fetch_rows_result.num_rows_fetched != 0
+
+                offset = first_offset(fetch_rows_result)
+                return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
+            else
+                # there are no more rows to fetch, so we finished reading from this Cursor
+                close!(cursor.stmt)
+                return nothing
+            end
         end
     end
 end

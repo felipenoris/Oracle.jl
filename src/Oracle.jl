@@ -1,21 +1,8 @@
 
+__precompile__(true)
 module Oracle
 
-# Compat
-@static if VERSION < v"0.7-"
-    const Nothing = Void
-    const Cvoid   = Void
-else
-    using Dates
-end
-
-function undef_vector(::Type{T}, len::Integer) where {T}
-    @static if VERSION < v"0.7-"
-        Vector{T}(len)
-    else
-        Vector{T}(undef, len)
-    end
-end
+include("compat.jl")
 
 const DEPS_FILE = joinpath(@__DIR__, "..", "deps", "deps.jl")
 if !isfile(DEPS_FILE)
@@ -23,6 +10,7 @@ if !isfile(DEPS_FILE)
 end
 include(DEPS_FILE)
 
+include("enums.jl")
 include("types.jl")
 include("odpi.jl")
 include("context.jl")
