@@ -24,8 +24,8 @@ function simple_query(conn::Oracle.Connection, sql::String)
     Oracle.close!(stmt)
 end
 
-conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
-#conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
+#conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
+conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
 
 # Client Version
 let

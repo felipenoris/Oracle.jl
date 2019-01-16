@@ -304,34 +304,34 @@ mutable struct Stmt{T<:AbstractStmtType}
     handle::Ptr{Cvoid}
     scrollable::Bool
     info::StmtInfo
+end
 
-    function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
+function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
 
-        function new_stmt_info(ctx::Context, stmt_handle::Ptr{Cvoid})
-            stmt_info_ref = Ref{OraStmtInfo}()
-            result = dpiStmt_getInfo(stmt_handle, stmt_info_ref)
-            error_check(ctx, result)
-            return StmtInfo(stmt_info_ref[])
-        end
-
-        function stmt_type_factory(stmt_info::StmtInfo)
-            if stmt_info.is_query && !stmt_info.is_DML
-                return StmtQueryType
-            elseif !stmt_info.is_query && stmt_info.is_DML
-                return StmtDMLType
-            elseif stmt_info.is_query && stmt_info.is_DML
-                error("Can a Stmt be both a query and DML ?")
-            else
-                # a Stmt type that we don't need to tag for now...
-                return StmtOtherType
-            end
-        end
-
-        stmt_info = new_stmt_info(context(connection), handle)
-        new_stmt = new{stmt_type_factory(stmt_info)}(connection, handle, scrollable, stmt_info)
-        @compat finalizer(destroy!, new_stmt)
-        return new_stmt
+    function new_stmt_info(ctx::Context, stmt_handle::Ptr{Cvoid})
+        stmt_info_ref = Ref{OraStmtInfo}()
+        result = dpiStmt_getInfo(stmt_handle, stmt_info_ref)
+        error_check(ctx, result)
+        return StmtInfo(stmt_info_ref[])
     end
+
+    function stmt_type_factory(stmt_info::StmtInfo)
+        if stmt_info.is_query && !stmt_info.is_DML
+            return StmtQueryType
+        elseif !stmt_info.is_query && stmt_info.is_DML
+            return StmtDMLType
+        elseif stmt_info.is_query && stmt_info.is_DML
+            error("Can a Stmt be both a query and DML ?")
+        else
+            # a Stmt type that we don't need to tag for now...
+            return StmtOtherType
+        end
+    end
+
+    stmt_info = new_stmt_info(context(connection), handle)
+    new_stmt = Stmt{stmt_type_factory(stmt_info)}(connection, handle, scrollable, stmt_info)
+    @compat finalizer(destroy!, new_stmt)
+    return new_stmt
 end
 
 function destroy!(stmt::Stmt)
