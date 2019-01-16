@@ -419,10 +419,9 @@ mutable struct Stmt
     connection::Connection
     handle::Ptr{Cvoid}
     scrollable::Bool
-    executed::Bool
 
     function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
-        new_stmt = new(connection, handle, scrollable, false)
+        new_stmt = new(connection, handle, scrollable)
         finalizer(destroy!, new_stmt)
         return new_stmt
     end

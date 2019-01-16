@@ -16,7 +16,6 @@ function execute!(stmt::Stmt; exec_mode::dpiExecMode=DPI_MODE_EXEC_DEFAULT) :: U
     num_query_columns_ref = Ref{UInt32}(0)
     dpi_result = dpiStmt_execute(stmt.handle, exec_mode, num_query_columns_ref)
     error_check(stmt.connection.context, dpi_result)
-    stmt.executed = true
     return num_query_columns_ref[]
 end
 
@@ -27,7 +26,6 @@ function close!(stmt::Stmt; tag::String="")
 end
 
 function num_query_columns(stmt::Stmt) :: UInt32
-    @assert stmt.executed "Cannot query number of query columns on a non-executed statement."
     num_query_columns_ref = Ref{UInt32}(0)
     dpi_result = dpiStmt_getNumQueryColumns(stmt.handle, num_query_columns_ref)
     error_check(stmt.connection.context, dpi_result)

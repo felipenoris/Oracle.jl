@@ -36,7 +36,6 @@ num_query_columns(cursor::Cursor) = num_query_columns(cursor.schema)
 num_query_columns(row::ResultSetRow) = num_query_columns(row.cursor)
 
 function Cursor(stmt::Stmt; fetch_array_size::Integer=DPI_DEFAULT_FETCH_ARRAY_SIZE)
-    @assert stmt.executed "Cannot create Cursor for a non-executed statement."
     schema = CursorSchema(stmt)
     return Cursor(stmt, schema, fetch_array_size)
 end

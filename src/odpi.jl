@@ -19,7 +19,7 @@ function dpiData_isNull(data_handle::Ptr{dpiData})
 end
 
 #
-# ODPI public API
+# ODPI Context Functions
 #
 
 # int dpiContext_create(unsigned int majorVersion, unsigned int minorVersion, dpiContext **context, dpiErrorInfo *errorInfo)
@@ -42,23 +42,9 @@ function dpiContext_initCommonCreateParams(dpi_context_handle::Ptr{Cvoid}, dpi_c
     ccall((:dpiContext_initCommonCreateParams, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiCommonCreateParams}), dpi_context_handle, dpi_common_create_params_ref)
 end
 
-# int dpiPool_release(dpiPool *pool)
-function dpiPool_release(dpi_pool_handle::Ptr{Cvoid})
-    ccall((:dpiPool_release, libdpi), dpiResult, (Ptr{Cvoid},), dpi_pool_handle)
-end
-
 # int dpiContext_initPoolCreateParams(const dpiContext *context, dpiPoolCreateParams *params)
 function dpiContext_initPoolCreateParams(context_handle::Ptr{Cvoid}, dpi_pool_create_params_ref::Ref{dpiPoolCreateParams})
     ccall((:dpiContext_initPoolCreateParams, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiPoolCreateParams}), context_handle, dpi_pool_create_params_ref)
-end
-
-# int dpiPool_create(const dpiContext *context, const char *userName, uint32_t userNameLength, const char *password, uint32_t passwordLength, const char *connectString, uint32_t connectStringLength, dpiCommonCreateParams *commonParams, dpiPoolCreateParams *createParams, dpiPool **pool)
-function dpiPool_create(context_handle::Ptr{Cvoid}, user::String, password::String, connect_string::String, common_params_ref::Ref{dpiCommonCreateParams}, pool_create_params_ref::Ref{dpiPoolCreateParams}, dpi_pool_handle_ref::Ref{Ptr{Cvoid}})
-    (userName, userNameLength) = (user, sizeof(user))
-    (password, passwordLength) = (password, sizeof(password))
-    (connectString, connectStringLength) = (connect_string, sizeof(connect_string))
-
-    ccall((:dpiPool_create, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{dpiCommonCreateParams}, Ref{dpiPoolCreateParams}, Ref{Ptr{Cvoid}}), context_handle, userName, userNameLength, password, passwordLength, connectString, connectStringLength, common_params_ref, pool_create_params_ref, dpi_pool_handle_ref)
 end
 
 # void dpiContext_getError(const dpiContext *context, dpiErrorInfo *errorInfo)¶
@@ -70,6 +56,10 @@ end
 function dpiContext_initConnCreateParams(context_handle::Ptr{Cvoid}, conn_create_params_ref::Ref{dpiConnCreateParams})
     ccall((:dpiContext_initConnCreateParams, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiConnCreateParams}), context_handle, conn_create_params_ref)
 end
+
+#
+# ODPI Connection Functions
+#
 
 # int dpiConn_release(dpiConn *conn)
 function dpiConn_release(connection_handle::Ptr{Cvoid})
@@ -105,11 +95,6 @@ function dpiConn_shutdownDatabase(connection_handle::Ptr{Cvoid}, shutdown_mode::
     ccall((:dpiConn_shutdownDatabase, libdpi), dpiResult, (Ptr{Cvoid}, dpiShutdownMode), connection_handle, shutdown_mode)
 end
 
-# int dpiStmt_release(dpiStmt *stmt)
-function dpiStmt_release(stmt_handle::Ptr{Cvoid})
-    ccall((:dpiStmt_release, libdpi), dpiResult, (Ptr{Cvoid},), stmt_handle)
-end
-
 # int dpiConn_prepareStmt(dpiConn *conn, int scrollable, const char *sql, uint32_t sqlLength, const char *tag, uint32_t tagLength, dpiStmt **stmt)
 function dpiConn_prepareStmt(connection_handle::Ptr{Cvoid}, scrollable::Bool, sql::String, tag::String, stmt_handle_ref::Ref{Ptr{Cvoid}})
     sqlLength = sizeof(sql)
@@ -132,21 +117,6 @@ function dpiConn_close(connection_handle::Ptr{Cvoid}; close_mode::dpiConnCloseMo
     end
 end
 
-# int dpiStmt_close(dpiStmt *stmt, const char *tag, uint32_t tagLength)
-function dpiStmt_close(stmt_handle::Ptr{Cvoid}; tag::String="")
-    if tag == ""
-        return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, C_NULL, 0)
-    else
-        tagLength = sizeof(tag)
-        return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, tag, tagLength)
-    end
-end
-
-# int dpiStmt_execute(dpiStmt *stmt, dpiExecMode mode, uint32_t *numQueryColumns)
-function dpiStmt_execute(stmt_handle::Ptr{Cvoid}, exec_mode::dpiExecMode, num_query_columns_ref::Ref{UInt32})
-    ccall((:dpiStmt_execute, libdpi), dpiResult, (Ptr{Cvoid}, dpiExecMode, Ref{UInt32}), stmt_handle, exec_mode, num_query_columns_ref)
-end
-
 # int dpiConn_commit(dpiConn *conn)
 function dpiConn_commit(connection_handle::Ptr{Cvoid})
     ccall((:dpiConn_commit, libdpi), dpiResult, (Ptr{Cvoid},), connection_handle)
@@ -160,6 +130,48 @@ end
 # int dpiConn_getEncodingInfo(dpiConn *conn, dpiEncodingInfo *info)
 function dpiConn_getEncodingInfo(connection_handle::Ptr{Cvoid}, dpi_encoding_info_ref::Ref{dpiEncodingInfo})
     ccall((:dpiConn_getEncodingInfo, libdpi), dpiResult, (Ptr{Cvoid}, Ref{dpiEncodingInfo}), connection_handle, dpi_encoding_info_ref)
+end
+
+#
+# ODPI Pool Functions
+#
+
+# int dpiPool_release(dpiPool *pool)
+function dpiPool_release(dpi_pool_handle::Ptr{Cvoid})
+    ccall((:dpiPool_release, libdpi), dpiResult, (Ptr{Cvoid},), dpi_pool_handle)
+end
+
+# int dpiPool_create(const dpiContext *context, const char *userName, uint32_t userNameLength, const char *password, uint32_t passwordLength, const char *connectString, uint32_t connectStringLength, dpiCommonCreateParams *commonParams, dpiPoolCreateParams *createParams, dpiPool **pool)
+function dpiPool_create(context_handle::Ptr{Cvoid}, user::String, password::String, connect_string::String, common_params_ref::Ref{dpiCommonCreateParams}, pool_create_params_ref::Ref{dpiPoolCreateParams}, dpi_pool_handle_ref::Ref{Ptr{Cvoid}})
+    (userName, userNameLength) = (user, sizeof(user))
+    (password, passwordLength) = (password, sizeof(password))
+    (connectString, connectStringLength) = (connect_string, sizeof(connect_string))
+
+    ccall((:dpiPool_create, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{dpiCommonCreateParams}, Ref{dpiPoolCreateParams}, Ref{Ptr{Cvoid}}), context_handle, userName, userNameLength, password, passwordLength, connectString, connectStringLength, common_params_ref, pool_create_params_ref, dpi_pool_handle_ref)
+end
+
+#
+# ODPI Statement Functions
+#
+
+# int dpiStmt_release(dpiStmt *stmt)
+function dpiStmt_release(stmt_handle::Ptr{Cvoid})
+    ccall((:dpiStmt_release, libdpi), dpiResult, (Ptr{Cvoid},), stmt_handle)
+end
+
+# int dpiStmt_close(dpiStmt *stmt, const char *tag, uint32_t tagLength)
+function dpiStmt_close(stmt_handle::Ptr{Cvoid}; tag::String="")
+    if tag == ""
+        return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, C_NULL, 0)
+    else
+        tagLength = sizeof(tag)
+        return ccall((:dpiStmt_close, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), stmt_handle, tag, tagLength)
+    end
+end
+
+# int dpiStmt_execute(dpiStmt *stmt, dpiExecMode mode, uint32_t *numQueryColumns)
+function dpiStmt_execute(stmt_handle::Ptr{Cvoid}, exec_mode::dpiExecMode, num_query_columns_ref::Ref{UInt32})
+    ccall((:dpiStmt_execute, libdpi), dpiResult, (Ptr{Cvoid}, dpiExecMode, Ref{UInt32}), stmt_handle, exec_mode, num_query_columns_ref)
 end
 
 # int dpiStmt_getNumQueryColumns(dpiStmt *stmt, uint32_t *numQueryColumns)
@@ -197,6 +209,10 @@ function dpiStmt_bindValueByName(stmt_handle::Ptr{Cvoid}, name::String, native_t
     nameLength = sizeof(name)
     ccall((:dpiStmt_bindValueByName, libdpi), dpiResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, dpiNativeTypeNum, Ref{dpiData}), stmt_handle, name, nameLength, native_type, dpi_data_ref)
 end
+
+#
+# ODPI Data Functions
+#
 
 # int dpiData_getBool(dpiData *data)
 function dpiData_getBool(dpi_data_handle::Ptr{dpiData})
