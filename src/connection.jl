@@ -30,36 +30,36 @@ end
 
 function ping(conn::Connection)
     result = dpiConn_ping(conn.handle)
-    error_check(conn.context, result)
+    error_check(context(conn), result)
     nothing
 end
 
 function startup_database(conn::Connection, startup_mode::OraStartupMode=ORA_MODE_STARTUP_DEFAULT)
     result = dpiConn_startupDatabase(conn.handle, startup_mode)
-    error_check(conn.context, result)
+    error_check(context(conn), result)
     nothing
 end
 
 function shutdown_database(conn::Connection, shutdown_mode::OraShutdownMode=ORA_MODE_SHUTDOWN_DEFAULT)
     result = dpiConn_shutdownDatabase(conn.handle, shutdown_mode)
-    error_check(conn.context, result)
+    error_check(context(conn), result)
     nothing
 end
 
 function commit!(conn::Connection)
     result = dpiConn_commit(conn.handle)
-    error_check(conn.context, result)
+    error_check(context(conn), result)
     nothing
 end
 
 function rollback!(conn::Connection)
     result = dpiConn_rollback(conn.handle)
-    error_check(conn.context, result)
+    error_check(context(conn), result)
     nothing
 end
 
 function close!(conn::Connection; close_mode::OraConnCloseMode=ORA_MODE_CONN_CLOSE_DEFAULT, tag::String="")
     result = dpiConn_close(conn.handle, close_mode=close_mode, tag=tag)
-    error_check(conn.context, result)
+    error_check(context(conn), result)
     nothing
 end

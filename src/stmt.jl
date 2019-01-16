@@ -15,27 +15,27 @@ If the statement does not refer to a query, the value is set to 0.
 function execute!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     num_query_columns_ref = Ref{UInt32}(0)
     result = dpiStmt_execute(stmt.handle, exec_mode, num_query_columns_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     return num_query_columns_ref[]
 end
 
 function close!(stmt::Stmt; tag::String="")
     result = dpiStmt_close(stmt.handle, tag=tag)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     nothing
 end
 
 function num_query_columns(stmt::Stmt) :: UInt32
     num_query_columns_ref = Ref{UInt32}(0)
     result = dpiStmt_getNumQueryColumns(stmt.handle, num_query_columns_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     return num_query_columns_ref[]
 end
 
 function OraQueryInfo(stmt::Stmt, column_index::UInt32)
     query_info_ref = Ref{OraQueryInfo}()
     result = dpiStmt_getQueryInfo(stmt.handle, column_index, query_info_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     return query_info_ref[]
 end
 
@@ -45,7 +45,7 @@ column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_inf
 function OraStmtInfo(stmt::Stmt)
     stmt_info_ref = Ref{OraStmtInfo}()
     result = dpiStmt_getInfo(stmt.handle, stmt_info_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     return stmt_info_ref[]
 end
 
@@ -72,7 +72,7 @@ function fetch_rows!(stmt::Stmt, max_rows::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     more_rows_ref = Ref{Int32}()
 
     result = dpiStmt_fetchRows(stmt.handle, UInt32(max_rows), buffer_row_index_ref, num_rows_fetched_ref, more_rows_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     return FetchRowsResult(buffer_row_index_ref[], num_rows_fetched_ref[], more_rows_ref[])
 end
 
@@ -80,7 +80,7 @@ function query_value(stmt::Stmt, column_index::UInt32) :: NativeValue
     native_type_ref = Ref{OraNativeTypeNum}()
     data_handle_ref = Ref{Ptr{OraData}}()
     result = dpiStmt_getQueryValue(stmt.handle, column_index, native_type_ref, data_handle_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     return NativeValue(native_type_ref[], data_handle_ref[])
 end
 query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
@@ -100,7 +100,7 @@ end
     data_ref = Ref{OraData}()
     set_data_function(data_ref, value)
     result = dpiStmt_bindValueByName(stmt.handle, name, native_type, data_ref)
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     nothing
 end
 
@@ -119,7 +119,7 @@ function bind!(stmt::Stmt, value::Missing, name::String, native_type::OraNativeT
     data_ref = Ref{OraData}()
     dpiData_setNull(data_ref)
     result = dpiStmt_bindValueByName(stmt.handle, name, native_type, data_ref) # native type is not examined since the value is passed as a NULL
-    error_check(stmt.connection.context, result)
+    error_check(context(stmt), result)
     nothing
 end
 
