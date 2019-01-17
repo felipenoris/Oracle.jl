@@ -2,15 +2,23 @@
 # Oracle.jl
 
 This package provides a driver to access Oracle databases using the Julia language,
-based on [odpi](https://github.com/oracle/odpi) bindings.
+based on [ODPI-C](https://github.com/oracle/odpi) bindings.
 
-## Development Notice
+## Requirements
 
-This package is under development.
+* [Julia](https://julialang.org/) v0.6, v0.7 or v1.0.
 
-It's planned to be a functional package by the end of January 2019.
+* Oracle's [Instant Client](https://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html).
+
+* Linux or macOS.
+
+* C compiler.
 
 ## Instant Client installation
+
+This package requires Oracle's [Instant Client](https://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html).
+
+To install it, follow these instructions:
 
 * [Download](https://www.oracle.com/technetwork/database/database-technologies/instant-client/downloads/index.html) instant client.
 
@@ -20,25 +28,25 @@ It's planned to be a functional package by the end of January 2019.
 export LD_LIBRARY_PATH=/path-to-folder/instantclient_XX_Y:$LD_LIBRARY_PATH
 ```
 
-## ODPI-C Naming Conventions
+Alternative installation methods are available at [ODPI-C documentation](https://oracle.github.io/odpi/doc/installation.html), or at [Instant Client documentation](https://www.oracle.com/technetwork/database/database-technologies/instant-client/documentation/index.html).
 
-All enums, constants and structs in ODPI-C library use the prefix `DPI` or `dpi`.
+## Package installation
 
-In *Oracle.jl*, the Julia implementation of these elements use the prefix `ORA` or `Ora`.
+Using Julia v1.0 package REPL:
 
-Examples:
-
-* The ODPI-C constant `DPI_MODE_AUTH_SYSDBA` becomes `ORA_MODE_AUTH_SYSDBA` in Julia.
-
-* The ODPI-C enum `dpiAuthMode` becomes `OraAuthMode` in Julia.
-
-* The ODPI-C struct `dpiTimestamp` becomes `OraTimestamp` in Julia.
-
-All julia structs with prefix `Ora` are raw wrappers around ODPC-C structs and may contain unsafe attributes.
-
-Safe equivalent Julia structs drop the `Ora` prefix.
-
-ODPI-C *function wrappers* have their name preserved, as in `dpiContext_create`.
+```julia
+(v1.0) pkg> add https://github.com/felipenoris/Oracle.jl.git
+  Updating registry at `~/.julia/registries/General`
+  Updating git-repo `https://github.com/JuliaRegistries/General.git`
+   Cloning git-repo `https://github.com/felipenoris/Oracle.jl.git`
+  Updating git-repo `https://github.com/felipenoris/Oracle.jl.git`
+ Resolving package versions...
+  Updating `~/.julia/environments/v1.0/Project.toml`
+  [3328109a] + Oracle v0.0.1 #master (https://github.com/felipenoris/Oracle.jl.git)
+  Updating `~/.julia/environments/v1.0/Manifest.toml`
+  [3328109a] + Oracle v0.0.1 #master (https://github.com/felipenoris/Oracle.jl.git)
+  Building Oracle → `~/.julia/packages/Oracle/th9U1/deps/build.log`
+```
 
 ## Tutorial
 
@@ -108,3 +116,30 @@ for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
     println( row["DT"]  )
 end
 ```
+
+## ODPI-C Naming Conventions
+
+All enums, constants and structs in ODPI-C library use the prefix `DPI` or `dpi`.
+
+In *Oracle.jl*, the Julia implementation of these elements use the prefix `ORA` or `Ora`.
+
+Examples:
+
+* The ODPI-C constant `DPI_MODE_AUTH_SYSDBA` becomes `ORA_MODE_AUTH_SYSDBA` in Julia.
+
+* The ODPI-C enum `dpiAuthMode` becomes `OraAuthMode` in Julia.
+
+* The ODPI-C struct `dpiTimestamp` becomes `OraTimestamp` in Julia.
+
+All julia structs with prefix `Ora` are raw wrappers around ODPC-C structs and may contain unsafe attributes.
+
+Safe equivalent Julia structs drop the `Ora` prefix.
+
+ODPI-C *function wrappers* have their name preserved, as in `dpiContext_create`.
+
+## License
+
+The source code for the package *Oracle.jl* is licensed under the [MIT License](https://github.com/felipenoris/Oracle.jl/blob/master/LICENSE).
+
+During installation, *Oracle.jl* downloads the source code and compile the library [ODPI-C](https://github.com/oracle/odpi)
+which is licensed under [The Universal Permissive License (UPL), Version 1.0](https://oracle.github.io/odpi/doc/license.html) and/or the [Apache License](https://oracle.github.io/odpi/doc/license.html).
