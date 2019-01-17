@@ -18,8 +18,8 @@ connect_string = "your-connect-string"
 """
 include("credentials.jl")
 
-#conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
-conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
+conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
+#conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
 
 # Client Version
 let
@@ -215,26 +215,68 @@ end
         Oracle.execute!(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( $i, $(10i), 10.01, '📚📚📚📚⏳😀⌛😭')")
     end
 
-    row_number = 0
-    for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR", fetch_array_size=3)
-        row_number += 1
-        @test row["ID"] == row_number
-        @test isa(row["ID"], Int)
-        @test row["ID"] == row[1]
+    @testset "all rows" begin
+        row_number = 0
+        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR", fetch_array_size=3)
+            row_number += 1
+            @test row["ID"] == row_number
+            @test isa(row["ID"], Int)
+            @test row["ID"] == row[1]
 
-        @test row["VAL"] == row_number * 10
-        @test isa(row["VAL"], Int)
-        @test row["VAL"] == row[2]
+            @test row["VAL"] == row_number * 10
+            @test isa(row["VAL"], Int)
+            @test row["VAL"] == row[2]
 
-        @test row["VAL_FLT"] == 10.01
-        @test isa(row["VAL_FLT"], Float64)
-        @test row["VAL_FLT"] == row[3]
+            @test row["VAL_FLT"] == 10.01
+            @test isa(row["VAL_FLT"], Float64)
+            @test row["VAL_FLT"] == row[3]
 
-        @test row["STR"] == "📚📚📚📚⏳😀⌛😭"
-        @test isa(row["STR"], String)
-        @test row["STR"] == row[4]
+            @test row["STR"] == "📚📚📚📚⏳😀⌛😭"
+            @test isa(row["STR"], String)
+            @test row["STR"] == row[4]
+        end
+        @test row_number == num_iterations
     end
-    @test row_number == num_iterations
+
+    @testset "2nd row" begin
+        row_number = 0
+        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 2", fetch_array_size=3)
+            row_number += 1
+            @test row["ID"] == 2
+            @test row["VAL"] == 20
+        end
+        @test row_number == 1
+    end
+
+    @testset "1st and 2nd rows" begin
+        row_number = 0
+        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2", fetch_array_size=3)
+            row_number += 1
+            @test row["ID"] == row_number
+            @test row["VAL"] == row_number * 10
+        end
+        @test row_number == 2
+    end
+
+    @testset "1st, 2nd, 3rd rows" begin
+        row_number = 0
+        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2 OR ID = 3", fetch_array_size=3)
+            row_number += 1
+            @test row["ID"] == row_number
+            @test row["VAL"] == row_number * 10
+        end
+        @test row_number == 3
+    end
+
+    @testset "1st, 2nd, 3rd, 4th rows" begin
+        row_number = 0
+        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2 OR ID = 3 OR ID = 4", fetch_array_size=3)
+            row_number += 1
+            @test row["ID"] == row_number
+            @test row["VAL"] == row_number * 10
+        end
+        @test row_number == 4
+    end
 
     Oracle.execute!(conn, "DROP TABLE TB_TEST_CURSOR")
 end
