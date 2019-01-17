@@ -13,9 +13,6 @@ const DOWNLOADS = joinpath(PREFIX, "downloads")
 const DEPS_FILE = joinpath(@__DIR__, "deps.jl")
 const SRC_DIR = joinpath(PREFIX, "src")
 const LIB_DIR = joinpath(PREFIX, "lib")
-#const INSTANT_CLIENT_DOWNLOAD_FILE = "instantclient-basic-linux.x64-18.3.0.0.0dbru.zip"
-#const INSTANT_CLIENT_DOWNLOAD_URL = "https://felipenoris.s3.nl-ams.scw.cloud/$INSTANT_CLIENT_DOWNLOAD_FILE"
-#const INSTANT_CLIENT_LOCAL_FILEPATH = joinpath(DOWNLOADS, INSTANT_CLIENT_DOWNLOAD_FILE)
 
 const ODPI_SOURCE_URL = "https://github.com/oracle/odpi/archive/v3.0.0.tar.gz"
 const ODPI_SOURCE_LOCAL_FILEPATH = joinpath(DOWNLOADS, "odpi_source.tar.gz")
@@ -33,13 +30,6 @@ mkdir_if_not_exists(dir) = !isdir(dir) && mkdir(dir)
 function download_source_files()
     mkdir_if_not_exists(PREFIX)
     mkdir_if_not_exists(DOWNLOADS)
-
-#=
-    if !isfile(INSTANT_CLIENT_LOCAL_FILEPATH)
-        download(INSTANT_CLIENT_DOWNLOAD_URL, INSTANT_CLIENT_LOCAL_FILEPATH)
-        @assert isfile(INSTANT_CLIENT_LOCAL_FILEPATH)
-    end
-=#
 
     if !isfile(ODPI_SOURCE_LOCAL_FILEPATH)
         download(ODPI_SOURCE_URL, ODPI_SOURCE_LOCAL_FILEPATH)
@@ -98,9 +88,8 @@ function build_shared_library(; verbose::Bool=false)
         ]
 
     elseif _is_apple()
-        #=
-        cc -dynamiclib -I ../include -o ../lib/libdpi.dylib dpi.c
-        =#
+
+        # cc -dynamiclib -I ../include -o ../lib/libdpi.dylib dpi.c
 
         build_script = [
             ["cc", "-dynamiclib", "-I", joinpath(SRC_DIR, "include"), "-o", SHARED_LIB, patched_file]
