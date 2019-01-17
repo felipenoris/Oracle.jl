@@ -15,11 +15,11 @@ Before running tests, create a file `test/credentials.jl` with the content:
 username = "your-username"
 password = "your-password"
 connect_string = "your-connect-string"
+auth_mode = Oracle.ORA_MODE_AUTH_DEFAULT # or Oracle.ORA_MODE_AUTH_SYSDBA if user is SYSDBA
 """
 include("credentials.jl")
 
-conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA) # in case the database user is sysdba
-#conn = Oracle.Connection(username, password, connect_string) # in case the database user is a regular user
+conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
 
 # Client Version
 let
