@@ -319,8 +319,11 @@ end
         stmt[:str, String] = missing
         stmt[:dt, Date] = missing
 
-        @test_throws AssertionError stmt[:dt] = missing
-        @test_throws AssertionError stmt[:dt, Int] = 1
+        if VERSION >= v"0.7-"
+            # testing only on Julia v1.0
+            @test_throws AssertionError stmt[:dt] = missing
+            @test_throws AssertionError stmt[:dt, Int] = 1
+        end
 
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
@@ -374,8 +377,11 @@ end
         stmt[3, String] = missing
         stmt[4, Date] = missing
 
-        @test_throws AssertionError stmt[:dt] = missing
-        @test_throws AssertionError stmt[:dt, Int] = 1
+        if VERSION >= v"0.7-"
+            # testing only on Julia v1.0
+            @test_throws AssertionError stmt[:dt] = missing
+            @test_throws AssertionError stmt[:dt, Int] = 1
+        end
 
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
