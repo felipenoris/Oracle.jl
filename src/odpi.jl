@@ -225,6 +225,16 @@ function dpiStmt_getRowCount(stmt_handle::Ptr{Cvoid}, count_ref::Ref{UInt64})
     ccall((:dpiStmt_getRowCount, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt64}), stmt_handle, count_ref)
 end
 
+# int dpiStmt_getBindCount(dpiStmt *stmt, uint32_t *count)
+function dpiStmt_getBindCount(stmt_handle::Ptr{Cvoid}, count_ref::Ref{UInt32})
+    ccall((:dpiStmt_getBindCount, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), stmt_handle, count_ref)
+end
+
+# int dpiStmt_getBindNames(dpiStmt *stmt, uint32_t *numBindNames, const char **bindNames, uint32_t *bindNameLengths)
+function dpiStmt_getBindNames(stmt_handle::Ptr{Cvoid}, num_bind_names_ref::Ref{UInt32}, bind_names_vec_ptr::Ptr{Ptr{UInt8}}, bind_name_lengths_vector::Ptr{UInt32})
+    ccall((:dpiStmt_getBindNames, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}, Ref{Ptr{UInt8}}, Ptr{UInt32}), stmt_handle, num_bind_names_ref, bind_names_vec_ptr, bind_name_lengths_vector)
+end
+
 #
 # ODPI Data Functions
 #

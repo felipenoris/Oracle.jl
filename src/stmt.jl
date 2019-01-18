@@ -104,6 +104,18 @@ function query_value(stmt::Stmt, column_index::UInt32) :: NativeValue
 end
 query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
 
+function check_bind_bounds(stmt::Stmt, pos::Integer)
+    @assert pos > 0 && pos <= stmt.bind_count "Bind position $pos out of bounds."
+    nothing
+end
+
+function check_bind_bounds(stmt::Stmt, name::String)
+    name_upper = uppercase(name)
+    @assert haskey(stmt.bind_names_index, name_upper) "Bind name $name_upper not found in statement."
+end
+
+check_bind_bounds(stmt::Stmt, name::Symbol) = check_bind_bounds(stmt, string(name))
+
 @static if VERSION < v"0.7-"
     # implement bind! without using @generated function for Julia v0.6
 
@@ -111,6 +123,7 @@ query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column
     Base.setindex!(stmt::Stmt, value, key) = bind!(stmt, value, key)
 
     function _bind_aux!(stmt::Stmt, value::T, name::String, native_type::OraNativeTypeNum, set_data_function::F) where {T, F<:Function}
+        check_bind_bounds(stmt, name)
         data_ref = Ref{OraData}()
         set_data_function(data_ref, value)
         result = dpiStmt_bindValueByName(stmt.handle, name, native_type, data_ref)
@@ -119,6 +132,7 @@ query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column
     end
 
     function _bind_aux!(stmt::Stmt, value::T, pos::Integer, native_type::OraNativeTypeNum, set_data_function::F) where {T, F<:Function}
+        check_bind_bounds(stmt, pos)
         data_ref = Ref{OraData}()
         set_data_function(data_ref, value)
         result = dpiStmt_bindValueByPos(stmt.handle, UInt32(pos), native_type, data_ref)
@@ -138,7 +152,7 @@ query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column
     end
 
     function bind!(stmt::Stmt, value::Missing, name::String, native_type::OraNativeTypeNum)
-        @assert ismissing(value) # sanity check
+        check_bind_bounds(stmt, name)
         data_ref = Ref{OraData}()
         dpiData_setNull(data_ref)
         result = dpiStmt_bindValueByName(stmt.handle, name, native_type, data_ref) # native type is not examined since the value is passed as a NULL
@@ -147,7 +161,7 @@ query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column
     end
 
     function bind!(stmt::Stmt, value::Missing, pos::Integer, native_type::OraNativeTypeNum)
-        @assert ismissing(value) # sanity check
+        check_bind_bounds(stmt, pos)
         data_ref = Ref{OraData}()
         dpiData_setNull(data_ref)
         result = dpiStmt_bindValueByPos(stmt.handle, UInt32(pos), native_type, data_ref) # native type is not examined since the value is passed as a NULL
@@ -207,7 +221,7 @@ else
             @assert !(type_information <: Nothing) "Binding a missing value requires type information argument."
 
             return quote
-                @assert ismissing(value) # sanity check
+                check_bind_bounds(stmt, position_or_name)
                 data_ref = Ref{OraData}()
                 dpiData_setNull(data_ref)
                 result = $(dpi_bind_function_name)(stmt.handle, position_or_name, type_information, data_ref) # native type is not examined since the value is passed as a NULL
@@ -240,6 +254,7 @@ else
             end
 
             return quote
+                check_bind_bounds(stmt, position_or_name)
                 data_ref = Ref{OraData}()
                 $(set_data_function)(data_ref, value)
                 result = $(dpi_bind_function_name)(stmt.handle, position_or_name, $ora_native_type_arg, data_ref)

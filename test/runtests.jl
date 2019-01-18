@@ -70,6 +70,7 @@ end
 
 @testset "Stmt" begin
     stmt = Oracle.Stmt(conn, "SELECT * FROM TB_TEST")
+    @test stmt.bind_count == 0
 
     @test stmt.info.is_query
     @test !stmt.info.is_DDL
@@ -290,6 +291,9 @@ end
         Oracle.execute!(conn, "CREATE TABLE TB_BIND_BY_NAME ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_NAME ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
+        @test stmt.bind_count == 4
+
+        @test_throws AssertionError stmt[:invalid_bind_name] = 10
 
         for i in 1:10
             stmt[:id] = 1 + i
@@ -348,6 +352,9 @@ end
         Oracle.execute!(conn, "CREATE TABLE TB_BIND_BY_POSITION ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :a, :b, :c, :d )")
+        @test stmt.bind_count == 4
+        @test_throws AssertionError stmt[0] = 10
+        @test_throws AssertionError stmt[5] = 10
 
         for i in 1:10
             stmt[1] = 1 + i
