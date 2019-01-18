@@ -104,36 +104,90 @@ function query_value(stmt::Stmt, column_index::UInt32) :: NativeValue
 end
 query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
 
-@inline function _bind_aux!(stmt::Stmt, value::T, name::String, native_type::OraNativeTypeNum, set_data_function::F) where {T, F<:Function}
-    data_ref = Ref{OraData}()
-    set_data_function(data_ref, value)
-    result = dpiStmt_bindValueByName(stmt.handle, name, native_type, data_ref)
-    error_check(context(stmt), result)
-    nothing
+Base.setindex!(stmt::Stmt, value, key, type_information=nothing) = bind!(stmt, value, key, type_information)
+
+@generated function bind!(stmt::Stmt, value, position_or_name::Union{Integer, String, Symbol}, type_information::Union{Nothing, OraNativeTypeNum, Type{T}}=nothing) where T
+
+    if type_information <: Type{T}
+        # supports Julia native type parameter, as in `stmt[:flt, Float64] = missing`
+        return quote
+            bind!(stmt, value, position_or_name, OraNativeTypeNum(type_information))
+        end
+    end
+
+    if value <: Dates.TimeType
+        # supports a value as Julia native types Date or DateTime, as in `stmt[:dt] = Date(2018,12,31)`
+        return quote
+            bind!(stmt, OraTimestamp(value), position_or_name, type_information)
+        end
+    end
+
+    if position_or_name <: Symbol
+        # all symbols are converted to strings, because that's what ODPI-C expects to receive
+        return quote
+            bind!(stmt, value, string(position_or_name), type_information)
+        end
+    end
+
+    if position_or_name <: Integer && !(position_or_name <: UInt32)
+        # all position integers are converted to UInt32, because that's what ODPI-C expects to receive
+        return quote
+            bind!(stmt, value, UInt32(position_or_name), type_information)
+        end
+    end
+
+    # dpiStmt_bindValueByName is used for strings, dpiStmt_bindValueByPos for position.
+    if position_or_name <: UInt32
+        dpi_bind_function_name = :dpiStmt_bindValueByPos
+    elseif position_or_name <: String
+        dpi_bind_function_name = :dpiStmt_bindValueByName
+    else
+        error("Unexpected type for argument position_or_name: $position_or_name.")
+    end
+
+    if value <: Missing
+        # if the user passes a missing value, it must provide type information, as in `stmt[:str, String] = missing`
+        @assert !(type_information <: Nothing) "Binding a missing value requires type information argument."
+
+        return quote
+            @assert ismissing(value) # sanity check
+            data_ref = Ref{OraData}()
+            dpiData_setNull(data_ref)
+            result = $(dpi_bind_function_name)(stmt.handle, position_or_name, type_information, data_ref) # native type is not examined since the value is passed as a NULL
+            error_check(context(stmt), result)
+            nothing
+        end
+
+    else
+        # if the user passes a non-missing value, the type information is always inferred, avoiding type mismatches, as in `stmt[:flt] = 10.23`
+        @assert type_information <: Nothing "Binding a non-missing value does not require type information argument."
+
+        if value <: String
+            ora_native_type_arg = :ORA_NATIVE_TYPE_BYTES
+            set_data_function = :dpiData_setBytes
+
+        elseif value <: Float64
+            ora_native_type_arg = :ORA_NATIVE_TYPE_DOUBLE
+            set_data_function = :dpiData_setDouble
+
+        elseif value <: Int64
+            ora_native_type_arg = :ORA_NATIVE_TYPE_INT64
+            set_data_function = :dpiData_setInt64
+
+        elseif value <: OraTimestamp
+            ora_native_type_arg = :ORA_NATIVE_TYPE_TIMESTAMP
+            set_data_function = :dpiData_setTimestamp
+
+        else
+            error("value type not supported: $value.")
+        end
+
+        return quote
+            data_ref = Ref{OraData}()
+            $(set_data_function)(data_ref, value)
+            result = $(dpi_bind_function_name)(stmt.handle, position_or_name, $ora_native_type_arg, data_ref)
+            error_check(context(stmt), result)
+            nothing
+        end
+    end
 end
-
-bind!(stmt::Stmt, value, name::Symbol) = bind!(stmt, value, String(name))
-bind!(stmt::Stmt, value::String, name::String) = _bind_aux!(stmt, value, name, ORA_NATIVE_TYPE_BYTES, dpiData_setBytes)
-bind!(stmt::Stmt, value::Float64, name::String) = _bind_aux!(stmt, value, name, ORA_NATIVE_TYPE_DOUBLE, dpiData_setDouble)
-bind!(stmt::Stmt, value::Int64, name::String) = _bind_aux!(stmt, value, name, ORA_NATIVE_TYPE_INT64, dpiData_setInt64)
-bind!(stmt::Stmt, value::Missing, name::Symbol, native_type) = bind!(stmt, value, String(name), native_type)
-
-function bind!(stmt::Stmt, value::T, name::String) where {T<:Dates.TimeType}
-    _bind_aux!(stmt, OraTimestamp(value), name, ORA_NATIVE_TYPE_TIMESTAMP, dpiData_setTimestamp)
-end
-
-function bind!(stmt::Stmt, value::Missing, name::String, native_type::OraNativeTypeNum)
-    @assert ismissing(value) # sanity check
-    data_ref = Ref{OraData}()
-    dpiData_setNull(data_ref)
-    result = dpiStmt_bindValueByName(stmt.handle, name, native_type, data_ref) # native type is not examined since the value is passed as a NULL
-    error_check(context(stmt), result)
-    nothing
-end
-
-function bind!(stmt::Stmt, value::Missing, name::String, julia_type::Type{T}) where {T}
-    bind!(stmt, value, name, OraNativeTypeNum(julia_type))
-end
-
-Base.setindex!(stmt::Stmt, value, key) = bind!(stmt, value, key)
-Base.setindex!(stmt::Stmt, value, key, type_information) = bind!(stmt, value, key, type_information)

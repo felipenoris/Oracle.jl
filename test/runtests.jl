@@ -286,10 +286,10 @@ end
 
 @testset "Bind" begin
 
-    @testset "bind int, flt, str, date" begin
-        Oracle.execute!(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
+    @testset "bind int, flt, str, date by name" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_BIND_BY_NAME ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_NAME ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
 
         for i in 1:10
             stmt[:id] = 1 + i
@@ -302,7 +302,7 @@ end
 
         let
             row_number = 1
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
+            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
                 @test row["ID"] == 1 + row_number
                 @test row["FLT"] == 10.23 + row_number
                 @test row["STR"] == "🍕 $row_number"
@@ -312,18 +312,22 @@ end
             end
         end
 
-        Oracle.execute!(conn, "DELETE FROM TB_BIND")
+        Oracle.execute!(conn, "DELETE FROM TB_BIND_BY_NAME")
 
         stmt[:id, Int] = missing
         stmt[:flt, Float64] = missing
         stmt[:str, String] = missing
         stmt[:dt, Date] = missing
+
+        @test_throws AssertionError stmt[:dt] = missing
+        @test_throws AssertionError stmt[:dt, Int] = 1
+
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
 
         let
             row_number = 0
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
+            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
                 @test ismissing(row["ID"])
                 @test ismissing(row["FLT"])
                 @test ismissing(row["STR"])
@@ -334,7 +338,62 @@ end
             @test row_number == 1
         end
 
-        Oracle.execute!(conn, "DROP TABLE TB_BIND")
+        Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_NAME")
+    end
+
+    @testset "bind int, flt, str, date by position" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_BIND_BY_POSITION ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
+
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :a, :b, :c, :d )")
+
+        for i in 1:10
+            stmt[1] = 1 + i
+            stmt[2] = 10.23 + i
+            stmt[3] = "🍕 $i"
+            stmt[4] = Date(2018,12,31) + Dates.Day(i)
+            Oracle.execute!(stmt)
+        end
+        Oracle.commit!(conn)
+
+        let
+            row_number = 1
+            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION")
+                @test row["ID"] == 1 + row_number
+                @test row["FLT"] == 10.23 + row_number
+                @test row["STR"] == "🍕 $row_number"
+                @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
+
+                row_number += 1
+            end
+        end
+
+        Oracle.execute!(conn, "DELETE FROM TB_BIND_BY_POSITION")
+
+        stmt[1, Int] = missing
+        stmt[2, Float64] = missing
+        stmt[3, String] = missing
+        stmt[4, Date] = missing
+
+        @test_throws AssertionError stmt[:dt] = missing
+        @test_throws AssertionError stmt[:dt, Int] = 1
+
+        Oracle.execute!(stmt)
+        Oracle.commit!(conn)
+
+        let
+            row_number = 0
+            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION")
+                @test ismissing(row["ID"])
+                @test ismissing(row["FLT"])
+                @test ismissing(row["STR"])
+                @test ismissing(row["DT"])
+                row_number += 1
+            end
+
+            @test row_number == 1
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_POSITION")
     end
 
     @testset "Bind DateTime" begin

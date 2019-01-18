@@ -215,6 +215,11 @@ function dpiStmt_bindValueByName(stmt_handle::Ptr{Cvoid}, name::String, native_t
     ccall((:dpiStmt_bindValueByName, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, OraNativeTypeNum, Ref{OraData}), stmt_handle, name, nameLength, native_type, dpi_data_ref)
 end
 
+# int dpiStmt_bindValueByPos(dpiStmt *stmt, uint32_t pos, dpiNativeTypeNum nativeTypeNum, dpiData *data)
+function dpiStmt_bindValueByPos(stmt_handle::Ptr{Cvoid}, pos::UInt32, native_type::OraNativeTypeNum, dpi_data_ref::Ref{OraData})
+    ccall((:dpiStmt_bindValueByPos, libdpi), OraResult, (Ptr{Cvoid}, UInt32, OraNativeTypeNum, Ref{OraData}), stmt_handle, pos, native_type, dpi_data_ref)
+end
+
 # int dpiStmt_getRowCount(dpiStmt *stmt, uint64_t *count)
 function dpiStmt_getRowCount(stmt_handle::Ptr{Cvoid}, count_ref::Ref{UInt64})
     ccall((:dpiStmt_getRowCount, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt64}), stmt_handle, count_ref)
