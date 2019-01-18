@@ -49,6 +49,9 @@ let
     println("Connection encoding info: ", conn.encoding_info)
 end
 
+# Current Schema
+println("Current Schema: ", Oracle.current_schema(conn))
+
 println("")
 
 @testset "ping" begin

@@ -132,6 +132,11 @@ function dpiConn_getEncodingInfo(connection_handle::Ptr{Cvoid}, encoding_info_re
     ccall((:dpiConn_getEncodingInfo, libdpi), OraResult, (Ptr{Cvoid}, Ref{OraEncodingInfo}), connection_handle, encoding_info_ref)
 end
 
+# int dpiConn_getCurrentSchema(dpiConn *conn, const char **value, uint32_t *valueLength)
+function dpiConn_getCurrentSchema(connection_handle::Ptr{Cvoid}, value_char_array_ref::Ref{Ptr{UInt8}}, value_length_ref::Ref{UInt32})
+    ccall((:dpiConn_getCurrentSchema, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{UInt8}}, Ref{UInt32}), connection_handle, value_char_array_ref, value_length_ref)
+end
+
 #
 # ODPI Pool Functions
 #

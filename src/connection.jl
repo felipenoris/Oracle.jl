@@ -143,3 +143,15 @@ function close!(conn::Connection; close_mode::OraConnCloseMode=ORA_MODE_CONN_CLO
     error_check(context(conn), result)
     nothing
 end
+
+function current_schema(conn::Connection) :: Union{Missing, String}
+    value_char_array_ref = Ref{Ptr{UInt8}}()
+    value_length_ref = Ref{UInt32}()
+    result = dpiConn_getCurrentSchema(conn.handle, value_char_array_ref, value_length_ref)
+    error_check(context(conn), result)
+    if value_char_array_ref[] == C_NULL
+        return missing
+    else
+        return unsafe_string(value_char_array_ref[], value_length_ref[])
+    end
+end
