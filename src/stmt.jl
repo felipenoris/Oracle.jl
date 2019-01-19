@@ -29,7 +29,9 @@ end
 
 function execute!(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
     stmt = Stmt(connection, sql; scrollable=scrollable, tag=tag)
-    return execute!(stmt, exec_mode=exec_mode)
+    execute_result = execute!(stmt, exec_mode=exec_mode)
+    close!(stmt)
+    return execute_result
 end
 
 """
