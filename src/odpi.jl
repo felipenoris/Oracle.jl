@@ -137,6 +137,11 @@ function dpiConn_getCurrentSchema(connection_handle::Ptr{Cvoid}, value_char_arra
     ccall((:dpiConn_getCurrentSchema, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{UInt8}}, Ref{UInt32}), connection_handle, value_char_array_ref, value_length_ref)
 end
 
+# int dpiConn_newVar(dpiConn *conn, dpiOracleTypeNum oracleTypeNum, dpiNativeTypeNum nativeTypeNum, uint32_t maxArraySize, uint32_t size, int sizeIsBytes, int isArray, dpiObjectType *objType, dpiVar **var, dpiData **data)
+function dpiConn_newVar(connection_handle::Ptr{Cvoid}, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum, max_array_size::UInt32, size::UInt32, size_is_bytes::Int32, is_array::Int32, obj_type_handle::Ptr{Cvoid}, var_handle_ref::Ref{Ptr{Cvoid}}, dpi_data_array_ref::Ref{Ptr{OraData}})
+    ccall((:dpiConn_newVar, libdpi), OraResult, (Ptr{Cvoid}, OraOracleTypeNum, OraNativeTypeNum, UInt32, UInt32, Int32, Int32, Ptr{Cvoid}, Ref{Ptr{Cvoid}}, Ref{Ptr{OraData}}), connection_handle, oracle_type, native_type, max_array_size, size, size_is_bytes, is_array, obj_type_handle, var_handle_ref, dpi_data_array_ref)
+end
+
 #
 # ODPI Pool Functions
 #
@@ -177,6 +182,21 @@ end
 # int dpiStmt_execute(dpiStmt *stmt, dpiExecMode mode, uint32_t *numQueryColumns)
 function dpiStmt_execute(stmt_handle::Ptr{Cvoid}, exec_mode::OraExecMode, num_query_columns_ref::Ref{UInt32})
     ccall((:dpiStmt_execute, libdpi), OraResult, (Ptr{Cvoid}, OraExecMode, Ref{UInt32}), stmt_handle, exec_mode, num_query_columns_ref)
+end
+
+# int dpiStmt_executeMany(dpiStmt *stmt, dpiExecMode mode, uint32_t numIters)
+function dpiStmt_executeMany(stmt_handle::Ptr{Cvoid}, exec_mode::OraExecMode, num_iters::UInt32)
+    ccall((:dpiStmt_executeMany, libdpi), OraResult, (Ptr{Cvoid}, OraExecMode, UInt32), stmt_handle, exec_mode, num_iters)
+end
+
+# exec_mode may be "ored" together
+function dpiStmt_executeMany(stmt_handle::Ptr{Cvoid}, exec_mode::UInt32, num_iters::UInt32)
+    ccall((:dpiStmt_executeMany, libdpi), OraResult, (Ptr{Cvoid}, UInt32, UInt32), stmt_handle, exec_mode, num_iters)
+end
+
+# int dpiStmt_getRowCounts(dpiStmt *stmt, uint32_t *numRowCounts, uint64_t **rowCounts)
+function dpiStmt_getRowCounts(stmt_handle::Ptr{Cvoid}, row_counts_length_ref::Ref{UInt32}, row_counts_array_ref::Ref{Ptr{UInt64}})
+    ccall((:dpiStmt_getRowCounts, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}, Ref{Ptr{UInt64}}), stmt_handle, row_counts_length_ref, row_counts_array_ref)
 end
 
 # int dpiStmt_getNumQueryColumns(dpiStmt *stmt, uint32_t *numQueryColumns)
@@ -245,6 +265,22 @@ function dpiStmt_getBindNames(stmt_handle::Ptr{Cvoid}, num_bind_names_ref::Ref{U
     ccall((:dpiStmt_getBindNames, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}, Ref{Ptr{UInt8}}, Ptr{UInt32}), stmt_handle, num_bind_names_ref, bind_names_vec_ptr, bind_name_lengths_vector)
 end
 
+# int dpiStmt_define(dpiStmt *stmt, uint32_t pos, dpiVar *var)
+function dpiStmt_define(stmt_handle::Ptr{Cvoid}, pos::UInt32, variable_handle::Ptr{Cvoid})
+    ccall((:dpiStmt_define, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{Cvoid}), stmt_handle, pos, variable_handle)
+end
+
+# int dpiStmt_bindByName(dpiStmt *stmt, const char *name, uint32_t nameLength, dpiVar *var)
+function dpiStmt_bindByName(stmt_handle::Ptr{Cvoid}, name::String, variable_handle::Ptr{Cvoid})
+    nameLength = sizeof(name)
+    ccall((:dpiStmt_bindByName, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{Cvoid}), stmt_handle, name, nameLength, variable_handle)
+end
+
+# int dpiStmt_bindByPos(dpiStmt *stmt, uint32_t pos, dpiVar *var)
+function dpiStmt_bindByPos(stmt_handle::Ptr{Cvoid}, pos::UInt32, variable_handle::Ptr{Cvoid})
+    ccall((:dpiStmt_bindByPos, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{Cvoid}), stmt_handle, pos, variable_handle)
+end
+
 #
 # ODPI Data Functions
 #
@@ -284,28 +320,75 @@ function dpiData_getTimestamp(dpi_data_handle::Ptr{OraData})
     ccall((:dpiData_getTimestamp, libdpi), Ptr{OraTimestamp}, (Ptr{OraData},), dpi_data_handle)
 end
 
+#
+# NOTE ON SET FUNCTIONS
+#
+# Do not try to write: dpi_data::Union{Ref{OraData}, Ptr{OraData}}.
+# Julia tries to cast one type to another, so this would cause
+# segfaults when binding values or variables to statments.
+#
+
 # void dpiData_setBytes(dpiData *data, char *ptr, uint32_t length)
-function dpiData_setBytes(dpi_data_ref::Ref{OraData}, str::String)
+function dpiData_setBytes_ref(dpi_data_ref::Ref{OraData}, str::String)
     strLength = sizeof(str)
     ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ref, str, strLength)
 end
 
+#=
+# cannot be used for setting strings to variables
+function dpiData_setBytes_ptr(dpi_data_ptr::Ptr{OraData}, str::String)
+    strLength = sizeof(str)
+    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ptr{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, str, strLength)
+end
+=#
+
 # void dpiData_setDouble(dpiData *data, double value)
-function dpiData_setDouble(dpi_data_ref::Ref{OraData}, value::Float64)
+function dpiData_setDouble_ref(dpi_data_ref::Ref{OraData}, value::Float64)
     ccall((:dpiData_setDouble, libdpi), Cvoid, (Ref{OraData}, Cdouble), dpi_data_ref, value)
 end
 
+function dpiData_setDouble_ptr(dpi_data_ptr::Ptr{OraData}, value::Float64)
+    ccall((:dpiData_setDouble, libdpi), Cvoid, (Ptr{OraData}, Cdouble), dpi_data_ptr, value)
+end
+
 # void dpiData_setInt64(dpiData *data, int64_t value)
-function dpiData_setInt64(dpi_data_ref::Ref{OraData}, value::Int64)
+function dpiData_setInt64_ref(dpi_data_ref::Ref{OraData}, value::Int64)
     ccall((:dpiData_setInt64, libdpi), Cvoid, (Ref{OraData}, Int64), dpi_data_ref, value)
 end
 
+function dpiData_setInt64_ptr(dpi_data_ptr::Ptr{OraData}, value::Int64)
+    ccall((:dpiData_setInt64, libdpi), Cvoid, (Ptr{OraData}, Int64), dpi_data_ptr, value)
+end
+
 # void dpiData_setTimestamp(dpiData *data, int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint32_t fsecond, int8_t tzHourOffset, int8_t tzMinuteOffset)
-function dpiData_setTimestamp(dpi_data_ref::Ref{OraData}, ts::OraTimestamp)
+function dpiData_setTimestamp_ref(dpi_data_ref::Ref{OraData}, ts::OraTimestamp)
     ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ref{OraData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ref, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
 end
 
+function dpiData_setTimestamp_ptr(dpi_data_ptr::Ptr{OraData}, ts::OraTimestamp)
+    ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ptr{OraData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ptr, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
+end
+
 # void dpiData_setNull(dpiData *data)
-function dpiData_setNull(dpi_data_ref::Ref{OraData})
+function dpiData_setNull_ref(dpi_data_ref::Ref{OraData})
     ccall((:dpiData_setNull, libdpi), Cvoid, (Ref{OraData},), dpi_data_ref)
+end
+
+function dpiData_setNull_ptr(dpi_data_ptr::Ptr{OraData})
+    ccall((:dpiData_setNull, libdpi), Cvoid, (Ptr{OraData},), dpi_data_ptr)
+end
+
+#
+# ODPI-C Variable Functions
+#
+
+# int dpiVar_release(dpiVar *var)
+function dpiVar_release(var_handle::Ptr{Cvoid})
+    ccall((:dpiVar_release, libdpi), OraResult, (Ptr{Cvoid},), var_handle)
+end
+
+# int dpiVar_setFromBytes(dpiVar *var, uint32_t pos, const char *value, uint32_t valueLength)
+function dpiVar_setFromBytes(var_handle::Ptr{Cvoid}, pos::UInt32, value::String)
+    valueLength = sizeof(value)
+    ccall((:dpiVar_setFromBytes, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{UInt8}, UInt32), var_handle, pos, value, valueLength)
 end

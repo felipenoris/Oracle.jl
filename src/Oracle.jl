@@ -20,6 +20,7 @@ include("stmt.jl")
 include("values.jl")
 include("cursor.jl")
 include("pool.jl")
+include("variable.jl")
 
 function __init__()
     check_deps() # defined in DEPS_FILE

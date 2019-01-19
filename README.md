@@ -85,14 +85,12 @@ Oracle.execute!(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(1
 
 stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
 
-# will add 10 lines to TB_BIND
-for i in 1:10
-    stmt[:id] = 1 + i
-    stmt[:flt] = 10.23 + i
-    stmt[:str] = "🍕 $i"
-    stmt[:dt] = Date(2018,12,31) + Dates.Day(i)
-    Oracle.execute!(stmt)
-end
+# will add a single line to TB_BIND
+stmt[:id] = 1
+stmt[:flt] = 10.23
+stmt[:str] = "🙂"
+stmt[:dt] = Date(2018,12,31)
+Oracle.execute!(stmt)
 
 Oracle.commit!(conn)
 Oracle.close!(stmt)
@@ -130,6 +128,23 @@ Oracle.query(stmt) do cursor
 end
 
 Oracle.close!(stmt)
+```
+
+### Batch statement execution
+
+If you need to execute the same statement many times but binding different values each time,
+pass a vector of columns to `Oracle.execute!` method.
+
+This will use the ODPI-C *executeMany* feature.
+
+```julia
+NUM_ROWS = 1_000
+
+column_1 = [ i for i in 1:NUM_ROWS ]
+column_2 = .5 * column_1
+
+sql = "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )"
+Oracle.execute!(conn, sql, [ column_1, column_2 ])
 ```
 
 ## ODPI-C Naming Conventions

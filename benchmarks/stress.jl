@@ -4,7 +4,7 @@ using Dates
 
 @assert VERSION >= v"0.7-"
 
-@assert isfile(joinpath(@__DIR__, "credentials.jl")) """
+@assert isfile(joinpath(@__DIR__, "..", "test","credentials.jl")) """
 Before running tests, create a file `test/credentials.jl` with the content:
 
 username = "your-username"
@@ -12,7 +12,7 @@ password = "your-password"
 connect_string = "your-connect-string"
 auth_mode = Oracle.ORA_MODE_AUTH_DEFAULT # or Oracle.ORA_MODE_AUTH_SYSDBA if user is SYSDBA
 """
-include("credentials.jl")
+include(joinpath(@__DIR__, "..", "test","credentials.jl"))
 
 const NUM_ITERATIONS = 10
 

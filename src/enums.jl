@@ -159,3 +159,9 @@ else
         ORA_STMT_TYPE_COMMIT       = 21
     end
 end
+
+#
+# Enable bit arithmetic for enums that can be "ored" together.
+#
+
+Base.:|(a::OraExecMode, b::OraExecMode) = UInt32(a) | UInt32(b)

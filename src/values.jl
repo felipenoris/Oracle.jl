@@ -44,9 +44,11 @@ OraNativeTypeNum(::Type{OraTimestamp}) = ORA_NATIVE_TYPE_TIMESTAMP
 OraNativeTypeNum(::Type{Date})         = ORA_NATIVE_TYPE_TIMESTAMP
 OraNativeTypeNum(::Type{DateTime})     = ORA_NATIVE_TYPE_TIMESTAMP
 
+get_data_handle(val::NativeValue, offset::Integer=0) = val.data_handle + offset*SIZEOF_ORA_DATA
+
 function parse_native_value(val::NativeValue, offset::Integer=0)
 
-    data_handle = val.data_handle + offset*SIZEOF_ORA_DATA
+    data_handle = get_data_handle(val, offset)
 
     if is_null(data_handle)
         return missing
@@ -88,6 +90,32 @@ end
 
 Base.getindex(val::NativeValue) = parse_native_value(val)
 Base.getindex(val::NativeValue, offset::Integer) = parse_native_value(val, offset)
+Base.setindex!(native_value::NativeValue, value, offset::Integer) = set_native_value!(native_value, value, offset)
+
+@generated function set_native_value!(native_value::NativeValue, val::T, offset::Integer) where {T}
+
+    if val <: Missing
+        return quote
+            dpiData_setNull_ptr(get_data_handle(native_value, offset))
+        end
+    end
+
+    if val <: Float64
+        native_type = :ORA_NATIVE_TYPE_DOUBLE
+        set_value_function = :dpiData_setDouble_ptr
+    elseif val <: Int64
+        native_type = :ORA_NATIVE_TYPE_INT64
+        set_value_function = :dpiData_setInt64_ptr
+    else
+        error("Native type $val not supported.")
+    end
+
+    return quote
+        @assert native_value.native_type == $native_type
+        $(set_value_function)(get_data_handle(native_value, offset), val)
+        nothing
+    end
+end
 
 encoding(ora_string::OraBytes) = unsafe_string(ora_string.encoding)
 

@@ -262,7 +262,7 @@ end
 function destroy!(conn::Connection)
     if conn.handle != C_NULL
         result = dpiConn_release(conn.handle)
-        error_check(conn.context, result)
+        error_check(context(conn), result)
         conn.handle = C_NULL
     end
     nothing
@@ -282,7 +282,7 @@ end
 function destroy!(pool::Pool)
     if pool.handle != C_NULL
         result = dpiPool_release(pool.handle)
-        error_check(pool.context, result)
+        error_check(context(pool), result)
         pool.handle = C_NULL
     end
     nothing
@@ -360,7 +360,7 @@ end
 function destroy!(stmt::Stmt)
     if stmt.handle != C_NULL
         result = dpiStmt_release(stmt.handle)
-        error_check(stmt.connection.context, result)
+        error_check(context(stmt), result)
         stmt.handle = C_NULL
     end
     nothing
@@ -415,4 +415,54 @@ end
 mutable struct ConnCreateParams
     auth_mode::OraAuthMode
     pool::Union{Nothing, Pool}
+end
+
+mutable struct OraVariable
+    connection::Connection
+    handle::Ptr{Cvoid}
+    oracle_type::OraOracleTypeNum
+    native_type::OraNativeTypeNum
+    max_byte_string_size_in_bytes::UInt32 # size. the maximum size of the buffer used for transferring data to/from Oracle. This value is only used for variables transferred as byte strings.
+    is_PLSQL_array::Int32 # boolean value indicating if the variable refers to a PL/SQL array or simply to buffers used for binding or fetching data.
+    obj_type_handle::Ptr{Cvoid}
+    buffer_handle::Ptr{OraData} # a pointer to an array of dpiData structures that are used to transfer data to/from the variable. These are allocated when the variable is created and the number of structures corresponds to the maxArraySize.
+    buffer_capacity::UInt32 # maxArraySize. the maximum number of rows that can be fetched or bound at one time from the database, or the maximum number of elements that can be stored in a PL/SQL array.
+
+    function OraVariable(
+            connection::Connection,
+            handle::Ptr{Cvoid},
+            oracle_type::OraOracleTypeNum,
+            native_type::OraNativeTypeNum,
+            max_byte_string_size_in_bytes::UInt32,
+            is_PLSQL_array::Int32,
+            obj_type_handle::Ptr{Cvoid},
+            buffer_handle::Ptr{OraData},
+            buffer_capacity::UInt32)
+
+        new_ora_variable = new(
+            connection,
+            handle,
+            oracle_type,
+            native_type,
+            max_byte_string_size_in_bytes,
+            is_PLSQL_array,
+            obj_type_handle,
+            buffer_handle,
+            buffer_capacity)
+
+        @compat finalizer(destroy!, new_ora_variable)
+
+        return new_ora_variable
+    end
+end
+
+function destroy!(v::OraVariable)
+    if v.handle != C_NULL
+        result = dpiVar_release(v.handle)
+        error_check(context(v), result)
+        v.handle = C_NULL
+        v.obj_type_handle = C_NULL
+        v.buffer_handle = C_NULL
+    end
+    nothing
 end

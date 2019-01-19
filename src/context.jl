@@ -1,6 +1,8 @@
 
 context(conn::Connection) = conn.context
 context(stmt::Stmt) = context(stmt.connection)
+context(pool::Pool) = pool.context
+context(variable::OraVariable) = context(variable.connection)
 
 function Context()
     error_info_ref = Ref{OraErrorInfo}()

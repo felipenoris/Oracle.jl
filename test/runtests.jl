@@ -366,8 +366,8 @@ end
 
         if VERSION >= v"0.7-"
             # testing only on Julia v1.0
-            @test_throws AssertionError stmt[:dt] = missing
-            @test_throws AssertionError stmt[:dt, Int] = 1
+            @test_throws MethodError stmt[:dt] = missing
+            @test_throws MethodError stmt[:dt, Int] = 1
         end
 
         Oracle.execute!(stmt)
@@ -440,8 +440,8 @@ end
 
         if VERSION >= v"0.7-"
             # testing only on Julia v1.0
-            @test_throws AssertionError stmt[:dt] = missing
-            @test_throws AssertionError stmt[:dt, Int] = 1
+            @test_throws MethodError stmt[:dt] = missing
+            @test_throws MethodError stmt[:dt, Int] = 1
         end
 
         Oracle.execute!(stmt)
@@ -494,18 +494,138 @@ end
     end
 end
 
-#=
-@testset "shutdown/startup" begin
-    # The connection needs to have been established at least with authorization mode set to ORA_MODE_AUTH_SYSDBA or ORA_MODE_AUTH_SYSOPER
-    Oracle.shutdown_database(conn)
-    Oracle.startup_database(conn)
+@testset "Variables" begin
+
+    @testset "get/set values to Variables" begin
+        ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+
+        ora_var[0] = 0.0
+        @test ora_var[0] == 0.0
+
+        let
+            for i in 0:(ora_var.buffer_capacity-1)
+                ora_var[i] = Float64(i)
+            end
+
+            for i in 0:(ora_var.buffer_capacity-1)
+                @test ora_var[i] == Float64(i)
+            end
+        end
+
+        @test_throws AssertionError ora_var[-1] = 1.0
+        @test_throws AssertionError ora_var[ora_var.buffer_capacity] = 1.0
+
+        @test_throws AssertionError ora_var[-1] == 1.0
+        @test_throws AssertionError ora_var[ora_var.buffer_capacity] == 1.0
+    end
+
+    Oracle.execute!(conn, "CREATE TABLE TB_VARIABLES ( FLT NUMBER(15,4) NULL )")
+
+    @testset "low-level define API" begin
+        ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 123.45 )")
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 456.78 )")
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( null )")
+        stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_VARIABLES")
+        Oracle.execute!(stmt)
+
+        Oracle.define(stmt, 1, ora_var)
+
+        fetch_result = Oracle.fetch_rows!(stmt)
+        @test fetch_result.num_rows_fetched == 3
+
+        v = Oracle.NativeValue(ora_var.native_type, ora_var.buffer_handle)
+        @test v[fetch_result.buffer_row_index + 0] == 123.45
+        @test v[fetch_result.buffer_row_index + 1] == 456.78
+        @test ismissing(v[fetch_result.buffer_row_index + 2])
+
+        Oracle.close!(stmt)
+        Oracle.rollback!(conn)
+    end
+
+    @testset "bind to stmt" begin
+        ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :flt )")
+        stmt[:flt] = ora_var
+        Oracle.close!(stmt)
+    end
+
+    @testset "low-level executeMany" begin
+        how_many = 10
+
+        let
+            ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+
+            for i in 0:(how_many-1)
+                ora_var[i] = Float64(i)
+            end
+
+            stmt = Oracle.Stmt(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :flt )")
+            stmt[:flt] = ora_var
+            result = Oracle.dpiStmt_executeMany(stmt.handle, Oracle.ORA_MODE_EXEC_DEFAULT, UInt32(how_many))
+            Oracle.error_check(Oracle.context(stmt), result)
+
+            Oracle.close!(stmt)
+            Oracle.commit!(conn)
+        end
+
+        Oracle.query(conn, "SELECT FLT FROM TB_VARIABLES") do cursor
+            row_number = 0.0
+            for row in cursor
+                @test row["FLT"] == row_number
+                row_number += 1
+            end
+            @test row_number == how_many
+        end
+    end
+
+    Oracle.execute!(conn, "DROP TABLE TB_VARIABLES")
+
+    function check_data(cursor::Oracle.Cursor, columns)
+        row_count = length(columns[1])
+        column_count = length(columns)
+
+        row_number = 1
+        for row in cursor
+            for c in 1:column_count
+                val = columns[c][row_number]
+                if ismissing(val)
+                    @test ismissing(row[c])
+                else
+                    @test val == row[c]
+                end
+            end
+            row_number += 1
+        end
+    end
+
+    @testset "high-level executeMany" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_EXECUTE_MANY ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR2(4000) )")
+
+        columns = [ [1, 2, 3, 4, 5], [10.5, 20.5, 30.5, 40.5, missing], ["1", "2nd string is awesomely the biggest one", "3", "4th string is bigger", missing] ]
+        Oracle.execute!(conn, "INSERT INTO TB_EXECUTE_MANY ( ID, FLT, STR ) VALUES ( :1, :2, :3 )", columns)
+
+        Oracle.query(conn, "SELECT ID, FLT, STR FROM TB_EXECUTE_MANY") do cursor
+            check_data(cursor, columns)
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_EXECUTE_MANY")
+    end
 end
-=#
 
 #=
 @testset "Pool" begin
     ctx = Oracle.Context()
     pool = Oracle.Pool(ctx, username, password, connect_string)
+end
+=#
+
+#=
+@testset "shutdown/startup" begin
+    # The connection needs to have been established at least with authorization mode set to ORA_MODE_AUTH_SYSDBA or ORA_MODE_AUTH_SYSOPER
+    Oracle.shutdown_database(conn)
+    Oracle.startup_database(conn)
 end
 =#
 
