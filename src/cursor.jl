@@ -14,34 +14,34 @@ while next !== nothing
 end
 =#
 
-function CursorSchema(execution_result::QueryExecutionResult)
-    stmt = execution_result.stmt
-    num_columns = execution_result.num_columns
+function CursorSchema(stmt::QueryStmt)
+
+    columns_count = num_columns(stmt)
 
     column_query_info = Vector{OraQueryInfo}()
     column_names_index = Dict{String, Int}()
 
-    for column_index in 1:num_columns
+    for column_index in 1:columns_count
         q_info = OraQueryInfo(stmt, column_index)
         push!(column_query_info, q_info)
         column_names_index[column_name(q_info)] = column_index
     end
 
-    return CursorSchema(stmt, column_query_info, column_names_index)
+    return CursorSchema(column_query_info, column_names_index)
 end
 
 num_columns(schema::CursorSchema) = length(schema.column_names_index)
 num_columns(row::ResultSetRow) = num_columns(row.cursor)
-num_columns(cursor::Cursor) = cursor.execution_result.num_columns
+num_columns(cursor::Cursor) = num_columns(cursor.stmt)
 
-stmt(cursor::Cursor) = cursor.execution_result.stmt
+stmt(cursor::Cursor) = cursor.stmt
 
-function Cursor(execution_result::QueryExecutionResult; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    schema = CursorSchema(execution_result)
-    return Cursor(execution_result, schema, fetch_array_size)
+function Cursor(stmt::QueryStmt; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+    schema = CursorSchema(stmt)
+    return Cursor(stmt, schema, fetch_array_size)
 end
 
-@inline function has_more_rows(r::FetchRowsResult)
+@inline function has_possibly_more_rows(r::FetchRowsResult)
     if r.more_rows == 1
         return true
     elseif r.more_rows == 0
@@ -65,9 +65,8 @@ end
             return false
         end
 
-        if !has_more_rows(state.last_fetch_rows_result)
+        if !has_possibly_more_rows(state.last_fetch_rows_result)
             # there are no more rows to fetch
-            close!(stmt(cursor))
             return true
         end
 
@@ -117,12 +116,11 @@ else
             return (ResultSetRow(cursor, state.next_offset), CursorIteratorState(state.next_offset + 1, state.last_fetch_rows_result))
         else
             # fetch more results if has more rows to fetch
-            if has_more_rows(state.last_fetch_rows_result)
+            if has_possibly_more_rows(state.last_fetch_rows_result)
                 fetch_rows_result = Oracle.fetch_rows!(stmt(cursor), cursor.fetch_array_size)
 
-                # it's strange, but sometimes `has_more_rows` returns true, and `fetch_rows!` returns `num_rows_fetched == 0`
+                # `has_possibly_more_rows` may return true, even if there are no more rows to fetch
                 if fetch_rows_result.num_rows_fetched == 0
-                    close!(stmt(cursor))
                     return nothing
                 end
 
@@ -130,7 +128,6 @@ else
                 return (ResultSetRow(cursor, offset), CursorIteratorState(offset + 1, fetch_rows_result))
             else
                 # there are no more rows to fetch, so we finished reading from this Cursor
-                close!(stmt(cursor))
                 return nothing
             end
         end
@@ -139,17 +136,19 @@ end
 
 first_offset(result::FetchRowsResult) = -Int(result.num_rows_fetched) + 1
 
-function query(conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    stmt = Stmt(conn, sql; scrollable=scrollable, tag=tag)
-    return query(stmt; exec_mode=exec_mode, fetch_array_size=fetch_array_size)
+function query(f::Function, conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+    stmt(conn, sql, scrollable=scrollable, tag=tag) do stmt
+        execute!(stmt, exec_mode=exec_mode)
+        cursor = Cursor(stmt, fetch_array_size=fetch_array_size)
+        f(cursor)
+    end
+    nothing
 end
 
-function query(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    return query( execute!(stmt; exec_mode=exec_mode) ; fetch_array_size=fetch_array_size)
-end
-
-function query(result::QueryExecutionResult; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    return Cursor(result; fetch_array_size=fetch_array_size)
+function query(f::Function, stmt::Stmt, exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+    execute!(stmt, exec_mode=exec_mode)
+    f(Cursor(stmt, fetch_array_size=fetch_array_size))
+    nothing
 end
 
 function ResultSetRow(cursor::Cursor, offset::Int)

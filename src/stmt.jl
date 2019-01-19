@@ -1,4 +1,16 @@
 
+function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
+    stmt = Stmt(connection, sql, scrollable=scrollable, tag=tag)
+
+    try
+        f(stmt)
+    finally
+        close!(stmt)
+    end
+
+    nothing
+end
+
 function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
     stmt_handle_ref = Ref{Ptr{Cvoid}}()
     result = dpiConn_prepareStmt(connection.handle, scrollable, sql, tag, stmt_handle_ref)
@@ -6,54 +18,47 @@ function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::
     return Stmt(connection, stmt_handle_ref[], scrollable)
 end
 
-function execute!(stmt::Stmt{StmtQueryType}; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: QueryExecutionResult
-    num_columns = raw_execute!(stmt, exec_mode)
-    return QueryExecutionResult(stmt, num_columns)
-end
-
-function execute!(stmt::Stmt{StmtDMLType}; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: DMLExecutionResult
-    num_columns = raw_execute!(stmt, exec_mode)
-    @assert num_columns == 0 "num_columns should be zero for non-query statements."
-
+"Number of affected rows in a DML statement."
+function row_count(stmt::Stmt)
     row_count_ref = Ref{UInt64}()
     result = dpiStmt_getRowCount(stmt.handle, row_count_ref)
     error_check(context(stmt), result)
-
-    return DMLExecutionResult(stmt, row_count_ref[])
-end
-
-function execute!(stmt::Stmt{StmtOtherType}; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: GenericStmtExecutionResult
-    num_columns = raw_execute!(stmt, exec_mode)
-    return GenericStmtExecutionResult(stmt, num_columns)
-end
-
-function execute!(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
-    stmt = Stmt(connection, sql; scrollable=scrollable, tag=tag)
-    execute_result = execute!(stmt, exec_mode=exec_mode)
-    close!(stmt)
-    return execute_result
+    return row_count_ref[]
 end
 
 """
-    raw_execute!(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    execute!(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
 
 Returns the number of columns which are being queried.
 If the statement does not refer to a query, the value is set to 0.
 """
-function raw_execute!(stmt::Stmt, exec_mode::OraExecMode) :: UInt32
+function execute!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     num_columns_ref = Ref{UInt32}(0)
     result = dpiStmt_execute(stmt.handle, exec_mode, num_columns_ref)
     error_check(context(stmt), result)
     return num_columns_ref[]
 end
 
+function execute!(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    local result::UInt32
+
+    stmt(connection, sql, scrollable=scrollable, tag=tag) do stmt
+        result = execute!(stmt, exec_mode=exec_mode)
+    end
+
+    return result
+end
+
 function close!(stmt::Stmt; tag::String="")
-    result = dpiStmt_close(stmt.handle, tag=tag)
-    error_check(context(stmt), result)
+    if stmt.is_open
+        result = dpiStmt_close(stmt.handle, tag=tag)
+        error_check(context(stmt), result)
+        stmt.is_open = false
+    end
     nothing
 end
 
-function num_columns(stmt::Stmt) :: UInt32
+function num_columns(stmt::QueryStmt) :: UInt32
     num_columns_ref = Ref{UInt32}(0)
     result = dpiStmt_getNumQueryColumns(stmt.handle, num_columns_ref)
     error_check(context(stmt), result)

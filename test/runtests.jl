@@ -39,8 +39,10 @@ end
 
 # Database Encoding
 let
-    for row in Oracle.query(conn, "select value from nls_database_parameters where parameter='NLS_CHARACTERSET'")
-        println("Database NLS_CHARACTERSET = ", row["VALUE"])
+    Oracle.query(conn, "select value from nls_database_parameters where parameter='NLS_CHARACTERSET'") do cursor
+        for row in cursor
+            println("Database NLS_CHARACTERSET = ", row["VALUE"])
+        end
     end
 end
 
@@ -77,12 +79,13 @@ end
     @test !stmt.info.is_DML
     @test stmt.info.statement_type == Oracle.ORA_STMT_TYPE_SELECT
 
-    query_result = Oracle.execute!(stmt)
-    @test isa(query_result, Oracle.QueryExecutionResult)
-    @test query_result.num_columns == 1
+    Oracle.execute!(stmt)
+    @test Oracle.num_columns(stmt) == 1
 
     query_info = Oracle.OraQueryInfo(stmt, 1)
     @test Oracle.column_name(query_info) == "ID"
+
+    Oracle.close!(stmt)
 end
 
 @testset "fetch" begin
@@ -104,6 +107,8 @@ end
     @test Oracle.is_null(value)
     @test ismissing(value[])
     @test isa(value[], Missing)
+
+    Oracle.close!(stmt)
 end
 
 @testset "Drop" begin
@@ -119,8 +124,8 @@ end
     Oracle.commit!(conn)
 
     stmt = Oracle.Stmt(conn, "SELECT ID, name, amount FROM TB_TEST_DATATYPES")
-    query_result = Oracle.execute!(stmt)
-    @test query_result.num_columns == 3
+    Oracle.execute!(stmt)
+    @test Oracle.num_columns(stmt) == 3
 
     result = Oracle.fetch!(stmt)
     @test result.found
@@ -151,6 +156,7 @@ end
 
     println("")
 
+    Oracle.close!(stmt)
     Oracle.execute!(conn, "DROP TABLE TB_TEST_DATATYPES")
 end
 
@@ -165,11 +171,13 @@ end
 
         row_number = 1
 
-        for row in Oracle.query(conn, "SELECT DT FROM TB_DATE")
-            @test row["DT"] == dates[row_number]
-            @test isa(row["DT"], DateTime) # Oracle DATE columns stores DateTime up to seconds.
+        Oracle.query(conn, "SELECT DT FROM TB_DATE") do cursor
+            for row in cursor
+                @test row["DT"] == dates[row_number]
+                @test isa(row["DT"], DateTime) # Oracle DATE columns stores DateTime up to seconds.
 
-            row_number += 1
+                row_number += 1
+            end
         end
     end
 
@@ -183,8 +191,8 @@ end
     end
 
     stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
-    result = Oracle.execute!(stmt)
-    @test result.num_columns == 2
+    Oracle.execute!(stmt)
+    @test Oracle.num_columns(stmt) == 2
 
     fetch_rows_result = Oracle.fetch_rows!(stmt, 3)
 
@@ -207,6 +215,7 @@ end
     @test value_id[0] == 3
     @test value_val[0] == 30
 
+    Oracle.close!(stmt)
     Oracle.execute!(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end
 
@@ -221,64 +230,81 @@ end
 
     @testset "all rows" begin
         row_number = 0
-        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR", fetch_array_size=3)
-            row_number += 1
-            @test row["ID"] == row_number
-            @test isa(row["ID"], Int)
-            @test row["ID"] == row[1]
 
-            @test row["VAL"] == row_number * 10
-            @test isa(row["VAL"], Int)
-            @test row["VAL"] == row[2]
+        Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR", fetch_array_size=3) do cursor
+            for row in cursor
+                row_number += 1
+                @test row["ID"] == row_number
+                @test isa(row["ID"], Int)
+                @test row["ID"] == row[1]
 
-            @test row["VAL_FLT"] == 10.01
-            @test isa(row["VAL_FLT"], Float64)
-            @test row["VAL_FLT"] == row[3]
+                @test row["VAL"] == row_number * 10
+                @test isa(row["VAL"], Int)
+                @test row["VAL"] == row[2]
 
-            @test row["STR"] == "📚📚📚📚⏳😀⌛😭"
-            @test isa(row["STR"], String)
-            @test row["STR"] == row[4]
+                @test row["VAL_FLT"] == 10.01
+                @test isa(row["VAL_FLT"], Float64)
+                @test row["VAL_FLT"] == row[3]
+
+                @test row["STR"] == "📚📚📚📚⏳😀⌛😭"
+                @test isa(row["STR"], String)
+                @test row["STR"] == row[4]
+            end
         end
         @test row_number == num_iterations
     end
 
     @testset "2nd row" begin
         row_number = 0
-        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 2", fetch_array_size=3)
-            row_number += 1
-            @test row["ID"] == 2
-            @test row["VAL"] == 20
+        Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 2", fetch_array_size=3) do cursor
+            for row in cursor
+                row_number += 1
+                @test row["ID"] == 2
+                @test row["VAL"] == 20
+            end
         end
         @test row_number == 1
     end
 
     @testset "1st and 2nd rows" begin
         row_number = 0
-        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2", fetch_array_size=3)
-            row_number += 1
-            @test row["ID"] == row_number
-            @test row["VAL"] == row_number * 10
+
+        Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2", fetch_array_size=3) do cursor
+            for row in cursor
+                row_number += 1
+                @test row["ID"] == row_number
+                @test row["VAL"] == row_number * 10
+            end
         end
+
         @test row_number == 2
     end
 
     @testset "1st, 2nd, 3rd rows" begin
         row_number = 0
-        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2 OR ID = 3", fetch_array_size=3)
-            row_number += 1
-            @test row["ID"] == row_number
-            @test row["VAL"] == row_number * 10
+
+        Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2 OR ID = 3", fetch_array_size=3) do cursor
+            for row in cursor
+                row_number += 1
+                @test row["ID"] == row_number
+                @test row["VAL"] == row_number * 10
+            end
         end
+
         @test row_number == 3
     end
 
     @testset "1st, 2nd, 3rd, 4th rows" begin
         row_number = 0
-        for row in Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2 OR ID = 3 OR ID = 4", fetch_array_size=3)
-            row_number += 1
-            @test row["ID"] == row_number
-            @test row["VAL"] == row_number * 10
+
+        Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 1 OR ID = 2 OR ID = 3 OR ID = 4", fetch_array_size=3) do cursor
+            for row in cursor
+                row_number += 1
+                @test row["ID"] == row_number
+                @test row["VAL"] == row_number * 10
+            end
         end
+
         @test row_number == 4
     end
 
@@ -306,14 +332,39 @@ end
 
         let
             row_number = 1
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
-                @test row["ID"] == 1 + row_number
-                @test row["FLT"] == 10.23 + row_number
-                @test row["STR"] == "🍕 $row_number"
-                @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
 
-                row_number += 1
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME") do cursor
+                for row in cursor
+                    @test row["ID"] == 1 + row_number
+                    @test row["FLT"] == 10.23 + row_number
+                    @test row["STR"] == "🍕 $row_number"
+                    @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
+
+                    row_number += 1
+                end
             end
+
+            @test row_number == 11
+        end
+
+        @testset "reuse stmt for queries" begin
+            query_stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND_BY_NAME WHERE ID = :id")
+
+            query_stmt[:ID] = 2
+            Oracle.query(query_stmt) do cursor
+                for row in cursor
+                    @test row["FLT"] == 10.23 + 1
+                end
+            end
+
+            query_stmt[:ID] = 3
+            Oracle.query(query_stmt) do cursor
+                for row in cursor
+                    @test row["FLT"] == 10.23 + 2
+                end
+            end
+
+            Oracle.close!(query_stmt)
         end
 
         Oracle.execute!(conn, "DELETE FROM TB_BIND_BY_NAME")
@@ -334,17 +385,21 @@ end
 
         let
             row_number = 0
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
-                @test ismissing(row["ID"])
-                @test ismissing(row["FLT"])
-                @test ismissing(row["STR"])
-                @test ismissing(row["DT"])
-                row_number += 1
+
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME") do cursor
+                for row in cursor
+                    @test ismissing(row["ID"])
+                    @test ismissing(row["FLT"])
+                    @test ismissing(row["STR"])
+                    @test ismissing(row["DT"])
+                    row_number += 1
+                end
             end
 
             @test row_number == 1
         end
 
+        Oracle.close!(stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_NAME")
     end
 
@@ -367,14 +422,19 @@ end
 
         let
             row_number = 1
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION")
-                @test row["ID"] == 1 + row_number
-                @test row["FLT"] == 10.23 + row_number
-                @test row["STR"] == "🍕 $row_number"
-                @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
 
-                row_number += 1
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION") do cursor
+                for row in cursor
+                    @test row["ID"] == 1 + row_number
+                    @test row["FLT"] == 10.23 + row_number
+                    @test row["STR"] == "🍕 $row_number"
+                    @test row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
+
+                    row_number += 1
+                end
             end
+
+            @test row_number == 11
         end
 
         Oracle.execute!(conn, "DELETE FROM TB_BIND_BY_POSITION")
@@ -395,17 +455,21 @@ end
 
         let
             row_number = 0
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION")
-                @test ismissing(row["ID"])
-                @test ismissing(row["FLT"])
-                @test ismissing(row["STR"])
-                @test ismissing(row["DT"])
-                row_number += 1
+
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION") do cursor
+                for row in cursor
+                    @test ismissing(row["ID"])
+                    @test ismissing(row["FLT"])
+                    @test ismissing(row["STR"])
+                    @test ismissing(row["DT"])
+                    row_number += 1
+                end
             end
 
             @test row_number == 1
         end
 
+        Oracle.close!(stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_POSITION")
     end
 
@@ -419,15 +483,19 @@ end
         Oracle.commit!(conn)
 
         let row_number = 0
-            for row in Oracle.query(conn, "SELECT TS FROM TB_BIND_TIMESTAMP")
-                @test row["TS"] == ts_now
-                @test isa(row["TS"], DateTime)
-                row_number += 1
+
+            Oracle.query(conn, "SELECT TS FROM TB_BIND_TIMESTAMP") do cursor
+                for row in cursor
+                    @test row["TS"] == ts_now
+                    @test isa(row["TS"], DateTime)
+                    row_number += 1
+                end
             end
 
             @test row_number == 1
         end
 
+        Oracle.close!(stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
     end
 end

@@ -36,16 +36,6 @@ Using Julia v1.0 package REPL:
 
 ```julia
 (v1.0) pkg> add https://github.com/felipenoris/Oracle.jl.git
-  Updating registry at `~/.julia/registries/General`
-  Updating git-repo `https://github.com/JuliaRegistries/General.git`
-   Cloning git-repo `https://github.com/felipenoris/Oracle.jl.git`
-  Updating git-repo `https://github.com/felipenoris/Oracle.jl.git`
- Resolving package versions...
-  Updating `~/.julia/environments/v1.0/Project.toml`
-  [3328109a] + Oracle v0.0.1 #master (https://github.com/felipenoris/Oracle.jl.git)
-  Updating `~/.julia/environments/v1.0/Manifest.toml`
-  [3328109a] + Oracle v0.0.1 #master (https://github.com/felipenoris/Oracle.jl.git)
-  Building Oracle → `~/.julia/packages/Oracle/th9U1/deps/build.log`
 ```
 
 ## Tutorial
@@ -70,7 +60,7 @@ To connect as SYSDBA, use the appropriate `auth_mode` parameter.
 conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA)
 ```
 
-Connections are closed automatically when they go out of scope. But you can also close a connection using `Oracle.close!` method.
+Connections are closed automatically (by the garbage collector) when they go out of scope. But you can also close a connection using `Oracle.close!` method.
 
 ```julia
 Oracle.close!(conn)
@@ -103,18 +93,43 @@ for i in 1:10
     stmt[:dt] = Date(2018,12,31) + Dates.Day(i)
     Oracle.execute!(stmt)
 end
+
 Oracle.commit!(conn)
+Oracle.close!(stmt)
 ```
+
+Statements are closed automatically (by the garbage collector) when they go out of scope.
+But it's good practice to close it using `Oracle.close!` method as soon as you have
+finished with it, to release database resources.
 
 ### Executing a Query
 
+Use `Oracle.query` method with *do-syntax* to get a reference to a cursor.
+
 ```julia
-for row in Oracle.query(conn, "SELECT * FROM TB_BIND")
-    println( row["ID"]  )
-    println( row["FLT"] )
-    println( row["STR"] )
-    println( row["DT"]  )
+Oracle.query(conn, "SELECT * FROM TB_BIND") do cursor
+    for row in cursor
+        println( row["ID"]  )
+        println( row["FLT"] )
+        println( row["STR"] )
+        println( row["DT"]  )
+    end
 end
+```
+
+You can also use a prepared statement to execute a query.
+
+```julia
+stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND WHERE ID = :id")
+stmt[:id] = 1
+
+Oracle.query(stmt) do cursor
+    for row in cursor
+      println(row["FLT"])
+    end
+end
+
+Oracle.close!(stmt)
 ```
 
 ## ODPI-C Naming Conventions

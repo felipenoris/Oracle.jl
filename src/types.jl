@@ -175,17 +175,6 @@ struct StmtInfo
     end
 end
 
-abstract type AbstractStmtType end
-
-"A Stmt type parameter for when stmt.info.is_query is true"
-struct StmtQueryType <: AbstractStmtType end
-
-"A Stmt type parameter for when stmt.info.is_DML is true"
-struct StmtDMLType <: AbstractStmtType end
-
-"A Stmt type parameter for when both stmt.info.is_query and stmt.info.is_DML are false."
-struct StmtOtherType <: AbstractStmtType end
-
 struct OraBytes
     ptr::Ptr{UInt8}
     length::UInt32
@@ -299,7 +288,7 @@ function destroy!(pool::Pool)
     nothing
 end
 
-mutable struct Stmt{T<:AbstractStmtType}
+mutable struct Stmt{statement_type}
     connection::Connection
     handle::Ptr{Cvoid}
     scrollable::Bool
@@ -307,7 +296,10 @@ mutable struct Stmt{T<:AbstractStmtType}
     bind_count::UInt32
     bind_names::Vector{String}
     bind_names_index::Dict{String, UInt32} # maps bind_name to bind position
+    is_open::Bool
 end
+
+const QueryStmt = Stmt{ORA_STMT_TYPE_SELECT}
 
 function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
 
@@ -316,19 +308,6 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
         result = dpiStmt_getInfo(stmt_handle, stmt_info_ref)
         error_check(ctx, result)
         return StmtInfo(stmt_info_ref[])
-    end
-
-    function stmt_type_factory(stmt_info::StmtInfo)
-        if stmt_info.is_query && !stmt_info.is_DML
-            return StmtQueryType
-        elseif !stmt_info.is_query && stmt_info.is_DML
-            return StmtDMLType
-        elseif stmt_info.is_query && stmt_info.is_DML
-            error("Can a Stmt be both a query and DML ?")
-        else
-            # a Stmt type that we don't need to tag for now...
-            return StmtOtherType
-        end
     end
 
     function get_bind_count(ctx::Context, stmt_handle::Ptr{Cvoid})
@@ -373,7 +352,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
         end
     end
 
-    new_stmt = Stmt{stmt_type_factory(stmt_info)}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index)
+    new_stmt = Stmt{stmt_info.statement_type}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index, true)
     @compat finalizer(destroy!, new_stmt)
     return new_stmt
 end
@@ -408,31 +387,13 @@ end
 
 Base.show(io::IO, result::FetchRowsResult) = print(io, "FetchRowsResult(", Int(result.buffer_row_index), ", " ,Int(result.num_rows_fetched), ", ",Int(result.more_rows), ")")
 
-abstract type AbstractExecutionResult end
-
-struct QueryExecutionResult <: AbstractExecutionResult
-    stmt::Stmt{StmtQueryType}
-    num_columns::UInt32
-end
-
-struct DMLExecutionResult <: AbstractExecutionResult
-    stmt::Stmt{StmtDMLType}
-    row_count::UInt64
-end
-
-struct GenericStmtExecutionResult <: AbstractExecutionResult
-    stmt::Stmt{StmtOtherType}
-    num_columns::UInt32 # maybe not informative
-end
-
 struct CursorSchema
-    stmt::Stmt
     column_query_info::Vector{OraQueryInfo}
     column_names_index::Dict{String, Int}
 end
 
 mutable struct Cursor
-    execution_result::QueryExecutionResult
+    stmt::QueryStmt
     schema::CursorSchema
     fetch_array_size::UInt32
 end
