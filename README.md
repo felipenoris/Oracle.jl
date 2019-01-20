@@ -97,7 +97,7 @@ Oracle.close!(stmt)
 ```
 
 Statements are closed automatically (by the garbage collector) when they go out of scope.
-But it's good practice to close it using `Oracle.close!` method as soon as you have
+But it's good practice to close a Statement using `Oracle.close!` method as soon as you have
 finished with it, to release database resources.
 
 ### Executing a Query
