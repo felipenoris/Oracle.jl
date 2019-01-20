@@ -28,7 +28,9 @@ To install it, follow these instructions:
 export LD_LIBRARY_PATH=/path-to-folder/instantclient_XX_Y:$LD_LIBRARY_PATH
 ```
 
-Alternative installation methods are available at [ODPI-C documentation](https://oracle.github.io/odpi/doc/installation.html), or at [Instant Client documentation](https://www.oracle.com/technetwork/database/database-technologies/instant-client/documentation/index.html).
+Check [ODPI-C documentation](https://oracle.github.io/odpi/doc/installation.html),
+or [Instant Client documentation](https://www.oracle.com/technetwork/database/database-technologies/instant-client/documentation/index.html)
+for alternative installation methods.
 
 ## Package installation
 
