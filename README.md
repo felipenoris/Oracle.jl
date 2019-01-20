@@ -32,10 +32,8 @@ Alternative installation methods are available at [ODPI-C documentation](https:/
 
 ## Package installation
 
-Using Julia v1.0 package REPL:
-
 ```julia
-(v1.0) pkg> add https://github.com/felipenoris/Oracle.jl.git
+julia> Pkg.add("Oracle")
 ```
 
 ## Tutorial
