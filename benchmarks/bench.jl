@@ -37,13 +37,15 @@ function bench()
 
         let
             row_number = 1
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
-                @assert row["ID"] == 1 + row_number
-                @assert row["FLT"] == 10.23 + row_number
-                @assert row["STR"] == "🍕 $row_number"
-                @assert row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME") do cursor
+                for row in cursor
+                    @assert row["ID"] == 1 + row_number
+                    @assert row["FLT"] == 10.23 + row_number
+                    @assert row["STR"] == "🍕 $row_number"
+                    @assert row["DT"] == Date(2018,12,31) + Dates.Day(row_number)
 
-                row_number += 1
+                    row_number += 1
+                end
             end
         end
 
@@ -59,17 +61,20 @@ function bench()
 
         let
             row_number = 0
-            for row in Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
-                @assert ismissing(row["ID"])
-                @assert ismissing(row["FLT"])
-                @assert ismissing(row["STR"])
-                @assert ismissing(row["DT"])
-                row_number += 1
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME") do cursor
+                for row in cursor
+                    @assert ismissing(row["ID"])
+                    @assert ismissing(row["FLT"])
+                    @assert ismissing(row["STR"])
+                    @assert ismissing(row["DT"])
+                    row_number += 1
+                end
             end
 
             @assert row_number == 1
         end
 
+        Oracle.close!(stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_NAME")
 
     finally

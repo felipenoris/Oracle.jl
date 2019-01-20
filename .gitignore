@@ -1,5 +1,5 @@
 deps/usr
 deps/deps.jl
 deps/build.log
-test/credentials.jl
+**/credentials.jl
 Manifest.toml
