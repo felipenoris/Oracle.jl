@@ -408,8 +408,12 @@ end
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :a, :b, :c, :d )")
         @test stmt.bind_count == 4
-        @test_throws AssertionError stmt[0] = 10
-        @test_throws AssertionError stmt[5] = 10
+
+        if VERSION >= v"0.7-"
+            # testing only on Julia v1.0
+            @test_throws AssertionError stmt[0] = 10
+            @test_throws AssertionError stmt[5] = 10
+        end
 
         for i in 1:10
             stmt[1] = 1 + i
