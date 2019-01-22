@@ -108,7 +108,8 @@ Fetches a single row from the statement.
 function fetch!(stmt::Stmt)
     found_ref = Ref{Int32}(0)
     buffer_row_index_ref = Ref{UInt32}(0) # This index is used as the array position for getting values from the variables that have been defined for the statement.
-    dpiStmt_fetch(stmt.handle, found_ref, buffer_row_index_ref)
+    result = dpiStmt_fetch(stmt.handle, found_ref, buffer_row_index_ref)
+    error_check(context(stmt), result)
 
     local found::Bool = false
     if found_ref[] != 0
