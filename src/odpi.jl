@@ -194,6 +194,16 @@ function dpiStmt_getInfo(stmt_handle::Ptr{Cvoid}, stmt_info_ref::Ref{OraStmtInfo
     ccall((:dpiStmt_getInfo, libdpi), OraResult, (Ptr{Cvoid}, Ref{OraStmtInfo}), stmt_handle, stmt_info_ref)
 end
 
+# int dpiStmt_getFetchArraySize(dpiStmt *stmt, uint32_t *arraySize)
+function dpiStmt_getFetchArraySize(stmt_handle::Ptr{Cvoid}, array_size_ref::Ref{UInt32})
+    ccall((:dpiStmt_getFetchArraySize, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), stmt_handle, array_size_ref)
+end
+
+# int dpiStmt_setFetchArraySize(dpiStmt *stmt, uint32_t arraySize)
+function dpiStmt_setFetchArraySize(stmt_handle::Ptr{Cvoid}, array_size::UInt32)
+    ccall((:dpiStmt_setFetchArraySize, libdpi), OraResult, (Ptr{Cvoid}, UInt32), stmt_handle, array_size)
+end
+
 # int dpiStmt_fetch(dpiStmt *stmt, int *found, uint32_t *bufferRowIndex)
 function dpiStmt_fetch(stmt_handle::Ptr{Cvoid}, found_ref::Ref{Int32}, buffer_row_index_ref::Ref{UInt32})
     ccall((:dpiStmt_fetch, libdpi), OraResult, (Ptr{Cvoid}, Ref{Int32}, Ref{UInt32}), stmt_handle, found_ref, buffer_row_index_ref)

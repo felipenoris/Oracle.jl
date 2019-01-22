@@ -79,6 +79,13 @@ end
     @test !stmt.info.is_DML
     @test stmt.info.statement_type == Oracle.ORA_STMT_TYPE_SELECT
 
+    @testset "fetch size" begin
+        @test Oracle.fetch_array_size(stmt) == Oracle.ORA_DEFAULT_FETCH_ARRAY_SIZE
+
+        Oracle.fetch_array_size!(stmt, 150)
+        @test Oracle.fetch_array_size(stmt) == 150
+    end
+
     Oracle.execute!(stmt)
     @test Oracle.num_columns(stmt) == 1
 
@@ -96,17 +103,15 @@ end
     @test result.found
 
     value = Oracle.query_value(stmt, 1)
-    @test !Oracle.is_null(value)
-    @test value[] == 1.0
-    @test isa(value[], Float64)
+    @test value == 1.0
+    @test isa(value, Float64)
 
     result = Oracle.fetch!(stmt)
     @test result.found
 
     value = Oracle.query_value(stmt, 1)
-    @test Oracle.is_null(value)
-    @test ismissing(value[])
-    @test isa(value[], Missing)
+    @test ismissing(value)
+    @test isa(value, Missing)
 
     Oracle.close!(stmt)
 end
@@ -144,11 +149,11 @@ end
         value_name = Oracle.query_value(stmt, 2)
         value_amount = Oracle.query_value(stmt, 3)
 
-        println(value_name[])
+        println(value_name)
 
-        @test id_values[iter] == value_id[]
-        @test name_values[iter] == value_name[]
-        @test amount_values[iter] == value_amount[]
+        @test id_values[iter] == value_id
+        @test name_values[iter] == value_name
+        @test amount_values[iter] == value_amount
 
         result = Oracle.fetch!(stmt)
         iter += 1
@@ -199,21 +204,6 @@ end
     @test fetch_rows_result.buffer_row_index == 0
     @test fetch_rows_result.num_rows_fetched == 3
     @test fetch_rows_result.more_rows == 1
-
-    value_id = Oracle.query_value(stmt, 1)
-    value_val = Oracle.query_value(stmt, 2)
-
-    @test value_id[] == 3
-    @test value_val[] == 30
-
-    @test value_id[-2] == 1
-    @test value_val[-2] == 10
-
-    @test value_id[-1] == 2
-    @test value_val[-1] == 20
-
-    @test value_id[0] == 3
-    @test value_val[0] == 30
 
     Oracle.close!(stmt)
     Oracle.execute!(conn, "DROP TABLE TB_TEST_FETCH_MANY")

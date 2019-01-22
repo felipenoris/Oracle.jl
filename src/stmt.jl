@@ -75,6 +75,31 @@ end
 OraQueryInfo(stmt::Stmt, column_index::Integer) = OraQueryInfo(stmt, UInt32(column_index))
 column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_info.name_length)
 
+function fetch_array_size(stmt::Stmt) :: UInt32
+    array_size_ref = Ref{UInt32}()
+    result = dpiStmt_getFetchArraySize(stmt.handle, array_size_ref)
+    error_check(context(stmt), result)
+    return array_size_ref[]
+end
+
+"""
+    fetch_array_size!(stmt::Stmt, new_size::Integer)
+
+Sets the array size used for performing fetches.
+All variables defined for fetching must have this many (or more) elements allocated for them.
+The higher this value is the less network round trips are required to fetch rows from the database
+but more memory is also required.
+
+A value of zero will reset the array size to the default value of DPI_DEFAULT_FETCH_ARRAY_SIZE.
+"""
+function fetch_array_size!(stmt::Stmt, new_size::Integer)
+    result = dpiStmt_setFetchArraySize(stmt.handle, UInt32(new_size))
+    error_check(context(stmt), result)
+    nothing
+end
+
+reset_fetch_array_size!(stmt::Stmt) = fetch_array_size!(stmt, UInt32(0))
+
 """
     fetch!(stmt::Stmt)
 
@@ -102,14 +127,17 @@ function fetch_rows!(stmt::Stmt, max_rows::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     return FetchRowsResult(buffer_row_index_ref[], num_rows_fetched_ref[], more_rows_ref[])
 end
 
-function query_value(stmt::Stmt, column_index::UInt32) :: NativeValue
+function query_value(stmt::Stmt, column_index::Integer)
     native_type_ref = Ref{OraNativeTypeNum}()
     data_handle_ref = Ref{Ptr{OraData}}()
-    result = dpiStmt_getQueryValue(stmt.handle, column_index, native_type_ref, data_handle_ref)
+    result = dpiStmt_getQueryValue(stmt.handle, UInt32(column_index), native_type_ref, data_handle_ref)
     error_check(context(stmt), result)
-    return NativeValue(native_type_ref[], data_handle_ref[])
+
+    # dpiStmt_getQueryValue() is intended to be paired with dpiStmt_fetch()
+    # so NativeValue will return always a single value ( index = 0, or native_value[] ).
+    # see https://github.com/oracle/odpi/issues/79
+    return NativeValue(native_type_ref[], data_handle_ref[])[]
 end
-query_value(stmt::Stmt, column_index::Integer) = query_value(stmt, UInt32(column_index))
 
 function check_bind_bounds(stmt::Stmt, pos::Integer)
     @assert pos > 0 && pos <= stmt.bind_count "Bind position $pos out of bounds."

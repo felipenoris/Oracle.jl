@@ -392,31 +392,14 @@ struct CursorSchema
     column_names_index::Dict{String, Int}
 end
 
-mutable struct Cursor
+struct Cursor
     stmt::QueryStmt
     schema::CursorSchema
-    fetch_array_size::UInt32
 end
 
 struct ResultSetRow
     cursor::Cursor
-    offset::Int # after Oracle.fetch_rows!, the NativeValue points to the last element of the fetched array. This offset is a negative value to get one value from that array.
     data::Vector{Any}
-end
-
-@static if VERSION < v"0.7-"
-
-    # needs to be mutable in Julia v0.6 because we change next_offset during Base.done(cursor)
-    mutable struct CursorIteratorState
-        next_offset::Int
-        last_fetch_rows_result::FetchRowsResult
-    end
-else
-
-    struct CursorIteratorState
-        next_offset::Int
-        last_fetch_rows_result::FetchRowsResult
-    end
 end
 
 "Safe version of OraCommonCreateParams"
