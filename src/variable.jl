@@ -136,6 +136,10 @@ end
         native_type = :ORA_NATIVE_TYPE_BYTES
         max_byte_string_size = :(find_max_byte_string_size(column))
 
+    elseif T == Any
+        # probably Julia v0.6. Will infer types in runtime.
+        return :(build_variable_runtime_inferred_types(conn, column; is_PLSQL_array=is_PLSQL_array))
+
     else
         error("Julia type $T not supported for OraVariables.")
     end
@@ -155,4 +159,27 @@ end
 
         return variable
     end
+end
+
+function infer_eltype(column::Vector)
+    types = unique([ typeof(i) for i in column ])
+
+    if length(types) == 1
+        return types[1]
+    elseif (Missing ∈ types) && (length(types) == 2)
+        filter!( t -> t != Missing , types)
+        return Union{Missing, types[1]}
+    else
+        error("Julia type $T not supported for OraVariables.")
+    end
+end
+
+function build_variable_runtime_inferred_types(conn::Connection, column::Vector{T}; is_PLSQL_array::Bool=false) where T
+    new_column = Vector{infer_eltype(column)}()
+    for element in column
+        push!(new_column, element)
+    end
+
+    # going back to the generated function with appropriate type information.
+    return build_variable(conn, new_column, is_PLSQL_array=is_PLSQL_array)
 end

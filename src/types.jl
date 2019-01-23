@@ -347,6 +347,11 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
         return result_names
     end
 
+    @static if VERSION < v"0.7-"
+        result = dpiStmt_setFetchArraySize(handle, ORA_DEFAULT_FETCH_ARRAY_SIZE)
+        error_check(context(connection), result)
+    end
+
     stmt_info = new_stmt_info(context(connection), handle)
     bind_count = get_bind_count(context(connection), handle)
 
