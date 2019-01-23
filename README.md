@@ -52,7 +52,8 @@ connect_string = "//IP_ADDRESS/XE" # a valid Oracle connect string
 conn = Oracle.Connection(username, password, connect_string)
 ```
 
-The default encoding for CHAR and NCHAR is UTF-8.
+Currently, this driver only supports connections using UTF-8 encoding.
+So, all connections are created using the encoding UTF-8 for both CHAR and NCHAR.
 
 To connect as SYSDBA, use the appropriate `auth_mode` parameter.
 

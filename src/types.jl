@@ -246,7 +246,17 @@ mutable struct Connection
     encoding_info::EncodingInfo
 
     function Connection(context::Context, handle::Ptr{Cvoid})
-        new_connection = new(context, handle, EncodingInfo(context, handle))
+
+        # this driver currently only supports UTF-8 encoding
+        function check_supported_encoding(ei::EncodingInfo)
+            @assert ei.encoding == DEFAULT_CONNECTION_ENCODING
+            @assert ei.nencoding == DEFAULT_CONNECTION_NENCODING
+        end
+
+        ei = EncodingInfo(context, handle)
+        check_supported_encoding(ei)
+
+        new_connection = new(context, handle, ei)
         @compat finalizer(destroy!, new_connection)
         return new_connection
     end
