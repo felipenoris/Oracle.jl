@@ -14,13 +14,14 @@ const DEPS_FILE = joinpath(@__DIR__, "deps.jl")
 const SRC_DIR = joinpath(PREFIX, "src")
 const LIB_DIR = joinpath(PREFIX, "lib")
 
-const ODPI_SOURCE_URL = "https://github.com/oracle/odpi/archive/v3.0.0.tar.gz"
+const ODPI_VERSION_NUMBER = "3.1.0"
+const ODPI_SOURCE_URL = "https://github.com/oracle/odpi/archive/v$(ODPI_VERSION_NUMBER).tar.gz"
 const ODPI_SOURCE_LOCAL_FILEPATH = joinpath(DOWNLOADS, "odpi_source.tar.gz")
 
 @static if _is_linux()
-    const SHARED_LIB = joinpath(PREFIX, "lib", "libdpi.so.3.0.0")
+    const SHARED_LIB = joinpath(PREFIX, "lib", "libdpi.so.$(ODPI_VERSION_NUMBER)")
 elseif _is_apple()
-    const SHARED_LIB = joinpath(PREFIX, "lib", "libdpi.3.0.0.dylib")
+    const SHARED_LIB = joinpath(PREFIX, "lib", "libdpi.$(ODPI_VERSION_NUMBER).dylib")
 else
     error("Target system not supported.")
 end

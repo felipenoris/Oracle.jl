@@ -4,7 +4,7 @@ const SIZEOF_ORA_DATA = sizeof(Oracle.OraData)
 is_null(val::NativeValue, offset::Integer=0) = is_null(val.data_handle + offset*SIZEOF_ORA_DATA)
 
 function is_null(ptr::Ptr{OraData})
-    is_null_as_cint = dpiData_isNull(ptr)
+    is_null_as_cint = dpiData_getIsNull(ptr)
 
     if is_null_as_cint == 0
         return false

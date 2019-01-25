@@ -13,11 +13,6 @@ function sizeof_dpiData()
     ccall((:sizeof_dpiData, libdpi), Csize_t, ())
 end
 
-# int dpiData_isNull(dpiData *data)
-function dpiData_isNull(data_handle::Ptr{OraData})
-    ccall((:dpiData_isNull, libdpi), Cint, (Ptr{OraData},), data_handle)
-end
-
 #
 # ODPI Context Functions
 #
@@ -318,6 +313,11 @@ end
 # dpiTimestamp *dpiData_getTimestamp(dpiData *data)
 function dpiData_getTimestamp(dpi_data_handle::Ptr{OraData})
     ccall((:dpiData_getTimestamp, libdpi), Ptr{OraTimestamp}, (Ptr{OraData},), dpi_data_handle)
+end
+
+# int dpiData_getIsNull(dpiData *data)
+function dpiData_getIsNull(data_handle::Ptr{OraData})
+    ccall((:dpiData_getIsNull, libdpi), Cint, (Ptr{OraData},), data_handle)
 end
 
 #
