@@ -23,11 +23,16 @@ include("pool.jl")
 include("variable.jl")
 
 function __init__()
-    check_deps() # defined in DEPS_FILE
+    # this function is defined in DEPS_FILE
+    check_deps()
 
     # check size of structs affected by C unions
     @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer()
     @assert sizeof(OraData) == sizeof_dpiData()
+
+    # Checks that ODPI-C works
+    ctx = Context()
+    destroy!(ctx)
 end
 
 @inline function error_check(ctx::Context, result::OraResult)
