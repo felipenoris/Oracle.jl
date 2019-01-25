@@ -16,7 +16,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
     end
 
     function get_bind_names(ctx::Context, stmt_handle::Ptr{Cvoid}, expected_num_bind_names::UInt32)
-        num_bind_names_ref = Ref{UInt32}()
+        num_bind_names_ref = Ref{UInt32}(expected_num_bind_names) # IN/OUT parameter
         bind_names_vec = Vector{Ptr{UInt8}}()
         append!(bind_names_vec, [ C_NULL for i in 1:expected_num_bind_names ])
 
