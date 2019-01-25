@@ -198,8 +198,11 @@ end
 
 @testset "Fetch Many" begin
     Oracle.execute!(conn, "CREATE TABLE TB_TEST_FETCH_MANY ( ID NUMBER(4,0) NULL, VAL NUMBER(4,0) NULL )")
-    for i in 1:10
-        Oracle.execute!(conn, "INSERT INTO TB_TEST_FETCH_MANY ( ID, VAL ) VALUES ( $i, $(10i))")
+
+    let
+        col1 = collect(1:10)
+        col2 = 10*col1
+        Oracle.execute!(conn, "INSERT INTO TB_TEST_FETCH_MANY ( ID, VAL ) VALUES ( :1, :2 )", [col1, col2])
     end
 
     stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
@@ -221,8 +224,13 @@ end
 
     num_iterations = 10
 
-    for i in 1:num_iterations
-        Oracle.execute!(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( $i, $(10i), 10.01, '📚📚📚📚⏳😀⌛😭')")
+    let
+        col1 = collect(1:num_iterations)
+        col2 = 10*col1
+        col3 = fill(10.01, num_iterations)
+        col4 = fill("📚📚📚📚⏳😀⌛😭", num_iterations)
+        columns = [ col1, col2, col3, col4 ]
+        Oracle.execute!(conn, "INSERT INTO TB_TEST_CURSOR ( ID, VAL, VAL_FLT, STR ) VALUES ( :1, :2, :3, :4 )", columns)
     end
 
     @testset "all rows" begin
@@ -535,9 +543,7 @@ end
     @testset "low-level define API" begin
         ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
 
-        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 123.45 )")
-        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 456.78 )")
-        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( null )")
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :1 )", [ [123.45, 456.78, missing] ])
         stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_VARIABLES")
         Oracle.execute!(stmt)
 
