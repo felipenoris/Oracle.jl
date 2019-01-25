@@ -89,7 +89,7 @@ stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id,
 # will add a single line to TB_BIND
 stmt[:id] = 1
 stmt[:flt] = 10.23
-stmt[:str] = "🙂"
+stmt[:str] = "a string"
 stmt[:dt] = Date(2018,12,31)
 Oracle.execute!(stmt)
 
