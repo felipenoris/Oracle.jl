@@ -1,4 +1,72 @@
 
+function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
+
+    function new_stmt_info(ctx::Context, stmt_handle::Ptr{Cvoid})
+        stmt_info_ref = Ref{OraStmtInfo}()
+        result = dpiStmt_getInfo(stmt_handle, stmt_info_ref)
+        error_check(ctx, result)
+        return StmtInfo(stmt_info_ref[])
+    end
+
+    function get_bind_count(ctx::Context, stmt_handle::Ptr{Cvoid})
+        count_ref = Ref{UInt32}()
+        result = dpiStmt_getBindCount(stmt_handle, count_ref)
+        error_check(ctx, result)
+        return count_ref[]
+    end
+
+    function get_bind_names(ctx::Context, stmt_handle::Ptr{Cvoid}, expected_num_bind_names::UInt32)
+        num_bind_names_ref = Ref{UInt32}()
+        bind_names_vec = Vector{Ptr{UInt8}}()
+        append!(bind_names_vec, [ C_NULL for i in 1:expected_num_bind_names ])
+
+        bind_name_lenghts_vec = zeros(UInt32, expected_num_bind_names)
+        result = dpiStmt_getBindNames(stmt_handle, num_bind_names_ref, pointer(bind_names_vec), pointer(bind_name_lenghts_vec))
+        error_check(ctx, result)
+
+        @assert expected_num_bind_names == num_bind_names_ref[]
+
+        result_names = Vector{String}()
+
+        for i in 1:expected_num_bind_names
+            push!(result_names, unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i]))
+        end
+
+        return result_names
+    end
+
+    @static if VERSION < v"0.7-"
+        result = dpiStmt_setFetchArraySize(handle, ORA_DEFAULT_FETCH_ARRAY_SIZE)
+        error_check(context(connection), result)
+    end
+
+    stmt_info = new_stmt_info(context(connection), handle)
+    bind_count = get_bind_count(context(connection), handle)
+
+    if bind_count == 0
+        bind_names = Vector{String}()
+        bind_names_index = Dict{String, UInt32}()
+    else
+        bind_names = get_bind_names(context(connection), handle, bind_count)
+        bind_names_index = Dict{String, UInt32}()
+
+        for (i, s) in enumerate(bind_names)
+            bind_names_index[s] = i
+        end
+    end
+
+    new_stmt = Stmt{stmt_info.statement_type}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index, true)
+    @compat finalizer(destroy!, new_stmt)
+    return new_stmt
+end
+
+function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
+    stmt_handle_ref = Ref{Ptr{Cvoid}}()
+    result = dpiConn_prepareStmt(connection.handle, scrollable, sql, tag, stmt_handle_ref)
+    error_check(connection.context, result)
+    return Stmt(connection, stmt_handle_ref[], scrollable)
+end
+
 function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
     stmt = Stmt(connection, sql, scrollable=scrollable, tag=tag)
 
@@ -9,13 +77,6 @@ function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool
     end
 
     nothing
-end
-
-function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
-    stmt_handle_ref = Ref{Ptr{Cvoid}}()
-    result = dpiConn_prepareStmt(connection.handle, scrollable, sql, tag, stmt_handle_ref)
-    error_check(connection.context, result)
-    return Stmt(connection, stmt_handle_ref[], scrollable)
 end
 
 "Number of affected rows in a DML statement."
