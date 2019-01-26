@@ -231,7 +231,8 @@ end
 
 function destroy!(ctx::Context)
     if ctx.handle != C_NULL
-        dpiContext_destroy(ctx.handle)
+        result = dpiContext_destroy(ctx.handle)
+        error_check(ctx, result)
         ctx.handle = C_NULL
     end
     nothing

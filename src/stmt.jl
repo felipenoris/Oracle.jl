@@ -17,8 +17,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
 
     function get_bind_names(ctx::Context, stmt_handle::Ptr{Cvoid}, expected_num_bind_names::UInt32)
         num_bind_names_ref = Ref{UInt32}(expected_num_bind_names) # IN/OUT parameter
-        bind_names_vec = Vector{Ptr{UInt8}}()
-        append!(bind_names_vec, [ C_NULL for i in 1:expected_num_bind_names ])
+        bind_names_vec = undef_vector(Ptr{UInt8}, expected_num_bind_names)
 
         bind_name_lenghts_vec = zeros(UInt32, expected_num_bind_names)
         result = dpiStmt_getBindNames(stmt_handle, num_bind_names_ref, pointer(bind_names_vec), pointer(bind_name_lenghts_vec))
@@ -26,18 +25,13 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
 
         @assert expected_num_bind_names == num_bind_names_ref[]
 
-        result_names = Vector{String}()
+        result_names = undef_vector(String, expected_num_bind_names)
 
         for i in 1:expected_num_bind_names
-            push!(result_names, unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i]))
+            result_names[i] = unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i])
         end
 
         return result_names
-    end
-
-    @static if VERSION < v"0.7-"
-        result = dpiStmt_setFetchArraySize(handle, ORA_DEFAULT_FETCH_ARRAY_SIZE)
-        error_check(context(connection), result)
     end
 
     stmt_info = new_stmt_info(context(connection), handle)
@@ -124,7 +118,7 @@ end
 # execute many
 function execute!(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     @assert !isempty(columns) "Cannot bind empty columns to statement."
-    @assert eltype(columns) <: Vector
+    @assert eltype(columns) <: Vector "`columns` argument is expected to be a vector of vectors."
 
     function check_columns_length(columns::Vector)
         columns_count = length(columns)
