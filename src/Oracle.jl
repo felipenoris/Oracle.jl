@@ -10,6 +10,7 @@ if !isfile(DEPS_FILE)
 end
 include(DEPS_FILE)
 
+include("macros.jl")
 include("constants.jl")
 include("enums.jl")
 include("types.jl")

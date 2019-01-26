@@ -141,11 +141,6 @@ end
 # ODPI Pool Functions
 #
 
-# int dpiPool_release(dpiPool *pool)
-function dpiPool_release(dpi_pool_handle::Ptr{Cvoid})
-    ccall((:dpiPool_release, libdpi), OraResult, (Ptr{Cvoid},), dpi_pool_handle)
-end
-
 # int dpiPool_create(const dpiContext *context, const char *userName, uint32_t userNameLength, const char *password, uint32_t passwordLength, const char *connectString, uint32_t connectStringLength, dpiCommonCreateParams *commonParams, dpiPoolCreateParams *createParams, dpiPool **pool)
 function dpiPool_create(context_handle::Ptr{Cvoid}, user::String, password::String, connect_string::String, common_params_ref::Ref{OraCommonCreateParams}, pool_create_params_ref::Ref{OraPoolCreateParams}, pool_handle_ref::Ref{Ptr{Cvoid}})
     userNameLength = sizeof(user)
@@ -153,6 +148,32 @@ function dpiPool_create(context_handle::Ptr{Cvoid}, user::String, password::Stri
     connectStringLength = sizeof(connect_string)
 
     ccall((:dpiPool_create, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{OraCommonCreateParams}, Ref{OraPoolCreateParams}, Ref{Ptr{Cvoid}}), context_handle, user, userNameLength, password, passwordLength, connect_string, connectStringLength, common_params_ref, pool_create_params_ref, pool_handle_ref)
+end
+
+# int dpiPool_release(dpiPool *pool)
+function dpiPool_release(dpi_pool_handle::Ptr{Cvoid})
+    ccall((:dpiPool_release, libdpi), OraResult, (Ptr{Cvoid},), dpi_pool_handle)
+end
+
+# int dpiPool_close(dpiPool *pool, dpiPoolCloseMode closeMode)
+function dpiPool_close(pool_handle::Ptr{Cvoid}, close_mode::OraPoolCloseMode)
+    ccall((:dpiPool_close, libdpi), OraResult, (Ptr{Cvoid}, OraPoolCloseMode), pool_handle, close_mode)
+end
+
+# int dpiPool_getGetMode(dpiPool *pool, dpiPoolGetMode *value)
+function dpiPool_getGetMode(pool_handle::Ptr{Cvoid}, pool_get_mode_ref::Ref{OraPoolGetMode})
+    ccall((:dpiPool_getGetMode, libdpi), OraResult, (Ptr{Cvoid}, Ref{OraPoolGetMode}), pool_handle, pool_get_mode_ref)
+end
+
+# int dpiPool_acquireConnection(dpiPool *pool, const char *userName, uint32_t userNameLength, const char *password, uint32_t passwordLength, dpiConnCreateParams *params, dpiConn **conn)
+function dpiPool_acquireConnection(pool_handle::Ptr{Cvoid}, user::String, password::String, conn_create_params_ref::Ref{OraConnCreateParams}, connection_handle_ref::Ref{Ptr{Cvoid}})
+    userNameLength = sizeof(user)
+    passwordLength = sizeof(password)
+    ccall((:dpiPool_acquireConnection, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{OraConnCreateParams}, Ref{Ptr{Cvoid}}), pool_handle, user, userNameLength, password, passwordLength, conn_create_params_ref, connection_handle_ref)
+end
+
+function dpiPool_acquireConnection(pool_handle::Ptr{Cvoid}, conn_create_params_ref::Ref{OraConnCreateParams}, connection_handle_ref::Ref{Ptr{Cvoid}})
+    ccall((:dpiPool_acquireConnection, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{OraConnCreateParams}, Ref{Ptr{Cvoid}}), pool_handle, C_NULL, 0, C_NULL, 0, conn_create_params_ref, connection_handle_ref)
 end
 
 #

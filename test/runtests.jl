@@ -662,12 +662,43 @@ end
     end
 end
 
-#=
-@testset "Pool" begin
-    ctx = Oracle.Context()
-    pool = Oracle.Pool(ctx, username, password, connect_string)
+if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
+    @testset "Pool" begin
+        @testset "Create a Pool" begin
+            ctx = Oracle.Context()
+            pool = Oracle.Pool(ctx, username, password, connect_string)
+
+            let
+                pool = Oracle.Pool(ctx, username, password, connect_string, min_sessions=2, max_sessions=4)
+                @test Oracle.pool_get_mode(pool) == Oracle.ORA_MODE_POOL_GET_NOWAIT
+            end
+
+            let
+                pool = Oracle.Pool(ctx, username, password, connect_string, get_mode=Oracle.ORA_MODE_POOL_GET_WAIT)
+                @test Oracle.pool_get_mode(pool) == Oracle.ORA_MODE_POOL_GET_WAIT
+            end
+
+            Oracle.close!(pool)
+        end
+
+        @testset "Create connection from pool" begin
+            ctx = Oracle.Context()
+            pool = Oracle.Pool(ctx, username, password, connect_string, max_sessions=2)
+
+            conn_1 = Oracle.Connection(pool)
+            conn_2 = Oracle.Connection(pool)
+
+            Oracle.close!(conn_1)
+
+            conn_3 = Oracle.Connection(pool)
+
+            Oracle.close!(conn_2)
+            Oracle.close!(conn_3)
+
+            Oracle.close!(pool)
+        end
+    end
 end
-=#
 
 #=
 @testset "shutdown/startup" begin

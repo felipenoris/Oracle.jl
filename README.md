@@ -148,6 +148,35 @@ sql = "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )"
 Oracle.execute!(conn, sql, [ column_1, column_2 ])
 ```
 
+### Session Pools
+
+A *Pool* represents a pool of connections, and provides a faster way to acquire connections to the database.
+
+```julia
+ctx = Oracle.Context()
+
+# creates a pool for a maximum of 2 sessions
+pool = Oracle.Pool(ctx, username, password, connect_string, max_sessions=2)
+
+conn_1 = Oracle.Connection(pool)
+conn_2 = Oracle.Connection(pool) # at this point, we can't acquire more connections
+
+# release a connection so that we can acquire another one
+Oracle.close!(conn_1)
+
+conn_3 = Oracle.Connection(pool)
+
+# release all connections that are still open
+Oracle.close!(conn_2)
+Oracle.close!(conn_3)
+
+Oracle.close!(pool)
+```
+
+A *Pool* is closed automatically (by the garbage collector) when it goes out of scope.
+You can use `Oracle.close!` method as soon as you have
+finished with it, to release database resources.
+
 ## ODPI-C Naming Conventions
 
 All enums, constants and structs in ODPI-C library use the prefix `DPI` or `dpi`.

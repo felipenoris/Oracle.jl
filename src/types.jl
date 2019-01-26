@@ -102,7 +102,7 @@ are acquired from that session pool.
 All members are initialized to default values using
 the dpiContext_initPoolCreateParams() function.
 """
-struct OraPoolCreateParams
+mutable struct OraPoolCreateParams
     min_sessions::UInt32 # Specifies the minimum number of sessions to be created by the session pool. This value is ignored if the OraPoolCreateParams.homogeneous member has a value of 0. The default value is 1.
     max_sessions::UInt32 # Specifies the maximum number of sessions that can be created by the session pool. Values of 1 and higher are acceptable. The default value is 1.
     session_increment::UInt32 # Specifies the number of sessions that will be created by the session pool when more sessions are required and the number of sessions is less than the maximum allowed. This value is ignored if the OraPoolCreateParams.homogeneous member has a value of 0. This value added to the OraPoolCreateParams.minSessions member value must not exceed the OraPoolCreateParams.maxSessions member value. The default value is 0.
@@ -232,6 +232,27 @@ function destroy!(ctx::Context)
     nothing
 end
 
+mutable struct Pool
+    context::Context
+    handle::Ptr{Cvoid}
+    name::String
+
+    function Pool(context::Context, handle::Ptr{Cvoid}, name::String)
+        new_pool = new(context, handle, name)
+        @compat finalizer(destroy!, new_pool)
+        return new_pool
+    end
+end
+
+function destroy!(pool::Pool)
+    if pool.handle != C_NULL
+        result = dpiPool_release(pool.handle)
+        error_check(context(pool), result)
+        pool.handle = C_NULL
+    end
+    nothing
+end
+
 """
 Connection handles are used to represent connections to the database. These can be standalone connections created by calling the function dpiConn_create() or acquired from a session pool by calling the function dpiPool_acquireConnection(). They can be closed by calling the function dpiConn_close() or releasing the last reference to the connection by calling the function dpiConn_release(). Connection handles are used to create all handles other than session pools and context handles.
 """
@@ -239,8 +260,9 @@ mutable struct Connection
     context::Context
     handle::Ptr{Cvoid}
     encoding_info::EncodingInfo
+    pool::Union{Nothing, Pool}
 
-    function Connection(context::Context, handle::Ptr{Cvoid})
+    function Connection(context::Context, handle::Ptr{Cvoid}, pool::Union{Nothing, Pool})
 
         # this driver currently only supports UTF-8 encoding
         function check_supported_encoding(ei::EncodingInfo)
@@ -251,7 +273,7 @@ mutable struct Connection
         ei = EncodingInfo(context, handle)
         check_supported_encoding(ei)
 
-        new_connection = new(context, handle, ei)
+        new_connection = new(context, handle, ei, pool)
         @compat finalizer(destroy!, new_connection)
         return new_connection
     end
@@ -269,26 +291,7 @@ function destroy!(conn::Connection)
         result = dpiConn_release(conn.handle)
         error_check(context(conn), result)
         conn.handle = C_NULL
-    end
-    nothing
-end
-
-mutable struct Pool
-    context::Context
-    handle::Ptr{Cvoid}
-
-    function Pool(context::Context, handle::Ptr{Cvoid})
-        new_pool = new(context, handle)
-        @compat finalizer(destroy!, new_pool)
-        return new_pool
-    end
-end
-
-function destroy!(pool::Pool)
-    if pool.handle != C_NULL
-        result = dpiPool_release(pool.handle)
-        error_check(context(pool), result)
-        pool.handle = C_NULL
+        conn.pool = nothing
     end
     nothing
 end
