@@ -158,19 +158,13 @@ struct StmtInfo
 
     function StmtInfo(ora_stmt_info::OraStmtInfo)
 
-        function parse_int32_bool(b::Int32) :: Bool
-            b == 0 && return false
-            b == 1 && return true
-            error("Unexpected value for bool: $(Int(b)).")
-        end
-
         return new(
-                parse_int32_bool(ora_stmt_info.is_query),
-                parse_int32_bool(ora_stmt_info.is_PLSQL),
-                parse_int32_bool(ora_stmt_info.is_DDL),
-                parse_int32_bool(ora_stmt_info.is_DML),
+                Bool(ora_stmt_info.is_query),
+                Bool(ora_stmt_info.is_PLSQL),
+                Bool(ora_stmt_info.is_DDL),
+                Bool(ora_stmt_info.is_DML),
                 ora_stmt_info.statement_type,
-                parse_int32_bool(ora_stmt_info.is_returning)
+                Bool(ora_stmt_info.is_returning)
             )
     end
 end

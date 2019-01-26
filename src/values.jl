@@ -2,18 +2,7 @@
 const SIZEOF_ORA_DATA = sizeof(Oracle.OraData)
 
 is_null(val::NativeValue, offset::Integer=0) = is_null(val.data_handle + offset*SIZEOF_ORA_DATA)
-
-function is_null(ptr::Ptr{OraData})
-    is_null_as_cint = dpiData_getIsNull(ptr)
-
-    if is_null_as_cint == 0
-        return false
-    elseif is_null_as_cint == 1
-        return true
-    else
-        error("Unexpected value for dpiData.is_null field: $(Int(is_null_as_cint))")
-    end
-end
+is_null(ptr::Ptr{OraData}) = Bool(dpiData_getIsNull(ptr))
 
 #=
 """
@@ -57,9 +46,7 @@ function parse_native_value(val::NativeValue, offset::Integer=0)
         return dpiData_getDouble(data_handle)
 
     elseif val.native_type == ORA_NATIVE_TYPE_BOOLEAN
-        result_bool = dpiData_getBool(data_handle)
-        @assert result_bool == 0 || result_bool == 1
-        return result_bool == 1
+        return Bool(dpiData_getBool(data_handle))
 
     elseif val.native_type == ORA_NATIVE_TYPE_FLOAT
         return dpiData_getFloat(data_handle)
@@ -131,9 +118,9 @@ function encoding(val::NativeValue)
 end
 
 
-function parse_value(column_info::OraQueryInfo, m::Missing) :: Missing
-    @assert ismissing(m) # sanity check
-    @assert column_info.null_ok == 1 # if we got a null value, it must be ok for the schema to have a null value in this columns
+function parse_value(column_info::OraQueryInfo, ::Missing) :: Missing
+    # if we got a null value, it must be ok for the schema to have a null value in this columns
+    @assert column_info.null_ok == 1
     return missing
 end
 

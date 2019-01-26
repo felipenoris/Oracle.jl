@@ -120,15 +120,7 @@ function Base.getindex(row::ResultSetRow, column_name::AbstractString)
     return row.data[column_index]
 end
 
-@inline function has_possibly_more_rows(r::FetchRowsResult)
-    if r.more_rows == 1
-        return true
-    elseif r.more_rows == 0
-        return false
-    else
-        error("Unexpected value for FetchRowsResult.more_rows: $(r.more_rows)")
-    end
-end
+has_possibly_more_rows(r::FetchRowsResult) = Bool(r.more_rows)
 
 Base.IteratorSize(::Cursor) = Base.SizeUnknown()
 Base.eltype(::Cursor) = ResultSetRow
