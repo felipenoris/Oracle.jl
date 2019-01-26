@@ -259,6 +259,35 @@ end
         @test row_number == num_iterations
     end
 
+    @testset "collect" begin
+        local resultset
+
+        Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR") do cursor
+            resultset = collect(cursor)
+        end
+
+        @test length(resultset) == num_iterations
+        row_number = 0
+        for row in resultset
+            row_number += 1
+            @test row["ID"] == row_number
+            @test isa(row["ID"], Int)
+            @test row["ID"] == row[1]
+
+            @test row["VAL"] == row_number * 10
+            @test isa(row["VAL"], Int)
+            @test row["VAL"] == row[2]
+
+            @test row["VAL_FLT"] == 10.01
+            @test isa(row["VAL_FLT"], Float64)
+            @test row["VAL_FLT"] == row[3]
+
+            @test row["STR"] == "📚📚📚📚⏳😀⌛😭"
+            @test isa(row["STR"], String)
+            @test row["STR"] == row[4]
+        end
+    end
+
     @testset "2nd row" begin
         row_number = 0
         Oracle.query(conn, "SELECT * FROM TB_TEST_CURSOR WHERE ID = 2", fetch_array_size=3) do cursor

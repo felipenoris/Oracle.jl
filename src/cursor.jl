@@ -129,3 +129,16 @@ end
         error("Unexpected value for FetchRowsResult.more_rows: $(r.more_rows)")
     end
 end
+
+Base.IteratorSize(::Cursor) = Base.SizeUnknown()
+Base.eltype(::Cursor) = ResultSetRow
+
+@static if VERSION < v"0.7-"
+    function Base.collect(cursor::Cursor)
+        result = Vector{eltype(cursor)}()
+        for row in cursor
+            push!(result, row)
+        end
+        return result
+    end
+end
