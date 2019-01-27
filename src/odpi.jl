@@ -147,6 +147,16 @@ function dpiConn_newVar(connection_handle::Ptr{Cvoid}, oracle_type::OraOracleTyp
     ccall((:dpiConn_newVar, libdpi), OraResult, (Ptr{Cvoid}, OraOracleTypeNum, OraNativeTypeNum, UInt32, UInt32, Int32, Int32, Ptr{Cvoid}, Ref{Ptr{Cvoid}}, Ref{Ptr{OraData}}), connection_handle, oracle_type, native_type, max_array_size, size, size_is_bytes, is_array, obj_type_handle, var_handle_ref, dpi_data_array_ref)
 end
 
+# int dpiConn_getStmtCacheSize(dpiConn *conn, uint32_t *cacheSize)
+function dpiConn_getStmtCacheSize(connection_handle::Ptr{Cvoid}, cache_size_ref::Ref{UInt32})
+    ccall((:dpiConn_getStmtCacheSize, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), connection_handle, cache_size_ref)
+end
+
+# int dpiConn_setStmtCacheSize(dpiConn *conn, uint32_t cacheSize)
+function dpiConn_setStmtCacheSize(connection_handle::Ptr{Cvoid}, cache_size::UInt32)
+    ccall((:dpiConn_setStmtCacheSize, libdpi), OraResult, (Ptr{Cvoid}, UInt32), connection_handle, cache_size)
+end
+
 #
 # ODPI Pool Functions
 #

@@ -63,8 +63,22 @@ println("Current Schema: ", Oracle.current_schema(conn))
 
 println("")
 
-@testset "ping" begin
-    Oracle.ping(conn)
+@testset "connection" begin
+
+    @testset "ping" begin
+        Oracle.ping(conn)
+    end
+
+    @testset "stmt cache size" begin
+        original_cache_size = Oracle.stmt_cache_size(conn)
+
+        new_cache_size = 5
+        Oracle.stmt_cache_size!(conn, new_cache_size)
+        @test Oracle.stmt_cache_size(conn) == new_cache_size
+
+        Oracle.stmt_cache_size!(conn, original_cache_size)
+        @test Oracle.stmt_cache_size(conn) == original_cache_size
+    end
 end
 
 @testset "query/commit/rollback" begin

@@ -152,3 +152,15 @@ function current_schema(conn::Connection) :: Union{Missing, String}
         return unsafe_string(value_char_array_ref[], value_length_ref[])
     end
 end
+
+function stmt_cache_size(conn::Connection) :: UInt32
+    cache_size_ref = Ref{UInt32}()
+    result = dpiConn_getStmtCacheSize(conn.handle, cache_size_ref)
+    error_check(context(conn), result)
+    return cache_size_ref[]
+end
+
+function stmt_cache_size!(conn::Connection, cache_size::Integer)
+    result = dpiConn_setStmtCacheSize(conn.handle, UInt32(cache_size))
+    error_check(context(conn), result)
+end
