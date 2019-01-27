@@ -30,7 +30,7 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
         )
 
     function EmptyOraPoolCreateParams(ctx::Context)
-        pool_create_params_ref = Ref{OraPoolCreateParams}(OraPoolCreateParams(UInt32(1), UInt32(1), UInt32(0), Int32(60), Int32(5000), Int32(1), Int32(0), ORA_MODE_POOL_GET_NOWAIT, C_NULL, UInt32(0), UInt32(0), UInt32(0), UInt32(0)))
+        pool_create_params_ref = Ref{OraPoolCreateParams}(OraPoolCreateParams(UInt32(1), UInt32(1), UInt32(0), Int32(60), Int32(5000), Int32(1), Int32(0), ORA_MODE_POOL_GET_NOWAIT, C_NULL, UInt32(0), UInt32(0), UInt32(0), UInt32(0), C_NULL, 0))
         result = dpiContext_initPoolCreateParams(ctx.handle, pool_create_params_ref)
         error_check(ctx, result)
         return pool_create_params_ref[]

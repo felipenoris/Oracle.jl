@@ -8,3 +8,11 @@ size_t sizeof_dpiDataBuffer() {
 size_t sizeof_dpiData() {
     return sizeof(dpiData);
 }
+
+size_t sizeof_dpiPoolCreateParams() {
+	return sizeof(dpiPoolCreateParams);
+}
+
+size_t sizeof_dpiConnCreateParams() {
+	return sizeof(dpiConnCreateParams);
+}

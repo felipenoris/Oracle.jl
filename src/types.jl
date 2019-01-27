@@ -116,6 +116,8 @@ mutable struct OraPoolCreateParams
     timeout::UInt32 # Specifies the length of time (in seconds) after which idle sessions in the pool are terminated. Note that termination only occurs when the pool is accessed. The default value is 0 which means that no idle sessions are terminated. This value can be set after the pool has been created using the function dpiPool_setTimeout() and acquired using the function dpiPool_getTimeout().
     wait_timeout::UInt32 # Specifies the length of time (in milliseconds) that the caller should wait for a session to become available in the pool before returning with an error. This value is only used if the OraPoolCreateParams.getMode member is set to the value DPI_MODE_POOL_GET_TIMEDWAIT. The default value is 0. This value can be set after the pool has been created using the function dpiPool_setWaitTimeout() and acquired using the function dpiPool_getWaitTimeout().
     max_lifetime_session::UInt32 # Specifies the maximum length of time (in seconds) a pooled session may exist. Sessions in use will not be closed. They become candidates for termination only when they are released back to the pool and have existed for longer than maxLifetimeSession seconds. Session termination only occurs when the pool is accessed. The default value is 0 which means that there is no maximum length of time that a pooled session may exist. This value can be set after the pool has been created using the function dpiPool_setMaxLifetimeSession() and acquired using the function dpiPool_getMaxLifetimeSession().
+    plsql_fixup_callback::Ptr{UInt8}
+    plsql_fixup_callback_length::UInt32
 end
 
 struct OraDataTypeInfo

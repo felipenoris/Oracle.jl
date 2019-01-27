@@ -13,6 +13,16 @@ function sizeof_dpiData()
     ccall((:sizeof_dpiData, libdpi), Csize_t, ())
 end
 
+# size_t sizeof_dpiPoolCreateParams()
+function sizeof_dpiPoolCreateParams()
+    ccall((:sizeof_dpiPoolCreateParams, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiConnCreateParams()
+function sizeof_dpiConnCreateParams()
+    ccall((:sizeof_dpiConnCreateParams, libdpi), Csize_t, ())
+end
+
 #
 # ODPI Context Functions
 #

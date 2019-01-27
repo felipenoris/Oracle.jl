@@ -30,6 +30,8 @@ function __init__()
     # check size of structs affected by C unions
     @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer()
     @assert sizeof(OraData) == sizeof_dpiData()
+    @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams()
+    @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams()
 
     # Checks that ODPI-C works
     ctx = Context()
