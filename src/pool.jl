@@ -55,6 +55,40 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
     return Pool(ctx, user, password, connect_string, common_params, pool_create_params)
 end
 
+function Pool(user::String, password::String, connect_string::String;
+            create_mode::Union{Nothing, OraCreateMode}=nothing,
+            edition::Union{Nothing, String}=nothing,
+            driver_name::Union{Nothing, String}=nothing,
+            min_sessions::Union{Nothing, Integer}=nothing,
+            max_sessions::Union{Nothing, Integer}=nothing,
+            session_increment::Union{Nothing, Integer}=nothing,
+            ping_interval::Union{Nothing, Integer}=nothing,
+            ping_timeout::Union{Nothing, Integer}=nothing,
+            homogeneous::Union{Nothing, Bool}=nothing,
+            external_auth::Union{Nothing, Bool}=nothing,
+            get_mode::Union{Nothing, OraPoolGetMode}=nothing,
+            timeout::Union{Nothing, Integer}=nothing,
+            wait_timeout::Union{Nothing, Integer}=nothing,
+            max_lifetime_session::Union{Nothing, Integer}=nothing
+        )
+    return Pool(Context(), user, password, connect_string,
+            create_mode=create_mode,
+            edition=edition,
+            driver_name=driver_name,
+            min_sessions=min_sessions,
+            max_sessions=max_sessions,
+            session_increment=session_increment,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
+            homogeneous=homogeneous,
+            external_auth=external_auth,
+            get_mode=get_mode,
+            timeout=timeout,
+            wait_timeout=wait_timeout,
+            max_lifetime_session=max_lifetime_session
+        )
+end
+
 function pool_get_mode(pool::Pool) :: OraPoolGetMode
     pool_get_mode_ref = Ref{OraPoolGetMode}()
     result = dpiPool_getGetMode(pool.handle, pool_get_mode_ref)

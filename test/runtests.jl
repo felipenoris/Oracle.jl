@@ -664,6 +664,7 @@ end
 
 if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
     @testset "Pool" begin
+
         @testset "Create a Pool" begin
             ctx = Oracle.Context()
             pool = Oracle.Pool(ctx, username, password, connect_string)
@@ -681,9 +682,8 @@ if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
             Oracle.close!(pool)
         end
 
-        @testset "Create connection from pool" begin
-            ctx = Oracle.Context()
-            pool = Oracle.Pool(ctx, username, password, connect_string, max_sessions=2)
+        @testset "Acquire connection from pool" begin
+            pool = Oracle.Pool(username, password, connect_string, max_sessions=2)
 
             conn_1 = Oracle.Connection(pool)
             conn_2 = Oracle.Connection(pool)

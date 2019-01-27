@@ -153,10 +153,8 @@ Oracle.execute!(conn, sql, [ column_1, column_2 ])
 A *Pool* represents a pool of connections, and provides a faster way to acquire connections to the database.
 
 ```julia
-ctx = Oracle.Context()
-
 # creates a pool for a maximum of 2 sessions
-pool = Oracle.Pool(ctx, username, password, connect_string, max_sessions=2)
+pool = Oracle.Pool(username, password, connect_string, max_sessions=2)
 
 conn_1 = Oracle.Connection(pool)
 conn_2 = Oracle.Connection(pool) # at this point, we can't acquire more connections
