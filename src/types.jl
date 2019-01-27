@@ -371,7 +371,7 @@ mutable struct ConnCreateParams
     pool::Union{Nothing, Pool}
 end
 
-mutable struct OraVariable
+mutable struct Variable
     connection::Connection
     handle::Ptr{Cvoid}
     oracle_type::OraOracleTypeNum
@@ -382,7 +382,7 @@ mutable struct OraVariable
     buffer_handle::Ptr{OraData} # a pointer to an array of dpiData structures that are used to transfer data to/from the variable. These are allocated when the variable is created and the number of structures corresponds to the maxArraySize.
     buffer_capacity::UInt32 # maxArraySize. the maximum number of rows that can be fetched or bound at one time from the database, or the maximum number of elements that can be stored in a PL/SQL array.
 
-    function OraVariable(
+    function Variable(
             connection::Connection,
             handle::Ptr{Cvoid},
             oracle_type::OraOracleTypeNum,
@@ -410,7 +410,7 @@ mutable struct OraVariable
     end
 end
 
-function destroy!(v::OraVariable)
+function destroy!(v::Variable)
     if v.handle != C_NULL
         result = dpiVar_release(v.handle)
         error_check(context(v), result)

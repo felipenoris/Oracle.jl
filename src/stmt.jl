@@ -343,12 +343,12 @@ bind_value!(stmt::Stmt, value::Float64, name::NameOrPositionTypes) = bind_value!
 bind_value!(stmt::Stmt, value::Int64, name::NameOrPositionTypes) = bind_value!(stmt, value, name, ORA_NATIVE_TYPE_INT64, dpiData_setInt64_ref)
 
 #
-# Bind OraVariable to Stmt
+# Bind Variable to Stmt
 #
 
-Base.setindex!(stmt::Stmt, value::OraVariable, name_or_position::NameOrPositionTypes) = bind_variable!(stmt, value, name_or_position)
+Base.setindex!(stmt::Stmt, value::Variable, name_or_position::NameOrPositionTypes) = bind_variable!(stmt, value, name_or_position)
 
-@generated function bind_variable!(stmt::Stmt, variable::OraVariable, name_or_position::K) where {K<:NameOrPositionTypes}
+@generated function bind_variable!(stmt::Stmt, variable::Variable, name_or_position::K) where {K<:NameOrPositionTypes}
 
     if name_or_position <: Integer
         name_or_position_exp = :(UInt32(name_or_position))

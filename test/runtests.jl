@@ -545,7 +545,7 @@ end
 @testset "Variables" begin
 
     @testset "get/set values to Variables" begin
-        ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
 
         ora_var[0] = 0.0
         @test ora_var[0] == 0.0
@@ -570,7 +570,7 @@ end
     Oracle.execute!(conn, "CREATE TABLE TB_VARIABLES ( FLT NUMBER(15,4) NULL )")
 
     @testset "low-level define API" begin
-        ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
 
         Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :1 )", [ [123.45, 456.78, missing] ])
         stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_VARIABLES")
@@ -593,7 +593,7 @@ end
     gc_on_v6()
 
     @testset "bind to stmt" begin
-        ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :flt )")
         stmt[:flt] = ora_var
         Oracle.close!(stmt)
@@ -603,7 +603,7 @@ end
         how_many = 10
 
         let
-            ora_var = Oracle.OraVariable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+            ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
 
             for i in 0:(how_many-1)
                 ora_var[i] = Float64(i)

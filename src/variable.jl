@@ -1,6 +1,6 @@
 
-"OraVariable is a 0-indexed array of OpiData."
-function OraVariable(
+"Variable is a 0-indexed array of OpiData."
+function Variable(
         connection::Connection,
         oracle_type::OraOracleTypeNum,
         native_type::OraNativeTypeNum,
@@ -29,7 +29,7 @@ function OraVariable(
 
     error_check(context(connection), result)
 
-    return OraVariable(
+    return Variable(
         connection,
         var_handle_ref[],
         oracle_type,
@@ -42,43 +42,43 @@ function OraVariable(
 end
 
 """
-    define(stmt::QueryStmt, column_position::Integer, variable::OraVariable)
+    define(stmt::QueryStmt, column_position::Integer, variable::Variable)
 
 Defines the variable that will be used to fetch rows from the statement.
 `stmt` must be an executed statement.
 
-A OraVariable `v` bound to a statement `stmt` must satisfy:
+A Variable `v` bound to a statement `stmt` must satisfy:
 
 `v.buffer_capacity >= fetch_array_size(stmt)`
 """
-function define(stmt::QueryStmt, column_position::Integer, variable::OraVariable)
+function define(stmt::QueryStmt, column_position::Integer, variable::Variable)
     @assert variable.buffer_capacity >= fetch_array_size(stmt) "Variable buffer capacity ($(variable.buffer_capacity)) must be greater than statement fetch array size ($(fetch_array_size(stmt)))."
     result = dpiStmt_define(stmt.handle, UInt32(column_position), variable.handle)
     error_check(context(stmt), result)
     nothing
 end
 
-function Base.setindex!(variable::OraVariable, value, pos::Integer)
+function Base.setindex!(variable::Variable, value, pos::Integer)
     check_bounds(variable, pos)
     native_value = NativeValue(variable.native_type, variable.buffer_handle)
     native_value[pos] = value
     nothing
 end
 
-function Base.setindex!(variable::OraVariable, value::String, pos::Integer)
+function Base.setindex!(variable::Variable, value::String, pos::Integer)
     check_bounds(variable, pos)
     result = dpiVar_setFromBytes(variable.handle, UInt32(pos), value)
     error_check(context(variable), result)
     nothing
 end
 
-function Base.getindex(variable::OraVariable, pos::Integer)
+function Base.getindex(variable::Variable, pos::Integer)
     check_bounds(variable, pos)
     native_value = NativeValue(variable.native_type, variable.buffer_handle)
     return native_value[pos]
 end
 
-@inline function check_bounds(variable::OraVariable, pos::Integer)
+@inline function check_bounds(variable::Variable, pos::Integer)
     # pos is 0-indexed
     @assert pos >= 0 "Cannot bind variable at a negative position ($pos)."
     @assert pos < variable.buffer_capacity "Position $pos is greater than variable's buffer capacity $(variable.buffer_capacity)."
@@ -141,13 +141,13 @@ end
         return :(build_variable_runtime_inferred_types(conn, column; is_PLSQL_array=is_PLSQL_array))
 
     else
-        error("Julia type $T not supported for OraVariables.")
+        error("Julia type $T not supported for Variables.")
     end
 
     return quote
         capacity = length(column)
 
-        variable = OraVariable(conn, $oracle_type, $native_type;
+        variable = Variable(conn, $oracle_type, $native_type;
             buffer_capacity=capacity,
             max_byte_string_size=$max_byte_string_size,
             is_PLSQL_array=is_PLSQL_array,
@@ -170,7 +170,7 @@ function infer_eltype(column::Vector)
         filter!( t -> t != Missing , types)
         return Union{Missing, types[1]}
     else
-        error("Julia type $T not supported for OraVariables.")
+        error("Julia type $T not supported for Variables.")
     end
 end
 
