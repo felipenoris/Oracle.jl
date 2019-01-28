@@ -79,8 +79,8 @@ function build_shared_library(; verbose::Bool=false)
 
     if _is_linux()
         #=
-        cc -c -fPIC -I ../include -ldl -o dpi.o dpi.c
-        cc -shared -fPIC -Wl,-soname,libdpi.so.3 -o ../lib/libdpi.so.3.0.0 dpi.o -lc
+        cc -c -fPIC -I ../include -ldl -o dpi.o dpi_patched.c
+        cc -shared -fPIC -Wl,-soname,libdpi.so.3 -o ../../lib/libdpi.so.3.1.0 dpi.o -lc
         =#
 
         build_script = [
@@ -90,7 +90,7 @@ function build_shared_library(; verbose::Bool=false)
 
     elseif _is_apple()
 
-        # cc -dynamiclib -I ../include -o ../lib/libdpi.dylib dpi.c
+        # cc -dynamiclib -I ../include -o ../../lib/libdpi.3.1.0.dylib dpi_patched.c
 
         build_script = [
             ["cc", "-dynamiclib", "-I", joinpath(SRC_DIR, "include"), "-o", SHARED_LIB, patched_file]
