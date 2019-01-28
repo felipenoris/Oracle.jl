@@ -23,6 +23,21 @@ function sizeof_dpiConnCreateParams()
     ccall((:sizeof_dpiConnCreateParams, libdpi), Csize_t, ())
 end
 
+# size_t sizeof_dpiQueryInfo()
+function sizeof_dpiQueryInfo()
+    ccall((:sizeof_dpiQueryInfo, libdpi), Csize_t, ())
+end
+
+# dpiOracleTypeNum dpiLob_getOracleType(dpiLob *lob)
+function dpiLob_getOracleTypeNum(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_getOracleTypeNum, libdpi), OraOracleTypeNum, (Ptr{Cvoid},), lob_handle)
+end
+
+#int dpiLob_isCharacterData(dpiLob *lob)
+function dpiLob_isCharacterData(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_isCharacterData, libdpi), Int32, (Ptr{Cvoid},), lob_handle)
+end
+
 #
 # ODPI Context Functions
 #
@@ -155,6 +170,11 @@ end
 # int dpiConn_setStmtCacheSize(dpiConn *conn, uint32_t cacheSize)
 function dpiConn_setStmtCacheSize(connection_handle::Ptr{Cvoid}, cache_size::UInt32)
     ccall((:dpiConn_setStmtCacheSize, libdpi), OraResult, (Ptr{Cvoid}, UInt32), connection_handle, cache_size)
+end
+
+# int dpiConn_newTempLob(dpiConn *conn, dpiOracleTypeNum lobType, dpiLob **lob)
+function dpiConn_newTempLob(connection_handle::Ptr{Cvoid}, lob_type::OraOracleTypeNum, lob_handle_ref::Ref{Ptr{Cvoid}})
+    ccall((:dpiConn_newTempLob, libdpi), OraResult, (Ptr{Cvoid}, OraOracleTypeNum, Ref{Ptr{Cvoid}}), connection_handle, lob_type, lob_handle_ref)
 end
 
 #
@@ -322,101 +342,80 @@ end
 #
 
 # int dpiData_getBool(dpiData *data)
-function dpiData_getBool(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getBool, libdpi), Cint, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getBool(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getBool, libdpi), Cint, (Ref{OraData},), dpi_data_handle)
 end
 
 # double dpiData_getDouble(dpiData *data)
-function dpiData_getDouble(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getDouble, libdpi), Cdouble, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getDouble(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getDouble, libdpi), Cdouble, (Ref{OraData},), dpi_data_handle)
 end
 
 # float dpiData_getFloat(dpiData *data)
-function dpiData_getFloat(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getFloat, libdpi), Float32, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getFloat(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getFloat, libdpi), Float32, (Ref{OraData},), dpi_data_handle)
 end
 
 # int64_t dpiData_getInt64(dpiData *data)
-function dpiData_getInt64(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getInt64, libdpi), Int64, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getInt64(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getInt64, libdpi), Int64, (Ref{OraData},), dpi_data_handle)
 end
 
 # uint64_t dpiData_getUint64(dpiData *data)
-function dpiData_getUint64(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getUint64, libdpi), UInt64, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getUint64(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getUint64, libdpi), UInt64, (Ref{OraData},), dpi_data_handle)
 end
 
 # dpiBytes *dpiData_getBytes(dpiData *data)
-function dpiData_getBytes(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getBytes, libdpi), Ptr{OraBytes}, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getBytes(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getBytes, libdpi), Ptr{OraBytes}, (Ref{OraData},), dpi_data_handle)
 end
 
 # dpiTimestamp *dpiData_getTimestamp(dpiData *data)
-function dpiData_getTimestamp(dpi_data_handle::Ptr{OraData})
-    ccall((:dpiData_getTimestamp, libdpi), Ptr{OraTimestamp}, (Ptr{OraData},), dpi_data_handle)
+function dpiData_getTimestamp(dpi_data_handle::Ref{OraData})
+    ccall((:dpiData_getTimestamp, libdpi), Ptr{OraTimestamp}, (Ref{OraData},), dpi_data_handle)
 end
 
 # int dpiData_getIsNull(dpiData *data)
-function dpiData_getIsNull(data_handle::Ptr{OraData})
-    ccall((:dpiData_getIsNull, libdpi), Cint, (Ptr{OraData},), data_handle)
+function dpiData_getIsNull(data_handle::Ref{OraData})
+    ccall((:dpiData_getIsNull, libdpi), Cint, (Ref{OraData},), data_handle)
+end
+
+# dpiLob *dpiData_getLOB(dpiData *data)
+function dpiData_getLOB(data_handle::Ref{OraData})
+    ccall((:dpiData_getLOB, libdpi), Ptr{Cvoid}, (Ref{OraData},), data_handle)
 end
 
 #
 # NOTE ON SET FUNCTIONS
 #
-# Do not try to write: dpi_data::Union{Ref{OraData}, Ptr{OraData}}.
-# Julia tries to cast one type to another, so this would cause
-# segfaults when binding values or variables to statments.
+# Ref{OraData} <: Ptr{OraData}
 #
 
 # void dpiData_setBytes(dpiData *data, char *ptr, uint32_t length)
-function dpiData_setBytes_ref(dpi_data_ref::Ref{OraData}, str::String)
-    strLength = sizeof(str)
-    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ref, str, strLength)
-end
-
-#=
 # cannot be used for setting strings to variables
-function dpiData_setBytes_ptr(dpi_data_ptr::Ptr{OraData}, str::String)
-    strLength = sizeof(str)
-    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ptr{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, str, strLength)
+function dpiData_setBytes(dpi_data_ptr::Ref{OraData}, str::String)
+    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, str, UInt32(sizeof(str)))
 end
-=#
 
 # void dpiData_setDouble(dpiData *data, double value)
-function dpiData_setDouble_ref(dpi_data_ref::Ref{OraData}, value::Float64)
-    ccall((:dpiData_setDouble, libdpi), Cvoid, (Ref{OraData}, Cdouble), dpi_data_ref, value)
-end
-
-function dpiData_setDouble_ptr(dpi_data_ptr::Ptr{OraData}, value::Float64)
-    ccall((:dpiData_setDouble, libdpi), Cvoid, (Ptr{OraData}, Cdouble), dpi_data_ptr, value)
+function dpiData_setDouble(dpi_data_ptr::Ref{OraData}, value::Float64)
+    ccall((:dpiData_setDouble, libdpi), Cvoid, (Ref{OraData}, Cdouble), dpi_data_ptr, value)
 end
 
 # void dpiData_setInt64(dpiData *data, int64_t value)
-function dpiData_setInt64_ref(dpi_data_ref::Ref{OraData}, value::Int64)
-    ccall((:dpiData_setInt64, libdpi), Cvoid, (Ref{OraData}, Int64), dpi_data_ref, value)
-end
-
-function dpiData_setInt64_ptr(dpi_data_ptr::Ptr{OraData}, value::Int64)
-    ccall((:dpiData_setInt64, libdpi), Cvoid, (Ptr{OraData}, Int64), dpi_data_ptr, value)
+function dpiData_setInt64(dpi_data_ptr::Ref{OraData}, value::Int64)
+    ccall((:dpiData_setInt64, libdpi), Cvoid, (Ref{OraData}, Int64), dpi_data_ptr, value)
 end
 
 # void dpiData_setTimestamp(dpiData *data, int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint32_t fsecond, int8_t tzHourOffset, int8_t tzMinuteOffset)
-function dpiData_setTimestamp_ref(dpi_data_ref::Ref{OraData}, ts::OraTimestamp)
-    ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ref{OraData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ref, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
-end
-
-function dpiData_setTimestamp_ptr(dpi_data_ptr::Ptr{OraData}, ts::OraTimestamp)
-    ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ptr{OraData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ptr, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
+function dpiData_setTimestamp(dpi_data_ptr::Ref{OraData}, ts::OraTimestamp)
+    ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ref{OraData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ptr, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
 end
 
 # void dpiData_setNull(dpiData *data)
-function dpiData_setNull_ref(dpi_data_ref::Ref{OraData})
-    ccall((:dpiData_setNull, libdpi), Cvoid, (Ref{OraData},), dpi_data_ref)
-end
-
-function dpiData_setNull_ptr(dpi_data_ptr::Ptr{OraData})
-    ccall((:dpiData_setNull, libdpi), Cvoid, (Ptr{OraData},), dpi_data_ptr)
+function dpiData_setNull(dpi_data_ptr::Ref{OraData})
+    ccall((:dpiData_setNull, libdpi), Cvoid, (Ref{OraData},), dpi_data_ptr)
 end
 
 #
@@ -432,4 +431,58 @@ end
 function dpiVar_setFromBytes(var_handle::Ptr{Cvoid}, pos::UInt32, value::String)
     valueLength = sizeof(value)
     ccall((:dpiVar_setFromBytes, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{UInt8}, UInt32), var_handle, pos, value, valueLength)
+end
+
+#
+# ODPI-C LOB Functions
+#
+
+# int dpiLob_release(dpiLob *lob)
+function dpiLob_release(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_release, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)
+end
+
+# int dpiLob_close(dpiLob *lob)
+function dpiLob_close(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_close, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)
+end
+
+# int dpiLob_getChunkSize(dpiLob *lob, uint32_t *size)
+function dpiLob_getChunkSize(lob_handle::Ptr{Cvoid}, chunk_size_ref::Ref{UInt32})
+    ccall((:dpiLob_getChunkSize, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), lob_handle, chunk_size_ref)
+end
+
+# int dpiLob_getSize(dpiLob *lob, uint64_t *size)
+function dpiLob_getSize(lob_handle::Ptr{Cvoid}, lob_size_ref::Ref{UInt64})
+    ccall((:dpiLob_getSize, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt64}), lob_handle, lob_size_ref)
+end
+
+# int dpiLob_readBytes(dpiLob *lob, uint64_t offset, uint64_t amount, char *value, uint64_t *valueLength)
+function dpiLob_readBytes(lob_handle::Ptr{Cvoid}, offset::UInt64, amount::UInt64, buffer::Ptr{UInt8}, buffer_len_ref::Ref{UInt64})
+    ccall((:dpiLob_readBytes, libdpi), OraResult, (Ptr{Cvoid}, UInt64, UInt64, Ptr{UInt8}, Ref{UInt64}), lob_handle, offset, amount, buffer, buffer_len_ref)
+end
+
+# int dpiLob_writeBytes(dpiLob *lob, uint64_t offset, const char *value, uint64_t valueLength)
+function dpiLob_writeBytes(lob_handle::Ptr{Cvoid}, offset::UInt64, buffer::Ptr{UInt8}, buffer_len::UInt64)
+    ccall((:dpiLob_writeBytes, libdpi), OraResult, (Ptr{Cvoid}, UInt64, Ptr{UInt8}, UInt64), lob_handle, offset, buffer, buffer_len)
+end
+
+# int dpiLob_openResource(dpiLob *lob)
+function dpiLob_openResource(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_openResource, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)
+end
+
+# int dpiLob_closeResource(dpiLob *lob)
+function dpiLob_closeResource(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_closeResource, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)
+end
+
+# int dpiLob_getIsResourceOpen(dpiLob *lob, int *isOpen)
+function dpiLob_getIsResourceOpen(lob_handle::Ptr{Cvoid}, is_open_ref::Ref{Int32})
+    ccall((:dpiLob_getIsResourceOpen, libdpi), OraResult, (Ptr{Cvoid}, Ref{Int32}), lob_handle, is_open_ref)
+end
+
+# int dpiLob_getBufferSize(dpiLob *lob, uint64_t sizeInChars, uint64_t *sizeInBytes)
+function dpiLob_getBufferSize(lob_handle::Ptr{Cvoid}, size_in_chars::UInt64, size_in_bytes_ref::Ref{UInt64})
+    ccall((:dpiLob_getBufferSize, libdpi), OraResult, (Ptr{Cvoid}, UInt64, Ref{UInt64}), lob_handle, size_in_chars, size_in_bytes_ref)
 end

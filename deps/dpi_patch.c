@@ -10,9 +10,21 @@ size_t sizeof_dpiData() {
 }
 
 size_t sizeof_dpiPoolCreateParams() {
-	return sizeof(dpiPoolCreateParams);
+    return sizeof(dpiPoolCreateParams);
 }
 
 size_t sizeof_dpiConnCreateParams() {
-	return sizeof(dpiConnCreateParams);
+    return sizeof(dpiConnCreateParams);
+}
+
+size_t sizeof_dpiQueryInfo() {
+    return sizeof(dpiQueryInfo);
+}
+
+dpiOracleTypeNum dpiLob_getOracleTypeNum(dpiLob *lob) {
+    return lob->type->oracleTypeNum;
+}
+
+int dpiLob_isCharacterData(dpiLob *lob) {
+    return lob->type->isCharacterData;
 }

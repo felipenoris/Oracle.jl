@@ -268,8 +268,8 @@ mutable struct Connection
 
         # this driver currently only supports UTF-8 encoding
         function check_supported_encoding(ei::EncodingInfo)
-            @assert ei.encoding == DEFAULT_CONNECTION_ENCODING
-            @assert ei.nencoding == DEFAULT_CONNECTION_NENCODING
+            @assert ei.encoding ∈ SUPPORTED_CONNECTION_ENCODINGS "Unsupported encoding for CHARS: $(ei.encoding). Currently, Oracle.jl supports only $(SUPPORTED_CONNECTION_ENCODINGS)."
+            @assert ei.nencoding ∈ SUPPORTED_CONNECTION_ENCODINGS  "Unsupported encoding for CHARS: $(ei.nencoding). Currently, Oracle.jl supports only $(SUPPORTED_CONNECTION_ENCODINGS)."
         end
 
         ei = EncodingInfo(context, handle)
@@ -307,6 +307,7 @@ mutable struct Stmt{statement_type}
     bind_names::Vector{String}
     bind_names_index::Dict{String, UInt32} # maps bind_name to bind position
     is_open::Bool
+    columns_info::Union{Nothing, Vector{OraQueryInfo}}
 end
 
 const QueryStmt = Stmt{ORA_STMT_TYPE_SELECT}
@@ -320,12 +321,26 @@ function destroy!(stmt::Stmt)
     nothing
 end
 
-"""
-High-level type as an aggregation of `dpiNativeTypeNum` and `dpiData`.
-"""
-struct NativeValue
-    native_type::OraNativeTypeNum
+abstract type AbstractOracleValue{O,N} end
+
+"Wraps a dpiData handle managed by extern ODPI-C"
+struct ExternOracleValue{O,N,P} <: AbstractOracleValue{O,N}
+    parent::P
     data_handle::Ptr{OraData}
+end
+
+function ExternOracleValue(parent::P, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum, handle::Ptr{OraData}) where {P}
+    return ExternOracleValue{oracle_type, native_type, P}(parent, handle)
+end
+
+"Wraps a dpiData handle managed by Julia"
+struct JuliaOracleValue{O,N,T} <: AbstractOracleValue{O,N}
+    buffer::Vector{T}
+end
+
+function JuliaOracleValue(oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum, ::Type{T}, capacity::Integer=1) where {T}
+    buffer = undef_vector(T, capacity)
+    return JuliaOracleValue{oracle_type,native_type,T}(buffer)
 end
 
 struct FetchResult
@@ -417,6 +432,28 @@ function destroy!(v::Variable)
         v.handle = C_NULL
         v.obj_type_handle = C_NULL
         v.buffer_handle = C_NULL
+    end
+    nothing
+end
+
+mutable struct Lob{ORATYPE,T}
+    parent::T
+    handle::Ptr{Cvoid}
+    is_open::Bool
+
+    function Lob(p::T, handle::Ptr{Cvoid}, oracle_type::OraOracleTypeNum) where {T}
+        check_valid_lob_oracle_type_num(oracle_type)
+        new_lob = new{oracle_type, T}(p, handle, true)
+        @compat finalizer(destroy!, new_lob)
+        return new_lob
+    end
+end
+
+function destroy!(lob::Lob)
+    if lob.handle != C_NULL
+        result = dpiLob_release(lob.handle)
+        error_check(context(lob), result)
+        lob.handle = C_NULL
     end
     nothing
 end

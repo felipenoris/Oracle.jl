@@ -13,6 +13,8 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
 end
 
 function Pool(ctx::Context, user::String, password::String, connect_string::String;
+            encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
+            nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
             create_mode::Union{Nothing, OraCreateMode}=nothing,
             edition::Union{Nothing, String}=nothing,
             driver_name::Union{Nothing, String}=nothing,
@@ -51,11 +53,13 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
     @parse_opt_field_param(pool_create_params, wait_timeout, UInt32)
     @parse_opt_field_param(pool_create_params, max_lifetime_session, UInt32)
 
-    common_params = CommonCreateParams(create_mode, DEFAULT_CONNECTION_ENCODING, DEFAULT_CONNECTION_NENCODING, edition, driver_name)
+    common_params = CommonCreateParams(create_mode, encoding, nencoding, edition, driver_name)
     return Pool(ctx, user, password, connect_string, common_params, pool_create_params)
 end
 
 function Pool(user::String, password::String, connect_string::String;
+            encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
+            nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
             create_mode::Union{Nothing, OraCreateMode}=nothing,
             edition::Union{Nothing, String}=nothing,
             driver_name::Union{Nothing, String}=nothing,
@@ -72,6 +76,8 @@ function Pool(user::String, password::String, connect_string::String;
             max_lifetime_session::Union{Nothing, Integer}=nothing
         )
     return Pool(Context(), user, password, connect_string,
+            encoding=encoding,
+            nencoding=nencoding,
             create_mode=create_mode,
             edition=edition,
             driver_name=driver_name,

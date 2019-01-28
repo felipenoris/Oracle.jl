@@ -1,8 +1,12 @@
 
-context(conn::Connection) = conn.context
-context(stmt::Stmt) = context(stmt.connection)
-context(pool::Pool) = pool.context
-context(variable::Variable) = context(variable.connection)
+@inline context(ctx::Context) = ctx
+@inline context(conn::Connection) = conn.context
+@inline context(stmt::Stmt) = context(stmt.connection)
+@inline context(pool::Pool) = pool.context
+@inline context(variable::Variable) = context(variable.connection)
+@inline context(lob::Lob) = context(lob.parent)
+@inline context(v::JuliaOracleValue) = v.context
+@inline context(v::ExternOracleValue) = context(v.parent)
 
 function Context()
     error_info_ref = Ref{OraErrorInfo}()

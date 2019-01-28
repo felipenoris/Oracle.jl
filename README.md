@@ -52,8 +52,8 @@ connect_string = "//IP_ADDRESS/XE" # a valid Oracle connect string
 conn = Oracle.Connection(username, password, connect_string)
 ```
 
-Currently, this driver only supports connections using UTF-8 encoding.
-So, all connections are created using the encoding UTF-8 for both CHAR and NCHAR.
+Currently, this driver only supports connections using ASCII or UTF-8 encodings.
+All connections are created using UTF-8 encoding by default, for both CHAR and NCHAR.
 
 To connect as SYSDBA, use the appropriate `auth_mode` parameter.
 
@@ -176,6 +176,49 @@ Oracle.close!(pool)
 A *Pool* is closed automatically (by the garbage collector) when it goes out of scope.
 You can use `Oracle.close!` method as soon as you have
 finished with it, to release database resources.
+
+### LOB
+
+Oracle LOB fields can hold [up to 4GB of data](https://docs.oracle.com/cd/B28359_01/server.111/b28320/limits001.htm).
+
+They come in two flavors:
+
+* Binary LOBs: BLOB or BFILE.
+
+* Character LOBs: CLOB or NCLOB.
+
+LOB values are represented as a value of type `Oracle.Lob` in this package. From a LOB value,
+you can use `open` do get an IO stream to read and write data.
+
+*Currently, writing data to LOB is not supported by this package. BFILE LOB is also not supported.*
+
+LOB references are lost once you operate a fetch on a statement. So, whenever you have a
+reference to a LOB value, always use `Oracle.close!(lob_value)` once you have finished with it.
+This will avoid finalization errors or segfaults.
+
+```julia
+lyric = "hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼"
+
+Oracle.execute!(conn, "CREATE TABLE TB_BLOB ( b BLOB )")
+Oracle.execute!(conn, "INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw('$lyric'))")
+
+Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
+    for row in cursor
+        blob = row["B"]
+        try
+            # will open an IO Stream on read mode
+            open(blob, "r") do io
+                println(read(io, String))
+            end
+        finally
+            Oracle.close!(blob)
+        end
+    end
+end
+```
+
+IO Streams created on Character LOBs use the character index as its position, and
+only support reading/writing for `Char` and `String` data types.
 
 ## ODPI-C Naming Conventions
 

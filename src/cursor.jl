@@ -2,24 +2,22 @@
 function CursorSchema(stmt::QueryStmt)
 
     columns_count = num_columns(stmt)
+    column_query_info = columns_info(stmt)
 
-    column_query_info = Vector{OraQueryInfo}()
     column_names_index = Dict{String, Int}()
 
-    for column_index in 1:columns_count
-        q_info = OraQueryInfo(stmt, column_index)
-        push!(column_query_info, q_info)
-        column_names_index[column_name(q_info)] = column_index
+    for (column_index, query_info) in enumerate(column_query_info)
+        column_names_index[column_name(query_info)] = column_index
     end
 
     return CursorSchema(column_query_info, column_names_index)
 end
 
-num_columns(schema::CursorSchema) = length(schema.column_names_index)
-num_columns(row::ResultSetRow) = num_columns(row.cursor)
-num_columns(cursor::Cursor) = num_columns(cursor.stmt)
+@inline num_columns(schema::CursorSchema) = length(schema.column_names_index)
+@inline num_columns(row::ResultSetRow) = num_columns(row.cursor)
+@inline num_columns(cursor::Cursor) = num_columns(cursor.stmt)
 
-stmt(cursor::Cursor) = cursor.stmt
+@inline stmt(cursor::Cursor) = cursor.stmt
 
 function Cursor(stmt::QueryStmt)
     schema = CursorSchema(stmt)
@@ -106,18 +104,18 @@ function ResultSetRow(cursor::Cursor)
 
     # parse data from Cursor
     for column_index in 1:num_columns(cursor)
-        val = query_value(stmt(cursor), column_index)
-        push!(data, parse_value(cursor.schema.column_query_info[column_index], val))
+        oracle_value = query_oracle_value(stmt(cursor), column_index)
+        push!(data, parse_oracle_value(oracle_value))
     end
 
     return ResultSetRow(cursor, data)
 end
 
-Base.getindex(row::ResultSetRow, column_index::Integer) = row.data[column_index]
+@inline Base.getindex(row::ResultSetRow, column_index::Integer) = row.data[column_index]
 
-function Base.getindex(row::ResultSetRow, column_name::AbstractString)
+@inline function Base.getindex(row::ResultSetRow, column_name::AbstractString)
     column_index = row.cursor.schema.column_names_index[column_name]
-    return row.data[column_index]
+    @inbounds return row.data[column_index]
 end
 
 has_possibly_more_rows(r::FetchRowsResult) = Bool(r.more_rows)

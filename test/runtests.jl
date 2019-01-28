@@ -11,7 +11,7 @@ end
 
 # runs garbage collector only on Julia v0.6
 function gc_on_v6()
-    if VERSION < v"0.7-"
+    @static if VERSION < v"0.7-"
         gc()
     end
 end
@@ -79,6 +79,13 @@ println("")
         Oracle.stmt_cache_size!(conn, original_cache_size)
         @test Oracle.stmt_cache_size(conn) == original_cache_size
     end
+
+    @testset "Supported encodings" begin
+        for enc in Oracle.SUPPORTED_CONNECTION_ENCODINGS
+            conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode, encoding=enc, nencoding=enc)
+            Oracle.close!(conn)
+        end
+    end
 end
 
 @testset "query/commit/rollback" begin
@@ -110,8 +117,8 @@ end
     Oracle.execute!(stmt)
     @test Oracle.num_columns(stmt) == 1
 
-    query_info = Oracle.OraQueryInfo(stmt, 1)
-    @test Oracle.column_name(query_info) == "ID"
+    column_info = Oracle.column_info(stmt, 1)
+    @test Oracle.column_name(column_info) == "ID"
 
     Oracle.close!(stmt)
 end
@@ -123,14 +130,14 @@ end
     result = Oracle.fetch!(stmt)
     @test result.found
 
-    value = Oracle.query_value(stmt, 1)
+    value = Oracle.query_oracle_value(stmt, 1)[]
     @test value == 1.0
     @test isa(value, Float64)
 
     result = Oracle.fetch!(stmt)
     @test result.found
 
-    value = Oracle.query_value(stmt, 1)
+    value = Oracle.query_oracle_value(stmt, 1)[]
     @test ismissing(value)
     @test isa(value, Missing)
 
@@ -141,7 +148,7 @@ end
     Oracle.execute!(conn, "DROP TABLE TB_TEST")
 end
 
-@testset "parse data" begin
+@testset "ExternOracleValue" begin
     Oracle.execute!(conn, "CREATE TABLE TB_TEST_DATATYPES ( ID NUMBER(38,0) NULL, name VARCHAR2(255) NULL,  amount NUMBER(15,2) NULL)")
 
     Oracle.execute!(conn, "INSERT INTO TB_TEST_DATATYPES ( ID, name, amount ) VALUES ( 1, 'hello world', 123.45 )")
@@ -166,9 +173,9 @@ end
 
     while result.found
 
-        value_id = Oracle.query_value(stmt, 1)
-        value_name = Oracle.query_value(stmt, 2)
-        value_amount = Oracle.query_value(stmt, 3)
+        value_id = Oracle.query_oracle_value(stmt, 1)[]
+        value_name = Oracle.query_oracle_value(stmt, 2)[]
+        value_amount = Oracle.query_oracle_value(stmt, 3)[]
 
         println(value_name)
 
@@ -184,6 +191,76 @@ end
 
     Oracle.close!(stmt)
     Oracle.execute!(conn, "DROP TABLE TB_TEST_DATATYPES")
+end
+
+@testset "OraData" begin
+    ctx = Oracle.Context()
+
+    data_handle = Ref{Oracle.OraData}()
+
+    let
+        str = "hey you"
+        Oracle.dpiData_setBytes(data_handle, str)
+    end
+
+    let
+        local ptr_bytes::Ptr{Oracle.OraBytes} = Oracle.dpiData_getBytes(data_handle)
+        ora_string = unsafe_load(ptr_bytes) # get a OraBytes
+        @test unsafe_string(ora_string.ptr, ora_string.length) == "hey you"
+    end
+end
+
+@testset "JuliaOracleValue" begin
+
+    @testset "Int" begin
+        julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NATIVE_INT, Oracle.ORA_NATIVE_TYPE_INT64, Int64)
+        julia_oracle_value[] = 10
+        @test julia_oracle_value[] == 10
+        @test julia_oracle_value[0] == julia_oracle_value[]
+    end
+
+    @testset "Missing" begin
+        julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NATIVE_INT, Oracle.ORA_NATIVE_TYPE_INT64, Union{Missing, Int64})
+        julia_oracle_value[] = missing
+        @test ismissing(julia_oracle_value[])
+    end
+
+    @testset "Float64" begin
+        julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NUMBER, Oracle.ORA_NATIVE_TYPE_DOUBLE, Float64)
+        julia_oracle_value[] = 10.5
+        @test julia_oracle_value[] == 10.5
+    end
+
+    @testset "VARCHAR" begin
+        julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_VARCHAR, Oracle.ORA_NATIVE_TYPE_BYTES, String)
+        julia_oracle_value[] = "hey you"
+        @test julia_oracle_value[] == "hey you"
+    end
+
+    @testset "Stmt bind" begin
+        stmt = Oracle.Stmt(conn, "SELECT :A, :B FROM DUAL")
+        val_a = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NUMBER, Oracle.ORA_NATIVE_TYPE_DOUBLE, Float64)
+        val_a[] = 10.5
+        val_b = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_VARCHAR, Oracle.ORA_NATIVE_TYPE_BYTES, String)
+        val_b[] = "hey"
+        Oracle.bind_value!(stmt, val_a, :A)
+        Oracle.bind_value!(stmt, val_b, 2)
+        Oracle.close!(stmt)
+    end
+
+    @testset "type inference" begin
+
+        @test Oracle.infer_oracle_type_tuple(Bool) == Oracle.infer_oracle_type_tuple(true)
+
+        v_int = Oracle.JuliaOracleValue(10)
+        @test v_int[] == 10
+
+        v_str = Oracle.JuliaOracleValue("str")
+        @test v_str[] == "str"
+
+        v_double = Oracle.JuliaOracleValue(10.5)
+        @test v_double[] == 10.5
+    end
 end
 
 @testset "Timestamp" begin
@@ -208,6 +285,174 @@ end
     end
 
     Oracle.execute!(conn, "DROP TABLE TB_DATE")
+end
+
+@testset "Lob" begin
+    @testset "Temp Lob" begin
+        for lob_type_num in ( Oracle.ORA_ORACLE_TYPE_BLOB, Oracle.ORA_ORACLE_TYPE_CLOB, Oracle.ORA_ORACLE_TYPE_NCLOB )
+            lob = Oracle.Lob(conn, lob_type_num)
+            @test Oracle.is_character_data(lob) == Bool(Oracle.dpiLob_isCharacterData(lob.handle))
+            @test Oracle.oracle_type(lob) == Oracle.dpiLob_getOracleTypeNum(lob.handle)
+            @test Oracle.chunk_size(lob) != 0
+            Oracle.close!(lob)
+        end
+    end
+
+    @testset "Read BLOB" begin
+
+        lyric = "hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼"
+
+        Oracle.execute!(conn, "CREATE TABLE TB_BLOB ( b BLOB )")
+        Oracle.execute!(conn, "INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw('$lyric'))")
+
+        function check_blob_data(test_data::String, lob, buffer_size)
+
+            @test Oracle.oracle_type(lob) == Oracle.ORA_ORACLE_TYPE_BLOB
+
+            out = IOBuffer()
+            open(lob, "r", buffer_size=buffer_size) do io
+                while !eof(io)
+                    write(out, read(io, Char))
+                end
+
+                @test eof(io)
+                @test_throws EOFError read(io, Char)
+            end
+
+            @test test_data == String(take!(out))
+            Oracle.close!(lob)
+        end
+
+        function query_and_check_blob_data(test_data::String, buffer_size)
+            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_BLOB")
+
+            try
+                Oracle.execute!(stmt)
+                result = Oracle.fetch!(stmt)
+                @test result.found
+                blob = Oracle.query_oracle_value(stmt, 1)[]
+                check_blob_data(test_data, blob, buffer_size)
+            finally
+                Oracle.close!(stmt)
+            end
+        end
+
+        buff_sizes_to_check = [ 30, sizeof(lyric)-1, sizeof(lyric), sizeof(lyric)+1, nothing ]
+
+        for buff_size in buff_sizes_to_check
+            query_and_check_blob_data(lyric, buff_size)
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_BLOB")
+    end
+
+    @testset "Read CLOB" begin
+        #utfchar_5bytes = "a🎵" # https://github.com/oracle/odpi/issues/94
+        test_string = "abcdefghij"^250
+        @assert sizeof(test_string) == 2500
+
+        Oracle.execute!(conn, "CREATE TABLE TB_CLOB ( B CLOB )")
+        Oracle.execute!(conn, "INSERT INTO TB_CLOB ( B ) VALUES ( '$(test_string)' )")
+
+        let
+            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
+            local clob::Oracle.Lob
+
+            try
+                Oracle.execute!(stmt)
+                result = Oracle.fetch!(stmt)
+                @test result.found
+                clob = Oracle.query_oracle_value(stmt, 1)[]
+
+                open(clob, "r") do io
+                    i = 1
+                    while !eof(io)
+                        @test read(io, Char) == test_string[i]
+                        i += 1
+                    end
+
+                    seek(io, 2)
+                    @test read(io, Char) == test_string[3]
+                    @test position(io) == 3
+
+                    seekstart(io)
+                    @test read(io, Char) == test_string[1]
+
+                end
+            finally
+                Oracle.close!(clob)
+                Oracle.close!(stmt)
+            end
+        end
+
+        let
+            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
+            local clob::Oracle.Lob
+
+            try
+                Oracle.execute!(stmt)
+                result = Oracle.fetch!(stmt)
+                @test result.found
+                clob = Oracle.query_oracle_value(stmt, 1)[]
+
+                open(clob, "r") do io
+                    @test read(io, String) == test_string
+                end
+            finally
+                Oracle.close!(clob)
+                Oracle.close!(stmt)
+            end
+        end
+
+        let
+            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
+            local clob::Oracle.Lob
+
+            try
+                Oracle.execute!(stmt)
+                result = Oracle.fetch!(stmt)
+                @test result.found
+                clob = Oracle.query_oracle_value(stmt, 1)[]
+
+                open(clob, "r", buffer_size=2000) do io
+
+                    seek(io, length(test_string)-1)
+                    @test read(io, Char) == test_string[end]
+
+                    seekstart(io)
+                    i = 1
+                    while !eof(io)
+                        @test read(io, Char) == test_string[i]
+                        i += 1
+                    end
+                end
+            finally
+                Oracle.close!(clob)
+                Oracle.close!(stmt)
+            end
+        end
+
+        let
+            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
+            local clob::Oracle.Lob
+
+            try
+                Oracle.execute!(stmt)
+                result = Oracle.fetch!(stmt)
+                @test result.found
+                clob = Oracle.query_oracle_value(stmt, 1)[]
+
+                open(clob, "r", buffer_size=2000) do io
+                    @test read(io, String) == test_string
+                end
+            finally
+                Oracle.close!(clob)
+                Oracle.close!(stmt)
+            end
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_CLOB")
+    end
 end
 
 @testset "Fetch Many" begin
@@ -424,11 +669,8 @@ end
         stmt[:str, String] = missing
         stmt[:dt, Date] = missing
 
-        if VERSION >= v"0.7-"
-            # testing only on Julia v1.0
-            @test_throws MethodError stmt[:dt] = missing
-            @test_throws MethodError stmt[:dt, Int] = 1
-        end
+        @test_throws ErrorException stmt[:dt] = missing
+        @test_throws MethodError stmt[:dt, Int] = 1
 
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
@@ -459,11 +701,8 @@ end
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :a, :b, :c, :d )")
         @test stmt.bind_count == 4
 
-        if VERSION >= v"0.7-"
-            # testing only on Julia v1.0
-            @test_throws AssertionError stmt[0] = 10
-            @test_throws AssertionError stmt[5] = 10
-        end
+        @test_throws AssertionError stmt[0] = 10
+        @test_throws AssertionError stmt[5] = 10
 
         for i in 1:10
             stmt[1] = 1 + i
@@ -498,11 +737,8 @@ end
         stmt[3, String] = missing
         stmt[4, Date] = missing
 
-        if VERSION >= v"0.7-"
-            # testing only on Julia v1.0
-            @test_throws MethodError stmt[:dt] = missing
-            @test_throws MethodError stmt[:dt, Int] = 1
-        end
+        @test_throws ErrorException stmt[:dt] = missing
+        @test_throws MethodError stmt[:dt, Int] = 1
 
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
@@ -595,7 +831,7 @@ end
         fetch_result = Oracle.fetch_rows!(stmt)
         @test fetch_result.num_rows_fetched == 3
 
-        v = Oracle.NativeValue(ora_var.native_type, ora_var.buffer_handle)
+        v = Oracle.ExternOracleValue(ora_var, ora_var.oracle_type, ora_var.native_type, ora_var.buffer_handle)
         @test v[fetch_result.buffer_row_index + 0] == 123.45
         @test v[fetch_result.buffer_row_index + 1] == 456.78
         @test ismissing(v[fetch_result.buffer_row_index + 2])
@@ -714,6 +950,15 @@ if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
             Oracle.close!(conn_3)
 
             Oracle.close!(pool)
+        end
+
+        @testset "Supported encodings" begin
+            for enc in Oracle.SUPPORTED_CONNECTION_ENCODINGS
+                pool = Oracle.Pool(username, password, connect_string, encoding=enc, nencoding=enc)
+                conn = Oracle.Connection(pool, auth_mode=auth_mode)
+                Oracle.close!(conn)
+                Oracle.close!(pool)
+            end
         end
     end
 end

@@ -1,4 +1,58 @@
 
+@inline column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_info.name_length)
+
+function num_columns(stmt::QueryStmt)
+    if stmt.columns_info == nothing
+        init_columns_info!(stmt)
+    end
+    return length(stmt.columns_info)
+end
+
+function columns_info(stmt::QueryStmt) :: Vector{OraQueryInfo}
+    if stmt.columns_info == nothing
+        init_columns_info!(stmt)
+    end
+
+    return stmt.columns_info
+end
+
+function column_info(stmt::QueryStmt, column_index::Integer) :: OraQueryInfo
+    if stmt.columns_info == nothing
+        init_columns_info!(stmt)
+    end
+
+    return stmt.columns_info[column_index]
+end
+
+@inline function oracle_type(stmt::QueryStmt, column_index::Integer) :: OraOracleTypeNum
+    return column_info(stmt, column_index).type_info.oracle_type_num
+end
+
+function init_columns_info!(stmt::QueryStmt)
+
+    function get_stmt_num_columns(ctx::Context, stmt_handle::Ptr{Cvoid})
+        num_columns_ref = Ref{UInt32}(0)
+        result = dpiStmt_getNumQueryColumns(stmt_handle, num_columns_ref)
+        error_check(ctx, result)
+        return num_columns_ref[]
+    end
+
+    function get_query_column_info(ctx::Context, stmt_handle::Ptr{Cvoid}, column_index::Integer)
+        query_info_ref = Ref{OraQueryInfo}()
+        result = dpiStmt_getQueryInfo(stmt_handle, UInt32(column_index), query_info_ref)
+        error_check(context(stmt), result)
+        return query_info_ref[]
+    end
+
+    columns_info = Vector{OraQueryInfo}()
+    for col in 1:get_stmt_num_columns(context(stmt), stmt.handle)
+        push!(columns_info, get_query_column_info(context(stmt), stmt.handle, col))
+    end
+
+    stmt.columns_info = columns_info
+    nothing
+end
+
 function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
 
     function new_stmt_info(ctx::Context, stmt_handle::Ptr{Cvoid})
@@ -28,13 +82,14 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
         result_names = undef_vector(String, expected_num_bind_names)
 
         for i in 1:expected_num_bind_names
-            result_names[i] = unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i])
+            @inbounds result_names[i] = unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i])
         end
 
         return result_names
     end
 
     stmt_info = new_stmt_info(context(connection), handle)
+
     bind_count = get_bind_count(context(connection), handle)
 
     if bind_count == 0
@@ -49,7 +104,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
         end
     end
 
-    new_stmt = Stmt{stmt_info.statement_type}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index, true)
+    new_stmt = Stmt{stmt_info.statement_type}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index, true, nothing)
     @compat finalizer(destroy!, new_stmt)
     return new_stmt
 end
@@ -130,7 +185,7 @@ function execute!(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_E
         first_column_length = length(columns[1])
 
         for i in 2:length(columns)
-            @assert length(columns[i]) == first_column_length
+            @inbounds @assert length(columns[i]) == first_column_length
         end
 
         nothing
@@ -159,7 +214,7 @@ function execute!(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_E
 
         row_counts = undef_vector(UInt64, row_counts_length)
         for i in 1:row_counts_length
-            row_counts[i] = unsafe_load(row_counts_array_as_ptr, i)
+            @inbounds row_counts[i] = unsafe_load(row_counts_array_as_ptr, i)
         end
 
         return row_counts
@@ -177,29 +232,6 @@ function close!(stmt::Stmt; tag::String="")
     end
     nothing
 end
-
-"""
-    num_columns(stmt::QueryStmt) :: UInt32
-
-Returns the number of columns that are being queried.
-`stmt` must be an executed statement.
-"""
-function num_columns(stmt::QueryStmt) :: UInt32
-    num_columns_ref = Ref{UInt32}(0)
-    result = dpiStmt_getNumQueryColumns(stmt.handle, num_columns_ref)
-    error_check(context(stmt), result)
-    return num_columns_ref[]
-end
-
-function OraQueryInfo(stmt::Stmt, column_index::UInt32)
-    query_info_ref = Ref{OraQueryInfo}()
-    result = dpiStmt_getQueryInfo(stmt.handle, column_index, query_info_ref)
-    error_check(context(stmt), result)
-    return query_info_ref[]
-end
-
-OraQueryInfo(stmt::Stmt, column_index::Integer) = OraQueryInfo(stmt, UInt32(column_index))
-column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_info.name_length)
 
 function fetch_array_size(stmt::Stmt) :: UInt32
     array_size_ref = Ref{UInt32}()
@@ -254,120 +286,11 @@ function fetch_rows!(stmt::Stmt, max_rows::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     return FetchRowsResult(buffer_row_index_ref[], num_rows_fetched_ref[], more_rows_ref[])
 end
 
-function query_value(stmt::Stmt, column_index::Integer)
+function query_oracle_value(stmt::Stmt, column_index::Integer) :: ExternOracleValue
     native_type_ref = Ref{OraNativeTypeNum}()
     data_handle_ref = Ref{Ptr{OraData}}()
     result = dpiStmt_getQueryValue(stmt.handle, UInt32(column_index), native_type_ref, data_handle_ref)
     error_check(context(stmt), result)
 
-    # dpiStmt_getQueryValue() is intended to be paired with dpiStmt_fetch()
-    # so NativeValue will return always a single value ( index = 0, or native_value[] ).
-    # see https://github.com/oracle/odpi/issues/79
-    return NativeValue(native_type_ref[], data_handle_ref[])[]
-end
-
-function check_bind_bounds(stmt::Stmt, pos::Integer)
-    @assert pos > 0 && pos <= stmt.bind_count "Bind position $pos out of bounds."
-    nothing
-end
-
-function check_bind_bounds(stmt::Stmt, name::String)
-    name_upper = uppercase(name)
-    @assert haskey(stmt.bind_names_index, name_upper) "Bind name $name_upper not found in statement."
-end
-
-check_bind_bounds(stmt::Stmt, name::Symbol) = check_bind_bounds(stmt, string(name))
-
-#
-# Bind Value to Stmt
-#
-
-const NameOrPositionTypes = Union{Integer, String, Symbol}
-const NonMissingBindValueTypes = Union{String, OraTimestamp, Int, Float64}
-const BindValueJuliaTypes = Union{Missing, NonMissingBindValueTypes, Dates.TimeType}
-
-function Base.setindex!(stmt::Stmt, value::B, name_or_position::K) where {B<:Union{NonMissingBindValueTypes, Dates.TimeType}, K<:NameOrPositionTypes}
-    return bind_value!(stmt, value, name_or_position)
-end
-
-function Base.setindex!(stmt::Stmt, m::Missing, name_or_position::K, type_information::T) where {K<:NameOrPositionTypes, T}
-    return bind_value!(stmt, m, name_or_position, type_information)
-end
-
-function bind_value!(stmt::Stmt, value::NonMissingBindValueTypes, name::Union{String, Symbol}, native_type::OraNativeTypeNum, set_data_function::F) where {F<:Function}
-    check_bind_bounds(stmt, name)
-    data_ref = Ref{OraData}()
-    set_data_function(data_ref, value)
-    result = dpiStmt_bindValueByName(stmt.handle, string(name), native_type, data_ref)
-    error_check(context(stmt), result)
-    nothing
-end
-
-function bind_value!(stmt::Stmt, value::NonMissingBindValueTypes, pos::Integer, native_type::OraNativeTypeNum, set_data_function::F) where {F<:Function}
-    check_bind_bounds(stmt, pos)
-    data_ref = Ref{OraData}()
-    set_data_function(data_ref, value)
-    result = dpiStmt_bindValueByPos(stmt.handle, UInt32(pos), native_type, data_ref)
-    error_check(context(stmt), result)
-    nothing
-end
-
-function bind_value!(stmt::Stmt, ::Missing, name::Union{String, Symbol}, native_type::OraNativeTypeNum)
-    check_bind_bounds(stmt, name)
-    data_ref = Ref{OraData}()
-    dpiData_setNull_ref(data_ref)
-    result = dpiStmt_bindValueByName(stmt.handle, string(name), native_type, data_ref) # native type is not examined since the value is passed as a NULL
-    error_check(context(stmt), result)
-    nothing
-end
-
-function bind_value!(stmt::Stmt, ::Missing, pos::Integer, native_type::OraNativeTypeNum)
-    check_bind_bounds(stmt, pos)
-    data_ref = Ref{OraData}()
-    dpiData_setNull_ref(data_ref)
-    result = dpiStmt_bindValueByPos(stmt.handle, UInt32(pos), native_type, data_ref) # native type is not examined since the value is passed as a NULL
-    error_check(context(stmt), result)
-    nothing
-end
-
-function bind_value!(stmt::Stmt, m::Missing, name_or_position::N, julia_type::Type{T}) where {T<:Union{NonMissingBindValueTypes, Dates.TimeType}, N<:NameOrPositionTypes}
-    return bind_value!(stmt, m, name_or_position, OraNativeTypeNum(julia_type))
-end
-
-function bind_value!(stmt::Stmt, value::T, name_or_position::N) where {T<:Dates.TimeType, N<:NameOrPositionTypes}
-    bind_value!(stmt, OraTimestamp(value), name_or_position, ORA_NATIVE_TYPE_TIMESTAMP, dpiData_setTimestamp_ref)
-end
-
-bind_value!(stmt::Stmt, value::String, name::NameOrPositionTypes) = bind_value!(stmt, value, name, ORA_NATIVE_TYPE_BYTES, dpiData_setBytes_ref)
-bind_value!(stmt::Stmt, value::Float64, name::NameOrPositionTypes) = bind_value!(stmt, value, name, ORA_NATIVE_TYPE_DOUBLE, dpiData_setDouble_ref)
-bind_value!(stmt::Stmt, value::Int64, name::NameOrPositionTypes) = bind_value!(stmt, value, name, ORA_NATIVE_TYPE_INT64, dpiData_setInt64_ref)
-
-#
-# Bind Variable to Stmt
-#
-
-Base.setindex!(stmt::Stmt, value::Variable, name_or_position::NameOrPositionTypes) = bind_variable!(stmt, value, name_or_position)
-
-@generated function bind_variable!(stmt::Stmt, variable::Variable, name_or_position::K) where {K<:NameOrPositionTypes}
-
-    if name_or_position <: Integer
-        name_or_position_exp = :(UInt32(name_or_position))
-        bind_function_name = :dpiStmt_bindByPos
-    elseif name_or_position <: Symbol
-        name_or_position_exp = :(string(name_or_position))
-        bind_function_name = :dpiStmt_bindByName
-    elseif name_or_position <: String
-        name_or_position_exp = :name_or_position
-        bind_function_name = :dpiStmt_bindByName
-    else
-        error("Unsupported type for argument `name_or_position`: $name_or_position.")
-    end
-
-    return quote
-        key = $name_or_position_exp
-        check_bind_bounds(stmt, key)
-        result = $(bind_function_name)(stmt.handle, key, variable.handle)
-        error_check(context(stmt), result)
-        nothing
-    end
+    return ExternOracleValue(stmt, oracle_type(stmt, column_index), native_type_ref[], data_handle_ref[])
 end

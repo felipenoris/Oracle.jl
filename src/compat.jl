@@ -7,7 +7,7 @@ else
     using Dates
 end
 
-function undef_vector(::Type{T}, len::Integer) where {T}
+@inline function undef_vector(::Type{T}, len::Integer) where {T}
     @static if VERSION < v"0.7-"
         Vector{T}(len)
     else

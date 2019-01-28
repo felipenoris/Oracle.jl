@@ -63,6 +63,8 @@ function Connection(ctx::Context, user::String, password::String, connect_string
 end
 
 function Connection(ctx::Context, user::String, password::String, connect_string::String;
+        encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
+        nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
         create_mode::Union{Nothing, OraCreateMode}=nothing,
         edition::Union{Nothing, String}=nothing,
         driver_name::Union{Nothing, String}=nothing,
@@ -70,13 +72,15 @@ function Connection(ctx::Context, user::String, password::String, connect_string
         pool::Union{Nothing, Pool}=nothing
     )
 
-    common_params = CommonCreateParams(create_mode, DEFAULT_CONNECTION_ENCODING, DEFAULT_CONNECTION_NENCODING, edition, driver_name)
+    common_params = CommonCreateParams(create_mode, encoding, nencoding, edition, driver_name)
     conn_create_params = ConnCreateParams(auth_mode, pool)
 
     return Connection(ctx, user, password, connect_string, common_params, conn_create_params)
 end
 
 function Connection(user::String, password::String, connect_string::String;
+        encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
+        nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
         create_mode::Union{Nothing, OraCreateMode}=nothing,
         edition::Union{Nothing, String}=nothing,
         driver_name::Union{Nothing, String}=nothing,
@@ -85,6 +89,8 @@ function Connection(user::String, password::String, connect_string::String;
     )
 
     return Connection(Context(), user, password, connect_string,
+                encoding=encoding,
+                nencoding=nencoding,
                 create_mode=create_mode,
                 edition=edition,
                 driver_name=driver_name,

@@ -146,10 +146,7 @@ end
 end
 
 function main()
-    if !isfile(SHARED_LIB)
-        build_shared_library()
-    end
-
+    build_shared_library()
     write_deps_file()
 end
 

@@ -2,4 +2,3 @@ deps/usr
 deps/deps.jl
 deps/build.log
 **/credentials.jl
-Manifest.toml

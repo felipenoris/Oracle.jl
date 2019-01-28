@@ -60,8 +60,8 @@ end
 
 function Base.setindex!(variable::Variable, value, pos::Integer)
     check_bounds(variable, pos)
-    native_value = NativeValue(variable.native_type, variable.buffer_handle)
-    native_value[pos] = value
+    oracle_value = ExternOracleValue(variable, variable.oracle_type, variable.native_type, variable.buffer_handle)
+    oracle_value[pos] = value
     nothing
 end
 
@@ -74,8 +74,8 @@ end
 
 function Base.getindex(variable::Variable, pos::Integer)
     check_bounds(variable, pos)
-    native_value = NativeValue(variable.native_type, variable.buffer_handle)
-    return native_value[pos]
+    oracle_value = ExternOracleValue(variable, variable.oracle_type, variable.native_type, variable.buffer_handle)
+    return oracle_value[pos]
 end
 
 @inline function check_bounds(variable::Variable, pos::Integer)
@@ -90,13 +90,13 @@ function find_max_byte_string_size(v::Vector{T}) where {T<:Union{AbstractString,
     end
 
     len = length(v)
-    max_size = sizeof(v[1])
+    @inbounds max_size = sizeof(v[1])
 
     if len == 1
         return max_size
     else
         for i in 2:len
-            max_size = max(max_size, sizeof(v[i]))
+            @inbounds max_size = max(max_size, sizeof(v[i]))
         end
 
         return max_size
@@ -165,7 +165,7 @@ function infer_eltype(column::Vector)
     types = unique([ typeof(i) for i in column ])
 
     if length(types) == 1
-        return types[1]
+        @inbounds return types[1]
     elseif (Missing ∈ types) && (length(types) == 2)
         filter!( t -> t != Missing , types)
         return Union{Missing, types[1]}
