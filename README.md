@@ -154,14 +154,16 @@ A *Pool* represents a pool of connections, and provides a faster way to acquire 
 
 ```julia
 # creates a pool for a maximum of 2 sessions
-pool = Oracle.Pool(username, password, connect_string, max_sessions=2)
+pool = Oracle.Pool(username, password, connect_string, max_sessions=2, session_increment=1)
 
 conn_1 = Oracle.Connection(pool)
 conn_2 = Oracle.Connection(pool) # at this point, we can't acquire more connections
 
-# release a connection so that we can acquire another one
+# release a connection so that we can acquire another one.
 Oracle.close!(conn_1)
 
+# by now, acquiring a new connection should be pretty fast
+# since the new connection will be taken from the pool
 conn_3 = Oracle.Connection(pool)
 
 # release all connections that are still open
