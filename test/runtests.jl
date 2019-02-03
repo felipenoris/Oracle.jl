@@ -82,8 +82,8 @@ println("")
 
     @testset "Supported encodings" begin
         for enc in Oracle.SUPPORTED_CONNECTION_ENCODINGS
-            conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode, encoding=enc, nencoding=enc)
-            Oracle.close!(conn)
+            conn_enc = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode, encoding=enc, nencoding=enc)
+            Oracle.close!(conn_enc)
         end
     end
 end
@@ -955,8 +955,8 @@ if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
         @testset "Supported encodings" begin
             for enc in Oracle.SUPPORTED_CONNECTION_ENCODINGS
                 pool = Oracle.Pool(username, password, connect_string, encoding=enc, nencoding=enc)
-                conn = Oracle.Connection(pool, auth_mode=auth_mode)
-                Oracle.close!(conn)
+                conn_enc = Oracle.Connection(pool, auth_mode=auth_mode)
+                Oracle.close!(conn_enc)
                 Oracle.close!(pool)
             end
         end

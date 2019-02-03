@@ -3,6 +3,10 @@
     const Nothing = Void
     const Cvoid   = Void
     using Missings
+
+    firstindex(s::AbstractString) = start(s)
+    lastindex(s::AbstractString) = endof(s)
+
 else
     using Dates
 end
