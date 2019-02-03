@@ -395,7 +395,12 @@ end
 # void dpiData_setBytes(dpiData *data, char *ptr, uint32_t length)
 # cannot be used for setting strings to variables
 function dpiData_setBytes(dpi_data_ptr::Ref{OraData}, str::String)
-    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, str, UInt32(sizeof(str)))
+    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, str, sizeof(str))
+end
+
+function dpiData_setBytes(dpi_data_ptr::Ref{OraData}, bytes::Vector{UInt8})
+    error("Unsupported") # TODO
+    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, bytes, length(bytes))
 end
 
 # void dpiData_setDouble(dpiData *data, double value)

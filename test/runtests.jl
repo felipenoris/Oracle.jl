@@ -237,6 +237,12 @@ end
         @test julia_oracle_value[] == "hey you"
     end
 
+    @testset "RAW" begin
+        julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_RAW, Oracle.ORA_NATIVE_TYPE_BYTES, Vector{UInt8})
+        julia_oracle_value[] = UInt8[0x10, 0x11, 0x12, 0x13]
+        @test julia_oracle_value[] == UInt8[0x10, 0x11, 0x12, 0x13]
+    end
+
     @testset "Stmt bind" begin
         stmt = Oracle.Stmt(conn, "SELECT :A, :B FROM DUAL")
         val_a = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NUMBER, Oracle.ORA_NATIVE_TYPE_DOUBLE, Float64)
@@ -260,6 +266,9 @@ end
 
         v_double = Oracle.JuliaOracleValue(10.5)
         @test v_double[] == 10.5
+
+        v_raw = Oracle.JuliaOracleValue(UInt8[0x10, 0x11, 0x12, 0x13])
+        @test v_raw[] == UInt8[0x10, 0x11, 0x12, 0x13]
     end
 end
 
@@ -285,6 +294,21 @@ end
     end
 
     Oracle.execute!(conn, "DROP TABLE TB_DATE")
+end
+
+@testset "RAW" begin
+    Oracle.execute!(conn, "CREATE TABLE TB_QUERY_RAW ( RAW_COLUMN RAW(2000) )")
+    Oracle.execute!(conn, "INSERT INTO TB_QUERY_RAW ( RAW_COLUMN ) VALUES ( utl_raw.cast_to_raw('raw column value') )")
+
+    Oracle.query(conn, "SELECT RAW_COLUMN FROM TB_QUERY_RAW") do cursor
+        for row in cursor
+            byte_array = row["RAW_COLUMN"]
+            @test isa(byte_array, Vector{UInt8})
+            @test String(byte_array) == "raw column value"
+        end
+    end
+
+    Oracle.execute!(conn, "DROP TABLE TB_QUERY_RAW")
 end
 
 @testset "Lob" begin
@@ -790,6 +814,34 @@ end
         Oracle.close!(stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
     end
+#=
+    @testset "Bind RAW" begin
+        #Oracle.execute!(conn, "DROP TABLE TB_RAW")
+        #Oracle.execute!(conn, "CREATE TABLE TB_RAW ( bytes RAW(2000), bytes_long LONG RAW )")
+        Oracle.execute!(conn, "CREATE TABLE TB_RAW ( RAW_BYTES RAW(2000) )")
+
+        bytes = UInt8[0x01, 0xff, 0x22] #rand(UInt8, 2000)
+        #bytes_long = UInt8[0x01, 0xff, 0x22] #rand(UInt8, 10000)
+
+        let
+            stmt = Oracle.Stmt(conn, "INSERT INTO TB_RAW ( RAW_BYTES ) VALUES ( :a )")
+            stmt[1] = bytes
+            #stmt[2] = bytes_long
+            Oracle.execute!(stmt)
+            Oracle.commit!(conn)
+            Oracle.close!(stmt)
+        end
+
+        Oracle.query(conn, "SELECT RAW_BYTES FROM TB_RAW") do cursor
+            for row in cursor
+                @test row["RAW_BYTES"] == bytes
+                #@test row["BYTES_LONG"] == bytes_long
+            end
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_RAW")
+    end
+=#
 end
 
 @testset "Variables" begin

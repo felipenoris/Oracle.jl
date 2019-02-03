@@ -1,5 +1,7 @@
 
 # https://oracle.github.io/odpi/doc/user_guide/data_types.html
+# https://docs.oracle.com/cd/B28359_01/server.111/b28318/datatype.htm#CNCPT012
+# https://docs.oracle.com/cd/B28359_01/server.111/b28320/limits001.htm
 
 const SIZEOF_ORA_DATA = sizeof(Oracle.OraData)
 
@@ -103,10 +105,22 @@ end
     end
 
     if N == ORA_NATIVE_TYPE_BYTES
-        return quote
-            ptr_bytes = dpiData_getBytes(data_handle) # get a Ptr{OraBytes}
-            ora_string = unsafe_load(ptr_bytes) # get a OraBytes
-            return unsafe_string(ora_string.ptr, ora_string.length)
+
+        if O == ORA_ORACLE_TYPE_RAW || O == ORA_ORACLE_TYPE_LONG_RAW
+            # binary data
+            return quote
+                ptr_bytes = dpiData_getBytes(data_handle) # get a Ptr{OraBytes}
+                ora_bytes = unsafe_load(ptr_bytes) # get a OraBytes
+                unsafe_array = unsafe_wrap(Vector{UInt8}, ora_bytes.ptr, ora_bytes.length)
+                return return copy(unsafe_array)
+            end
+        else
+            # character data
+            return quote
+                ptr_bytes = dpiData_getBytes(data_handle) # get a Ptr{OraBytes}
+                ora_bytes = unsafe_load(ptr_bytes) # get a OraBytes
+                return unsafe_string(ora_bytes.ptr, ora_bytes.length)
+            end
         end
     end
 
@@ -169,7 +183,7 @@ end
     end
 
     if N == ORA_NATIVE_TYPE_BYTES
-        @assert val <: String "Setting byte values to an AbstractOracleValue supports only String values. Got $val."
+        @assert val <: String || val <: Vector{UInt8} "Setting byte values to an AbstractOracleValue supports only String or Vector{UInt8} values. Got $val."
 
         return quote
             dpiData_setBytes(at, val)
@@ -277,14 +291,22 @@ end
     return OracleTypeTuple(ORA_ORACLE_TYPE_NVARCHAR, ORA_NATIVE_TYPE_BYTES)
 end
 
-@generated function JuliaOracleValue(scalar::T) where {T}
-    # TODO
-    @assert !(scalar <: Vector) "Vector not supported."
-
-    return quote
-        ott = infer_oracle_type_tuple(scalar)
-        val = JuliaOracleValue(ott.oracle_type, ott.native_type, T)
-        val[] = scalar
-        return val
+@inline function infer_oracle_type_tuple(b::Vector{UInt8})
+    if length(b) <= 2000
+        return OracleTypeTuple(ORA_ORACLE_TYPE_RAW, ORA_NATIVE_TYPE_BYTES)
+    else
+        return OracleTypeTuple(ORA_ORACLE_TYPE_LONG_RAW, ORA_NATIVE_TYPE_BYTES)
     end
+end
+
+@inline function infer_oracle_type_tuple(::Type{Vector{UInt8}})
+    # without information about string length, will best guess as a RAW
+    return OracleTypeTuple(ORA_ORACLE_TYPE_RAW, ORA_NATIVE_TYPE_BYTES)
+end
+
+function JuliaOracleValue(scalar::T) where {T}
+    ott = infer_oracle_type_tuple(scalar)
+    val = JuliaOracleValue(ott.oracle_type, ott.native_type, T)
+    val[] = scalar
+    return val
 end
