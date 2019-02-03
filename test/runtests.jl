@@ -239,8 +239,9 @@ end
 
     @testset "RAW" begin
         julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_RAW, Oracle.ORA_NATIVE_TYPE_BYTES, Vector{UInt8})
-        julia_oracle_value[] = UInt8[0x10, 0x11, 0x12, 0x13]
-        @test julia_oracle_value[] == UInt8[0x10, 0x11, 0x12, 0x13]
+        test_data = rand(UInt8, 200)
+        julia_oracle_value[] = copy(test_data)
+        @test julia_oracle_value[] == test_data
     end
 
     @testset "Stmt bind" begin
@@ -326,7 +327,7 @@ end
 
         lyric = "hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼"
 
-        Oracle.execute!(conn, "CREATE TABLE TB_BLOB ( b BLOB )")
+        Oracle.execute!(conn, "CREATE TABLE TB_BLOB ( B BLOB )")
         Oracle.execute!(conn, "INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw('$lyric'))")
 
         function check_blob_data(test_data::String, lob, buffer_size)
@@ -369,7 +370,23 @@ end
 
         Oracle.execute!(conn, "DROP TABLE TB_BLOB")
     end
+#=
+    @testset "Write BLOB" begin
+        #Oracle.execute!(conn, "DROP TABLE TB_WRITE_BLOB")
+        Oracle.execute!(conn, "CREATE TABLE TB_WRITE_BLOB ( B BLOB )")
 
+        blob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_BLOB)
+        data = rand(UInt8, 5000)
+        write(blob, data)
+
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_WRITE_BLOB ( B ) VALUES ( :1 )")
+        stmt[1] = blob # ERROR: DPI-1014: conversion between Oracle type 0 and native type 3008 is not implemented
+        Oracle.execute!(stmt)
+        Oracle.close!(stmt)
+
+        Oracle.execute!(conn, "DROP TABLE TB_WRITE_BLOB")
+    end
+=#
     @testset "Read CLOB" begin
         #utfchar_5bytes = "a🎵" # https://github.com/oracle/odpi/issues/94
         test_string = "abcdefghij"^250
@@ -814,6 +831,7 @@ end
         Oracle.close!(stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
     end
+
 #=
     @testset "Bind RAW" begin
         #Oracle.execute!(conn, "DROP TABLE TB_RAW")
@@ -961,6 +979,72 @@ end
         end
 
         Oracle.execute!(conn, "DROP TABLE TB_EXECUTE_MANY")
+    end
+
+    @testset "BLOB Variable" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_BLOB_VARIABLE ( B BLOB )")
+
+        test_data = rand(UInt8, 5000)
+
+        let
+            blob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_BLOB)
+            write(blob, test_data)
+
+            ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_BLOB, Oracle.ORA_NATIVE_TYPE_LOB)
+            ora_var[0] = blob
+
+            stmt = Oracle.Stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )")
+            stmt[1] = ora_var
+            Oracle.execute!(stmt)
+            Oracle.close!(stmt)
+        end
+
+        let
+            Oracle.query(conn, "SELECT B FROM TB_BLOB_VARIABLE") do cursor
+                for row in cursor
+                    blob = row["B"]
+                    @test isa(blob, Oracle.Lob)
+                    read_data = read(blob)
+                    @test read_data == test_data
+                    Oracle.close!(blob)
+                end
+            end
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_BLOB_VARIABLE")
+    end
+
+    @testset "CLOB Variable" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_CLOB_VARIABLE ( C CLOB )")
+
+        test_data = "Lorem ipsum dolor sit amet"^1000
+
+        let
+            clob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_CLOB)
+            write(clob, test_data)
+
+            ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_CLOB, Oracle.ORA_NATIVE_TYPE_LOB)
+            ora_var[0] = clob
+
+            stmt = Oracle.Stmt(conn, "INSERT INTO TB_CLOB_VARIABLE ( C ) VALUES ( :1 )")
+            stmt[1] = ora_var
+            Oracle.execute!(stmt)
+            Oracle.close!(stmt)
+        end
+
+        let
+            Oracle.query(conn, "SELECT C FROM TB_CLOB_VARIABLE") do cursor
+                for row in cursor
+                    clob = row["C"]
+                    @test isa(clob, Oracle.Lob)
+                    read_data = read(clob)
+                    @test read_data == test_data
+                    Oracle.close!(clob)
+                end
+            end
+        end
+
+        Oracle.execute!(conn, "DROP TABLE TB_CLOB_VARIABLE")
     end
 end
 

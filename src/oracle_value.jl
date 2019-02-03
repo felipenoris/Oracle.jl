@@ -157,7 +157,7 @@ end
         @assert N == ORA_NATIVE_TYPE_INT64
 
         return quote
-                dpiData_getInt64(data_handle)
+            dpiData_getInt64(data_handle)
         end
 
     end
@@ -183,10 +183,16 @@ end
     end
 
     if N == ORA_NATIVE_TYPE_BYTES
-        @assert val <: String || val <: Vector{UInt8} "Setting byte values to an AbstractOracleValue supports only String or Vector{UInt8} values. Got $val."
+        if val <: String
+            return quote
+                dpiData_setBytes(at, val)
+            end
+        end
 
-        return quote
-            dpiData_setBytes(at, val)
+        if val <: Vector{UInt8}
+            return quote
+                dpiData_setBytes(at, pointer(val), UInt32(length(val)))
+            end
         end
     end
 
@@ -223,6 +229,13 @@ end
         return quote
             ts = OraTimestamp(val)
             dpiData_setTimestamp(at, ts)
+        end
+    end
+
+    if N == ORA_NATIVE_TYPE_LOB
+        @assert val <: Lob "Value must be of type `Oracle.Lob`."
+        return quote
+            dpiData_setLOB(at, val.handle)
         end
     end
 
@@ -269,6 +282,7 @@ end
 @inline infer_oracle_type_tuple(::Type{UInt64}) = OracleTypeTuple(ORA_ORACLE_TYPE_NATIVE_UINT, ORA_NATIVE_TYPE_UINT64)
 @inline infer_oracle_type_tuple(::Type{Date}) = OracleTypeTuple(ORA_ORACLE_TYPE_DATE, ORA_NATIVE_TYPE_TIMESTAMP)
 @inline infer_oracle_type_tuple(::Type{DateTime}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP, ORA_NATIVE_TYPE_TIMESTAMP)
+@inline infer_oracle_type_tuple(::Lob{O}) where {O} = OracleTypeTuple(O, ORA_NATIVE_TYPE_LOB)
 
 # accept julia values as arguments
 for type_sym in (:Bool, :Float64, :Int64, :UInt64, :Date, :DateTime)

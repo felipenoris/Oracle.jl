@@ -72,6 +72,13 @@ function Base.setindex!(variable::Variable, value::String, pos::Integer)
     nothing
 end
 
+function Base.setindex!(variable::Variable, value::Lob, pos::Integer)
+    check_bounds(variable, pos)
+    result = dpiVar_setFromLob(variable.handle, UInt32(pos), value.handle)
+    error_check(context(variable), result)
+    nothing
+end
+
 function Base.getindex(variable::Variable, pos::Integer)
     check_bounds(variable, pos)
     oracle_value = ExternOracleValue(variable, variable.oracle_type, variable.native_type, variable.buffer_handle)

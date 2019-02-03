@@ -399,8 +399,11 @@ function dpiData_setBytes(dpi_data_ptr::Ref{OraData}, str::String)
 end
 
 function dpiData_setBytes(dpi_data_ptr::Ref{OraData}, bytes::Vector{UInt8})
-    error("Unsupported") # TODO
     ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, bytes, length(bytes))
+end
+
+function dpiData_setBytes(dpi_data_ptr::Ref{OraData}, bytes_ptr::Ptr{UInt8}, bytes_len::UInt32)
+    ccall((:dpiData_setBytes, libdpi), Cvoid, (Ref{OraData}, Ptr{UInt8}, UInt32), dpi_data_ptr, bytes_ptr, bytes_len)
 end
 
 # void dpiData_setDouble(dpiData *data, double value)
@@ -423,6 +426,11 @@ function dpiData_setNull(dpi_data_ptr::Ref{OraData})
     ccall((:dpiData_setNull, libdpi), Cvoid, (Ref{OraData},), dpi_data_ptr)
 end
 
+# void dpiData_setLOB(dpiData *data, dpiLob *lob)
+function dpiData_setLOB(dpi_data_ptr::Ref{OraData}, lob_handle::Ptr{Cvoid})
+    ccall((:dpiData_setLOB, libdpi), Cvoid, (Ref{OraData}, Ptr{Cvoid}), dpi_data_ptr, lob_handle)
+end
+
 #
 # ODPI-C Variable Functions
 #
@@ -436,6 +444,15 @@ end
 function dpiVar_setFromBytes(var_handle::Ptr{Cvoid}, pos::UInt32, value::String)
     valueLength = sizeof(value)
     ccall((:dpiVar_setFromBytes, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{UInt8}, UInt32), var_handle, pos, value, valueLength)
+end
+
+function dpiVar_setFromBytes(var_handle::Ptr{Cvoid}, pos::UInt32, value::Vector{UInt8})
+    ccall((:dpiVar_setFromBytes, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{UInt8}, UInt32), var_handle, pos, value, length(value))
+end
+
+# int dpiVar_setFromLob(dpiVar *var, uint32_t pos, dpiLob *lob)
+function dpiVar_setFromLob(var_handle::Ptr{Cvoid}, pos::UInt32, lob_handle::Ptr{Cvoid})
+    ccall((:dpiVar_setFromLob, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{Cvoid}), var_handle, pos, lob_handle)
 end
 
 #
@@ -490,4 +507,14 @@ end
 # int dpiLob_getBufferSize(dpiLob *lob, uint64_t sizeInChars, uint64_t *sizeInBytes)
 function dpiLob_getBufferSize(lob_handle::Ptr{Cvoid}, size_in_chars::UInt64, size_in_bytes_ref::Ref{UInt64})
     ccall((:dpiLob_getBufferSize, libdpi), OraResult, (Ptr{Cvoid}, UInt64, Ref{UInt64}), lob_handle, size_in_chars, size_in_bytes_ref)
+end
+
+# int dpiLob_trim(dpiLob *lob, uint64_t newSize)
+function dpiLob_trim(lob_handle::Ptr{Cvoid}, new_size::UInt64)
+    ccall((:dpiLob_trim, libdpi), OraResult, (Ptr{Cvoid}, UInt64), lob_handle, new_size)
+end
+
+# int dpiLob_setFromBytes(dpiLob *lob, const char *value, uint64_t valueLength)
+function dpiLob_setFromBytes(lob_handle::Ptr{Cvoid}, buffer::Ptr{UInt8}, buffer_len::UInt64)
+    ccall((:dpiLob_setFromBytes, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt64), lob_handle, buffer, buffer_len)
 end

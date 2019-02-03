@@ -104,15 +104,44 @@ end
     return size_in_bytes_ref[]
 end
 
-#=
-# TODO
-function lob_write!(lob::Lob, offset::UInt64, buffer::Buffer)
-    result = dpiLob_writeBytes(lob.handle, offset, pointer(buffer.bytes), buffer.bytes_available)
+function Base.write(lob::Lob, data::Ptr{UInt8}, data_length::Integer)
+    result = dpiLob_setFromBytes(lob.handle, data, UInt64(data_length))
     error_check(context(lob), result)
-    buffer.bytes_available = 0
     nothing
 end
-=#
+
+Base.write(lob::Lob, data::Vector{UInt8}) = write(lob, pointer(data), length(data))
+Base.write(lob::Lob, data::String) = write(lob, pointer(data), sizeof(data))
+
+function Base.read(blob::Lob{ORA_ORACLE_TYPE_BLOB}) :: Vector{UInt8}
+    blob_size = size_in_bytes(blob)
+    result = undef_vector(UInt8, blob_size)
+
+    open(blob, "r") do io
+        i = 0
+        while !eof(io)
+            i += 1
+            result[i] = read(io, UInt8)
+        end
+        @assert i == blob_size
+    end
+
+    return result
+end
+
+for ora_type in (ORA_ORACLE_TYPE_CLOB, ORA_ORACLE_TYPE_NCLOB)
+    @eval begin
+        function Base.read(clob::Lob{$ora_type}) :: String
+            local result::String
+
+            open(clob, "r") do io
+                result = read(io, String)
+            end
+
+            return result
+        end
+    end
+end
 
 abstract type LobDataType end
 
