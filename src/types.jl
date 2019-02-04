@@ -386,7 +386,7 @@ mutable struct ConnCreateParams
     pool::Union{Nothing, Pool}
 end
 
-mutable struct Variable
+mutable struct Variable{T}
     connection::Connection
     handle::Ptr{Cvoid}
     oracle_type::OraOracleTypeNum
@@ -399,6 +399,7 @@ mutable struct Variable
 
     function Variable(
             connection::Connection,
+            ::Type{T},
             handle::Ptr{Cvoid},
             oracle_type::OraOracleTypeNum,
             native_type::OraNativeTypeNum,
@@ -406,9 +407,9 @@ mutable struct Variable
             is_PLSQL_array::Int32,
             obj_type_handle::Ptr{Cvoid},
             buffer_handle::Ptr{OraData},
-            buffer_capacity::UInt32)
+            buffer_capacity::UInt32) where {T}
 
-        new_ora_variable = new(
+        new_ora_variable = new{T}(
             connection,
             handle,
             oracle_type,

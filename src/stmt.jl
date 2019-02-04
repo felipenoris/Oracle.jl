@@ -194,7 +194,7 @@ function execute!(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_E
     check_columns_length(columns)
 
     for (c, column) in enumerate(columns)
-        stmt[c] = build_variable(stmt.connection, column)
+        stmt[c] = Variable(stmt.connection, column)
     end
 
     # execute

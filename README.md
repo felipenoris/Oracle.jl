@@ -187,14 +187,21 @@ They come in two flavors:
 
 * Character LOBs: CLOB or NCLOB.
 
-LOB values are represented as a value of type `Oracle.Lob` in this package. From a LOB value,
-you can use `open` do get an IO stream to read and write data.
+LOB values are represented as a value of type `Oracle.Lob` in this package.
 
-*Currently, writing data to LOB is not supported by this package. BFILE LOB is also not supported.*
+From a LOB value, you can use `read` and `write` methods to manipulate whole contents of the LOB value.
+For incremental reading/writing, you can use `open` with *do-syntax* do get an IO stream out of a `Oracle.Lob`.
+
+IO Streams created on Character LOBs use the character index as its position, and
+only support reading/writing for `Char` and `String` data types.
+
+*Currently, BFILE is not supported.*
 
 LOB references are lost once you operate a fetch on a statement. So, whenever you have a
 reference to a LOB value, always use `Oracle.close!(lob_value)` once you have finished with it.
 This will avoid finalization errors or segfaults.
+
+#### Reading from a BLOB
 
 ```julia
 lyric = "hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼"
@@ -206,10 +213,7 @@ Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
     for row in cursor
         blob = row["B"]
         try
-            # will open an IO Stream on read mode
-            open(blob, "r") do io
-                println(read(io, String))
-            end
+            println(read(blob, String))
         finally
             Oracle.close!(blob)
         end
@@ -217,8 +221,42 @@ Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
 end
 ```
 
-IO Streams created on Character LOBs use the character index as its position, and
-only support reading/writing for `Char` and `String` data types.
+#### Writing to a BLOB
+
+Follow these steps to write to a BLOB field in the database.
+
+1. Create a temporary Lob associated with the connection using `Oracle.Lob(connection, oracle_type)`.
+
+2. Write data to the Lob.
+
+3. Wrap the Lob into a Variable.
+
+4. Bind the variable to the statement.
+
+5. Execute the statement.
+
+```julia
+Oracle.execute!(conn, "CREATE TABLE TB_BLOB_VARIABLE ( B BLOB )")
+
+test_data = rand(UInt8, 5000)
+
+# creates a temporary Lob bounded to the Connection
+blob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_BLOB)
+
+# replaces all Lob data with the contents of the array test_data
+write(blob, test_data)
+
+# wraps the blob in a Variable
+ora_var = Oracle.Variable(conn, blob)
+
+stmt = Oracle.Stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )")
+
+# binds the variable to the statement
+stmt[1] = ora_var
+
+Oracle.execute!(stmt)
+Oracle.close!(stmt)
+```
 
 ## ODPI-C Naming Conventions
 

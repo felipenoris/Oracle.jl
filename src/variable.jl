@@ -2,13 +2,14 @@
 "Variable is a 0-indexed array of OpiData."
 function Variable(
         connection::Connection,
+        ::Type{T},
         oracle_type::OraOracleTypeNum,
         native_type::OraNativeTypeNum,
         ;
         buffer_capacity::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE,
         max_byte_string_size::Integer=4000, # maximum size allowed for VARCHAR2 fields
         is_PLSQL_array::Bool=false,
-        object_type_handle::Ptr{Cvoid}=C_NULL)
+        object_type_handle::Ptr{Cvoid}=C_NULL) where {T}
 
     var_handle_ref = Ref{Ptr{Cvoid}}()
     buffer_handle_ref = Ref{Ptr{OraData}}()
@@ -31,6 +32,7 @@ function Variable(
 
     return Variable(
         connection,
+        T,
         var_handle_ref[],
         oracle_type,
         native_type,
@@ -91,7 +93,7 @@ end
     @assert pos < variable.buffer_capacity "Position $pos is greater than variable's buffer capacity $(variable.buffer_capacity)."
 end
 
-function find_max_byte_string_size(v::Vector{T}) where {T<:Union{AbstractString, Missing}}
+function find_max_byte_string_size(v::Vector{T}) where {T<:Union{Missing, AbstractString}}
     if isempty(v)
         return 0
     end
@@ -110,61 +112,77 @@ function find_max_byte_string_size(v::Vector{T}) where {T<:Union{AbstractString,
     end
 end
 
-@generated function build_variable(conn::Connection, column::Vector{T}; is_PLSQL_array::Bool=false) where T
+function find_max_byte_string_size(v::Vector{T}) where {T}
+    return 0
+end
 
-    if T <: Union{Missing, Float64}
-        oracle_type = :ORA_ORACLE_TYPE_NATIVE_DOUBLE
-        native_type = :ORA_NATIVE_TYPE_DOUBLE
-        max_byte_string_size = 0
+function subtract_missing(::Type{T}) where {T}
+    if isa(T, Union)
+        if T.a <: Missing
+            return subtract_missing(T.b)
+        elseif T.b <: Missing
+                return subtract_missing(T.a)
+        else
+            error("Can't subtract missing from data type $T.")
+        end
+    else
+        @assert !(T <: Missing) "Datatype cannot be $T."
+        return T
+    end
+end
 
-    elseif T <: Union{Missing, Bool}
-        oracle_type = :ORA_ORACLE_TYPE_BOOLEAN
-        native_type = :ORA_NATIVE_TYPE_BOOLEAN
-        max_byte_string_size = 0
+@generated function Variable(conn::Connection, column::Vector{T};
+    is_PLSQL_array::Bool=false, object_type_handle::Ptr{Cvoid}=C_NULL) where {T}
 
-    elseif T <: Union{Missing, Int64}
-        oracle_type = :ORA_ORACLE_TYPE_NATIVE_INT
-        native_type = :ORA_NATIVE_TYPE_INT64
-        max_byte_string_size = 0
-
-    elseif T <: Union{Missing, UInt64}
-        oracle_type = :ORA_ORACLE_TYPE_NATIVE_UINT
-        native_type = :ORA_NATIVE_TYPE_UINT64
-        max_byte_string_size = 0
-
-    elseif T <: Union{Missing, Float32}
-        oracle_type = :ORA_ORACLE_TYPE_NATIVE_FLOAT
-        native_type = :ORA_NATIVE_TYPE_FLOAT
-        max_byte_string_size = 0
-
-    elseif T <: Union{Missing, String}
-        # TODO: choose appropriate oracle_type based on string length
-        oracle_type = :ORA_ORACLE_TYPE_NVARCHAR
-        native_type = :ORA_NATIVE_TYPE_BYTES
-        max_byte_string_size = :(find_max_byte_string_size(column))
-
-    elseif T == Any
+    if T == Any
         # probably Julia v0.6. Will infer types in runtime.
         return :(build_variable_runtime_inferred_types(conn, column; is_PLSQL_array=is_PLSQL_array))
-
     else
-        error("Julia type $T not supported for Variables.")
+
+        ELTYPE = subtract_missing(T)
+        ott = infer_oracle_type_tuple(ELTYPE)
+
+        return quote
+            capacity = length(column)
+
+            variable = Variable(conn, T, $(ott.oracle_type), $(ott.native_type);
+                buffer_capacity=capacity,
+                max_byte_string_size=find_max_byte_string_size(column),
+                is_PLSQL_array=is_PLSQL_array,
+                object_type_handle=object_type_handle)
+
+            for i in 1:capacity
+                variable[i-1] = column[i] # variables are 0-indexed
+            end
+
+            return variable
+        end
     end
+end
+
+function Variable(conn::Connection, value::T;
+    is_PLSQL_array::Bool=false, object_type_handle::Ptr{Cvoid}=C_NULL) where {T}
+    return Variable(conn, [ value ], is_PLSQL_array=is_PLSQL_array, object_type_handle=object_type_handle)
+end
+
+@generated function Variable(
+        connection::Connection,
+        ::Type{T}
+        ;
+        buffer_capacity::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE,
+        max_byte_string_size::Integer=4000, # maximum size allowed for VARCHAR2 fields
+        is_PLSQL_array::Bool=false,
+        object_type_handle::Ptr{Cvoid}=C_NULL) where {T}
+
+    ELTYPE = subtract_missing(T)
+    ott = infer_oracle_type_tuple(ELTYPE)
 
     return quote
-        capacity = length(column)
-
-        variable = Variable(conn, $oracle_type, $native_type;
-            buffer_capacity=capacity,
-            max_byte_string_size=$max_byte_string_size,
+        Variable(connection, T, $(ott.oracle_type), $(ott.native_type),
+            buffer_capacity=buffer_capacity,
+            max_byte_string_size=max_byte_string_size,
             is_PLSQL_array=is_PLSQL_array,
-            object_type_handle=C_NULL)
-
-        for i in 1:capacity
-            variable[i-1] = column[i] # variables are 0-indexed
-        end
-
-        return variable
+            object_type_handle=object_type_handle)
     end
 end
 
@@ -182,11 +200,12 @@ function infer_eltype(column::Vector)
 end
 
 function build_variable_runtime_inferred_types(conn::Connection, column::Vector{T}; is_PLSQL_array::Bool=false) where T
-    new_column = Vector{infer_eltype(column)}()
+    ELTYPE = infer_eltype(column)
+    new_column = Vector{ELTYPE}()
     for element in column
         push!(new_column, element)
     end
 
     # going back to the generated function with appropriate type information.
-    return build_variable(conn, new_column, is_PLSQL_array=is_PLSQL_array)
+    return Variable(conn, new_column, is_PLSQL_array=is_PLSQL_array)
 end

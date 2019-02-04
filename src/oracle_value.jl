@@ -282,7 +282,6 @@ end
 @inline infer_oracle_type_tuple(::Type{UInt64}) = OracleTypeTuple(ORA_ORACLE_TYPE_NATIVE_UINT, ORA_NATIVE_TYPE_UINT64)
 @inline infer_oracle_type_tuple(::Type{Date}) = OracleTypeTuple(ORA_ORACLE_TYPE_DATE, ORA_NATIVE_TYPE_TIMESTAMP)
 @inline infer_oracle_type_tuple(::Type{DateTime}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP, ORA_NATIVE_TYPE_TIMESTAMP)
-@inline infer_oracle_type_tuple(::Lob{O}) where {O} = OracleTypeTuple(O, ORA_NATIVE_TYPE_LOB)
 
 # accept julia values as arguments
 for type_sym in (:Bool, :Float64, :Int64, :UInt64, :Date, :DateTime)
@@ -290,6 +289,9 @@ for type_sym in (:Bool, :Float64, :Int64, :UInt64, :Date, :DateTime)
         @inline infer_oracle_type_tuple(::$type_sym) = infer_oracle_type_tuple($type_sym)
     end
 end
+
+@inline infer_oracle_type_tuple(::Type{Lob{O,P}}) where {O,P} = OracleTypeTuple(O, ORA_NATIVE_TYPE_LOB)
+@inline infer_oracle_type_tuple(::Lob{O,P}) where {O,P} = OracleTypeTuple(O, ORA_NATIVE_TYPE_LOB)
 
 @inline function infer_oracle_type_tuple(s::String)
     # max VARCHAR2 size is 4000 bytes

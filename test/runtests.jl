@@ -16,6 +16,14 @@ function gc_on_v6()
     end
 end
 
+@testset "subtract_missing" begin
+    @test Oracle.subtract_missing(Float64) == Float64
+    @test_throws AssertionError Oracle.subtract_missing(Missing)
+    @test Oracle.subtract_missing(Union{Missing, Float64}) == Float64
+    @test Oracle.subtract_missing(Union{Float64, Missing}) == Float64
+    @test_throws ErrorException Oracle.subtract_missing(Union{Int, Union{Float64, Missing}})
+end
+
 @assert isfile(joinpath(@__DIR__, "credentials.jl")) """
 Before running tests, create a file `test/credentials.jl` with the content:
 
@@ -865,7 +873,7 @@ end
 @testset "Variables" begin
 
     @testset "get/set values to Variables" begin
-        ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        ora_var = Oracle.Variable(conn, Float64, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
 
         ora_var[0] = 0.0
         @test ora_var[0] == 0.0
@@ -890,7 +898,7 @@ end
     Oracle.execute!(conn, "CREATE TABLE TB_VARIABLES ( FLT NUMBER(15,4) NULL )")
 
     @testset "low-level define API" begin
-        ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        ora_var = Oracle.Variable(conn, Union{Missing, Float64})
 
         Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :1 )", [ [123.45, 456.78, missing] ])
         stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_VARIABLES")
@@ -913,7 +921,7 @@ end
     gc_on_v6()
 
     @testset "bind to stmt" begin
-        ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        ora_var = Oracle.Variable(conn, Float64)
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :flt )")
         stmt[:flt] = ora_var
         Oracle.close!(stmt)
@@ -923,7 +931,7 @@ end
         how_many = 10
 
         let
-            ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+            ora_var = Oracle.Variable(conn, Float64)
 
             for i in 0:(how_many-1)
                 ora_var[i] = Float64(i)
@@ -990,8 +998,7 @@ end
             blob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_BLOB)
             write(blob, test_data)
 
-            ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_BLOB, Oracle.ORA_NATIVE_TYPE_LOB)
-            ora_var[0] = blob
+            ora_var = Oracle.Variable(conn, blob)
 
             stmt = Oracle.Stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )")
             stmt[1] = ora_var
@@ -1023,8 +1030,7 @@ end
             clob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_CLOB)
             write(clob, test_data)
 
-            ora_var = Oracle.Variable(conn, Oracle.ORA_ORACLE_TYPE_CLOB, Oracle.ORA_NATIVE_TYPE_LOB)
-            ora_var[0] = clob
+            ora_var = Oracle.Variable(conn, clob)
 
             stmt = Oracle.Stmt(conn, "INSERT INTO TB_CLOB_VARIABLE ( C ) VALUES ( :1 )")
             stmt[1] = ora_var

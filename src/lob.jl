@@ -60,32 +60,28 @@ function chunk_size(lob::Lob) :: UInt32
 end
 
 # Returns the size of the data stored in the Lob. For character Lobs the size is in characters; for binary Lobs the size is in bytes.
-function _lob_size(lob::Lob) :: UInt64
+function _lob_size(lob::Lob)
     lob_size_ref = Ref{UInt64}()
     result = dpiLob_getSize(lob.handle, lob_size_ref)
     error_check(context(lob), result)
     return lob_size_ref[]
 end
 
-@generated function size_in_bytes(lob::Lob) :: UInt64
+function size_in_bytes(lob::Lob)
     @assert !is_character_data(lob) "This Lob holds character data. It's size is in Chars. Use `size_in_chars`."
-    return quote
-        _lob_size(lob)
-    end
+    return _lob_size(lob)
 end
 
-@generated function size_in_chars(lob::Lob) :: UInt64
+function size_in_chars(lob::Lob)
     @assert is_character_data(lob) "This Lob holds byte data. It's size is in Bytes. Use `size_in_bytes`."
-    return quote
-        _lob_size(lob)
-    end
+    return _lob_size(lob)
 end
 
 @inline function is_character_data(::T) :: Bool where {T<:Lob}
     return is_character_data(T)
 end
 
-@generated function is_character_data(::Type{Lob{ORATYPE, T}}) :: Bool where {ORATYPE, T}
+function is_character_data(::Type{Lob{ORATYPE, T}}) :: Bool where {ORATYPE, T}
     if ORATYPE == ORA_ORACLE_TYPE_BFILE || ORATYPE == ORA_ORACLE_TYPE_BLOB
         return false
     else
