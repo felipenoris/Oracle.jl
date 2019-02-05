@@ -9,13 +9,6 @@ else
     using Dates
 end
 
-# runs garbage collector only on Julia v0.6
-function gc_on_v6()
-    @static if VERSION < v"0.7-"
-        gc()
-    end
-end
-
 @testset "subtract_missing" begin
     @test Oracle.subtract_missing(Float64) == Float64
     @test_throws AssertionError Oracle.subtract_missing(Missing)
@@ -655,8 +648,6 @@ end
 
 @testset "Bind" begin
 
-    gc_on_v6()
-
     @testset "bind int, flt, str, date by name" begin
         Oracle.execute!(conn, "CREATE TABLE TB_BIND_BY_NAME ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
@@ -812,8 +803,6 @@ end
         Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_POSITION")
     end
 
-    gc_on_v6()
-
     @testset "Bind DateTime" begin
         Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP NULL )")
 
@@ -917,8 +906,6 @@ end
         Oracle.close!(stmt)
         Oracle.rollback!(conn)
     end
-
-    gc_on_v6()
 
     @testset "bind to stmt" begin
         ora_var = Oracle.Variable(conn, Float64)
