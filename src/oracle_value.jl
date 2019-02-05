@@ -127,18 +127,21 @@ end
         end
     end
 
-    if N == ORA_NATIVE_TYPE_TIMESTAMP
-        if O == ORA_ORACLE_TYPE_DATE
-            return quote
-                ptr_native_timestamp = dpiData_getTimestamp(data_handle)
-                local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
-                @assert ts.fsecond == 0
-                @assert ts.tzHourOffset == 0
-                @assert ts.tzMinuteOffset == 0
-                return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second)
-            end
+    if O == ORA_ORACLE_TYPE_DATE
+        @assert N == ORA_NATIVE_TYPE_TIMESTAMP "Invalid combination: [ $O, $N ]."
 
-        elseif O == ORA_ORACLE_TYPE_TIMESTAMP
+        return quote
+            ptr_native_timestamp = dpiData_getTimestamp(data_handle)
+            local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
+            @assert ts.fsecond == 0
+            @assert ts.tzHourOffset == 0
+            @assert ts.tzMinuteOffset == 0
+            return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second)
+        end
+    end
+
+    if O == ORA_ORACLE_TYPE_TIMESTAMP
+        if N == ORA_NATIVE_TYPE_TIMESTAMP
             return quote
                 ptr_native_timestamp = dpiData_getTimestamp(data_handle)
                 local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
@@ -146,6 +149,10 @@ end
                 @assert ts.tzMinuteOffset == 0
                 return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond * (1e-6) )
             end
+        elseif N == ORA_NATIVE_TYPE_DOUBLE
+            error("Not implemented.")
+        else
+            error("Invalid combination: [ $O, $N ].")
         end
     end
 
@@ -162,7 +169,14 @@ end
         return quote
             dpiData_getInt64(data_handle)
         end
+    end
 
+    if O == ORA_ORACLE_TYPE_NATIVE_UINT
+        @assert N == ORA_NATIVE_TYPE_UINT64
+
+        return quote
+            dpiData_getUint64(data_handle)
+        end
     end
 
     error("Couldn't parse value for oracle type $O, native type $N.")
@@ -214,6 +228,12 @@ end
     if N == ORA_NATIVE_TYPE_INT64
         return quote
             dpiData_setInt64(at, val)
+        end
+    end
+
+    if N == ORA_NATIVE_TYPE_UINT64
+        return quote
+            dpiData_setUint64(at, val)
         end
     end
 

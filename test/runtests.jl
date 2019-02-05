@@ -220,6 +220,11 @@ end
         @test julia_oracle_value[0] == julia_oracle_value[]
     end
 
+    @testset "UInt64" begin
+        julia_oracle_value = Oracle.JuliaOracleValue(UInt64(10000))
+        @test julia_oracle_value[] == UInt64(10000)
+    end
+
     @testset "Missing" begin
         julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NATIVE_INT, Oracle.ORA_NATIVE_TYPE_INT64, Union{Missing, Int64})
         julia_oracle_value[] = missing

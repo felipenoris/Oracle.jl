@@ -416,6 +416,11 @@ function dpiData_setInt64(dpi_data_ptr::Ref{OraData}, value::Int64)
     ccall((:dpiData_setInt64, libdpi), Cvoid, (Ref{OraData}, Int64), dpi_data_ptr, value)
 end
 
+# void dpiData_setUint64(dpiData *data, uint64_t value)
+function dpiData_setUint64(dpi_data_ptr::Ref{OraData}, value::UInt64)
+    ccall((:dpiData_setUint64, libdpi), Cvoid, (Ref{OraData}, UInt64), dpi_data_ptr, value)
+end
+
 # void dpiData_setTimestamp(dpiData *data, int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint32_t fsecond, int8_t tzHourOffset, int8_t tzMinuteOffset)
 function dpiData_setTimestamp(dpi_data_ptr::Ref{OraData}, ts::OraTimestamp)
     ccall((:dpiData_setTimestamp, libdpi), Cvoid, (Ref{OraData}, Int16, UInt8, UInt8, UInt8, UInt8, UInt8, UInt32, Int8, Int8), dpi_data_ptr, ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond, ts.tzHourOffset, ts.tzMinuteOffset)
