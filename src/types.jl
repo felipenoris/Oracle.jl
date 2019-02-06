@@ -20,10 +20,17 @@ struct OraTimestamp
     fsecond::UInt32 # Specifies the fractional seconds for the timestamp, in nanoseconds.
     tzHourOffset::Int8 # Specifies the hours offset from UTC. This value is only used for timestamp with time zone and timestamp with local time zone columns.
     tzMinuteOffset::Int8 # Specifies the minutes offset from UTC. This value is only used for timestamp with time zone and timestamp with local time zone columns. Note that this value will be negative in the western hemisphere. For example, when the timezone is -03:30, tzHourOffset will be -3 and tzMinuteOffset will be -30.
-end
 
-OraTimestamp(date::Date) = OraTimestamp(Int16(Dates.year(date)), UInt8(Dates.month(date)), UInt8(Dates.day(date)), 0, 0, 0, 0, 0, 0)
-OraTimestamp(datetime::DateTime) = OraTimestamp(Int16(Dates.year(datetime)), UInt8(Dates.month(datetime)), UInt8(Dates.day(datetime)), UInt8(Dates.hour(datetime)), UInt8(Dates.minute(datetime)), UInt8(Dates.second(datetime)), UInt32( Dates.millisecond(datetime)*1E6 ), 0, 0)
+    function OraTimestamp(year::Integer, month::Integer, day::Integer,
+                          hour::Integer, minute::Integer, second::Integer, fsecond::Integer,
+                          tz_hour_offset::Integer, tz_minute_offset::Integer)
+
+        return new(Int16(year), UInt8(month), UInt8(day),
+                   UInt8(hour), UInt8(minute), UInt8(second), UInt32(fsecond),
+                   Int8(tz_hour_offset), Int8(tz_minute_offset)
+               )
+    end
+end
 
 struct OraErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.

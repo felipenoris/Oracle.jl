@@ -1,4 +1,6 @@
 
+include("timestamps_tests.jl")
+
 import Oracle
 
 if VERSION < v"0.7-"
@@ -808,12 +810,15 @@ end
         Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_POSITION")
     end
 
-    @testset "Bind DateTime" begin
-        Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP NULL )")
+    @testset "Bind DateTime and Timestamp" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP(9) NULL )")
 
-        ts_now = Dates.now()
+        dt_now = Dates.now()
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP ( TS ) VALUES ( :ts )")
-        stmt[:ts] = ts_now
+        stmt[:ts] = dt_now
+        Oracle.execute!(stmt)
+        ts = Oracle.Timestamps.Timestamp(2018, 12, 31, 23, 58, 59, 999_200_300)
+        stmt[:ts] = ts
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
 
@@ -821,9 +826,53 @@ end
 
             Oracle.query(conn, "SELECT TS FROM TB_BIND_TIMESTAMP") do cursor
                 for row in cursor
-                    @test row["TS"] == ts_now
-                    @test isa(row["TS"], DateTime)
                     row_number += 1
+
+                    if row_number == 1
+                        @test row["TS"] == dt_now
+                    else
+                        @test row["TS"] == ts
+                    end
+
+                    @test isa(row["TS"], Oracle.Timestamps.Timestamp)
+                end
+            end
+
+            @test row_number == 2
+        end
+
+        Oracle.close!(stmt)
+        Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
+    end
+
+    @testset "Bind DateTime and Timestamp" begin
+        Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP_TZ ( TS_TZ TIMESTAMP(9) WITH TIME ZONE, TS_LTZ TIMESTAMP(9) WITH LOCAL TIME ZONE )")
+
+        ts_tz = Oracle.Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 0)
+        ts_ltz = Oracle.Timestamps.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400, -3, 0)
+
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )")
+        stmt[:ts_tz] = ts_tz
+        stmt[:ts_ltz] = ts_ltz
+        Oracle.execute!(stmt)
+        Oracle.commit!(conn)
+
+        let row_number = 0
+
+            Oracle.query(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ") do cursor
+                for row in cursor
+                    row_number += 1
+
+
+                    println("TS_TZ = ", row["TS_TZ"])
+                    println("TS_LTZ = ", row["TS_LTZ"])
+#=
+                    @test row["TS_TZ"] == ts_tz
+                    @test second(row["TS_LTZ"]) == second(ts_ltz)
+                    @test millisecond(row["TS_LTZ"]) == millisecond(ts_ltz)
+                    @test microsecond(row["TS_LTZ"]) == microsecond(ts_ltz)
+                    @test nanosecond(row["TS_LTZ"]) == nanosecond(ts_ltz)
+=#
                 end
             end
 
@@ -831,7 +880,7 @@ end
         end
 
         Oracle.close!(stmt)
-        Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
+        Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP_TZ")
     end
 
 #=

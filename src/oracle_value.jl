@@ -133,10 +133,7 @@ end
         return quote
             ptr_native_timestamp = dpiData_getTimestamp(data_handle)
             local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
-            @assert ts.fsecond == 0
-            @assert ts.tzHourOffset == 0
-            @assert ts.tzMinuteOffset == 0
-            return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second)
+            return parse_datetime(ts)
         end
     end
 
@@ -145,14 +142,32 @@ end
             return quote
                 ptr_native_timestamp = dpiData_getTimestamp(data_handle)
                 local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
-                @assert ts.tzHourOffset == 0
-                @assert ts.tzMinuteOffset == 0
-                return DateTime(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.fsecond * (1e-6) )
+                return parse_timestamp(ts)
             end
         elseif N == ORA_NATIVE_TYPE_DOUBLE
             error("Not implemented.")
         else
             error("Invalid combination: [ $O, $N ].")
+        end
+    end
+
+    if O == ORA_ORACLE_TYPE_TIMESTAMP_TZ
+        @assert N == ORA_NATIVE_TYPE_TIMESTAMP "Invalid combination: [ $O, $N ]."
+
+        return quote
+            ptr_native_timestamp = dpiData_getTimestamp(data_handle)
+            local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
+            return parse_timestamp_tz(ts)
+        end
+    end
+
+    if O == O == ORA_ORACLE_TYPE_TIMESTAMP_LTZ
+        @assert N == ORA_NATIVE_TYPE_TIMESTAMP "Invalid combination: [ $O, $N ]."
+
+        return quote
+            ptr_native_timestamp = dpiData_getTimestamp(data_handle)
+            local ts::OraTimestamp = unsafe_load(ptr_native_timestamp)
+            return parse_timestamp_ltz(ts)
         end
     end
 
@@ -244,7 +259,11 @@ end
         if O == ORA_ORACLE_TYPE_DATE
             @assert val <: Date
         elseif O == ORA_ORACLE_TYPE_TIMESTAMP
-            @assert (val <: Date) || (val <: DateTime)
+            @assert (val <: Date) || (val <: DateTime) || (val <: Timestamp)
+        elseif O == ORA_ORACLE_TYPE_TIMESTAMP_TZ
+            @assert val <: TimestampTZ{false}
+        elseif O == ORA_ORACLE_TYPE_TIMESTAMP_LTZ
+            @assert val <: TimestampTZ{true}
         else
             error("Oracle type $O not supported.")
         end
@@ -304,10 +323,11 @@ end
 @inline infer_oracle_type_tuple(::Type{Int64}) = OracleTypeTuple(ORA_ORACLE_TYPE_NATIVE_INT, ORA_NATIVE_TYPE_INT64)
 @inline infer_oracle_type_tuple(::Type{UInt64}) = OracleTypeTuple(ORA_ORACLE_TYPE_NATIVE_UINT, ORA_NATIVE_TYPE_UINT64)
 @inline infer_oracle_type_tuple(::Type{Date}) = OracleTypeTuple(ORA_ORACLE_TYPE_DATE, ORA_NATIVE_TYPE_TIMESTAMP)
-@inline infer_oracle_type_tuple(::Type{DateTime}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP, ORA_NATIVE_TYPE_TIMESTAMP)
+@inline infer_oracle_type_tuple(::Type{DateTime}) = infer_oracle_type_tuple(Timestamp)
+@inline infer_oracle_type_tuple(::Type{Timestamp}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP, ORA_NATIVE_TYPE_TIMESTAMP)
 
 # accept julia values as arguments
-for type_sym in (:Bool, :Float64, :Int64, :UInt64, :Date, :DateTime)
+for type_sym in (:Bool, :Float64, :Int64, :UInt64, :Date, :DateTime, :Timestamp)
     @eval begin
         @inline infer_oracle_type_tuple(::$type_sym) = infer_oracle_type_tuple($type_sym)
     end
@@ -315,6 +335,11 @@ end
 
 @inline infer_oracle_type_tuple(::Type{Lob{O,P}}) where {O,P} = OracleTypeTuple(O, ORA_NATIVE_TYPE_LOB)
 @inline infer_oracle_type_tuple(::Lob{O,P}) where {O,P} = OracleTypeTuple(O, ORA_NATIVE_TYPE_LOB)
+
+@inline infer_oracle_type_tuple(::Type{TimestampTZ{false}}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP_TZ, ORA_NATIVE_TYPE_TIMESTAMP)
+@inline infer_oracle_type_tuple(::TimestampTZ{false}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP_TZ, ORA_NATIVE_TYPE_TIMESTAMP)
+@inline infer_oracle_type_tuple(::Type{TimestampTZ{true}}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP_LTZ, ORA_NATIVE_TYPE_TIMESTAMP)
+@inline infer_oracle_type_tuple(::TimestampTZ{true}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP_LTZ, ORA_NATIVE_TYPE_TIMESTAMP)
 
 @inline function infer_oracle_type_tuple(s::String)
     # max VARCHAR2 size is 4000 bytes
