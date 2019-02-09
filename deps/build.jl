@@ -26,27 +26,57 @@ else
     error("Target system not supported.")
 end
 
-mkdir_if_not_exists(dir) = !isdir(dir) && mkdir(dir)
-
-function download_source_files()
-    mkdir_if_not_exists(PREFIX)
-    mkdir_if_not_exists(DOWNLOADS)
-
-    if !isfile(ODPI_SOURCE_LOCAL_FILEPATH)
-        download(ODPI_SOURCE_URL, ODPI_SOURCE_LOCAL_FILEPATH)
+function mkdir_if_not_exists(dir; verbose::Bool=false)
+    if !isdir(dir)
+        verbose && println("Creating $dir.")
+        mkdir(dir)
     end
 end
 
-function untar_source_files(; verbose::Bool=false)
-    # tar -xf $ODPI_SOURCE_LOCAL_FILEPATH -C $SRC_DIR --strip-components=1
-    mkdir_if_not_exists(SRC_DIR)
-    cmd_array = ["tar", "-xf", ODPI_SOURCE_LOCAL_FILEPATH, "-C", SRC_DIR, "--strip-components=1"]
-    actual_cmd = Cmd(cmd_array)
-    verbose && println(actual_cmd)
-    run(Cmd(actual_cmd, dir=PREFIX))
+function rmdir_if_exists(dir; verbose::Bool=false)
+    if isdir(dir)
+        verbose && println("Removing directory $dir.")
+        rm(dir, recursive=true)
+    end
 end
 
-function patch(original_file, patch_file, output_file)
+function download_source_files(; verbose::Bool=false)
+
+    function untar_source_files(; verbose::Bool=false)
+        # tar -xf $ODPI_SOURCE_LOCAL_FILEPATH -C $SRC_DIR --strip-components=1
+        mkdir_if_not_exists(SRC_DIR, verbose=verbose)
+        cmd_array = ["tar", "-xf", ODPI_SOURCE_LOCAL_FILEPATH, "-C", SRC_DIR, "--strip-components=1"]
+        actual_cmd = Cmd(cmd_array)
+        verbose && println(actual_cmd)
+        run(Cmd(actual_cmd, dir=PREFIX))
+    end
+
+    mkdir_if_not_exists(PREFIX, verbose=verbose)
+    mkdir_if_not_exists(DOWNLOADS, verbose=verbose)
+
+    if !isfile(ODPI_SOURCE_LOCAL_FILEPATH)
+        verbose && println("Downloading $ODPI_SOURCE_URL...")
+        download(ODPI_SOURCE_URL, ODPI_SOURCE_LOCAL_FILEPATH)
+    end
+
+    untar_source_files(verbose=verbose)
+end
+
+function clean_src_files(;verbose::Bool=false)
+    rmdir_if_exists(SRC_DIR, verbose=verbose)
+    rmdir_if_exists(DOWNLOADS, verbose=verbose)
+end
+
+function clean_all(;verbose::Bool=false)
+    rmdir_if_exists(PREFIX, verbose=verbose)
+    if isfile(DEPS_FILE)
+        verbose && println("Removing file $DEPS_FILE.")
+        rm(DEPS_FILE)
+    end
+end
+
+function patch(original_file, patch_file, output_file; verbose::Bool=false)
+    verbose && println("Applying patch $patch_file to $original_file.")
     @assert isfile(original_file) && isfile(patch_file)
 
     function copy_content(io_in, io_out)
@@ -64,18 +94,18 @@ function patch(original_file, patch_file, output_file)
             copy_content(io_in, io_out)
         end
     end
+
+    verbose && println("$output_file was generated.")
 end
 
 function build_shared_library(; verbose::Bool=false)
-    download_source_files()
-    untar_source_files()
-    mkdir_if_not_exists(LIB_DIR)
+    mkdir_if_not_exists(LIB_DIR, verbose=verbose)
 
     # apply patch
     original_file = joinpath(SRC_DIR, "embed", "dpi.c")
     patch_file = joinpath(@__DIR__, "dpi_patch.c")
     patched_file = joinpath(SRC_DIR, "embed", "dpi_patched.c")
-    patch(original_file, patch_file, patched_file)
+    patch(original_file, patch_file, patched_file, verbose=verbose)
 
     if _is_linux()
         #=
@@ -107,15 +137,9 @@ function build_shared_library(; verbose::Bool=false)
     end
 
     @assert isfile(SHARED_LIB) "Failed building libdpi shared library."
-    clean()
 end
 
-function clean()
-    rm(SRC_DIR, recursive=true)
-    rm(DOWNLOADS, recursive=true)
-end
-
-function write_deps_file()
+function write_deps_file(;verbose::Bool=false)
     @assert isfile(SHARED_LIB) "Couldn't find shared library $SHARED_LIB."
     lib_file = basename(SHARED_LIB)
 
@@ -143,11 +167,15 @@ end
     open(DEPS_FILE, "w") do f
         write(f, deps_file_content)
     end
+    verbose && println("Created deps file $DEPS_FILE.")
 end
 
-function main()
-    build_shared_library()
-    write_deps_file()
+function main(;verbose::Bool=false)
+    clean_all(verbose=verbose)
+    download_source_files(verbose=verbose)
+    build_shared_library(verbose=verbose)
+    write_deps_file(verbose=verbose)
+    clean_src_files(verbose=verbose)
 end
 
 main()
