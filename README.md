@@ -195,11 +195,11 @@ For incremental reading/writing, you can use `open` with *do-syntax* do get an I
 IO Streams created on Character LOBs use the character index as its position, and
 only support reading/writing for `Char` and `String` data types.
 
-*Currently, BFILE is not supported.*
+A LOB is closed automatically (by the garbage collector) when it goes out of scope.
+You can use `Oracle.close!` method as soon as you have
+finished with it, to release database resources.
 
-LOB references are lost once you operate a fetch on a statement. So, whenever you have a
-reference to a LOB value, always use `Oracle.close!(lob_value)` once you have finished with it.
-This will avoid finalization errors or segfaults.
+*Currently, BFILE is not supported.*
 
 #### Reading from a BLOB
 
