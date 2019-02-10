@@ -84,8 +84,7 @@ else
 end
 
 function query(f::Function, conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
-    stmt(conn, sql, scrollable=scrollable, tag=tag) do stmt
-        fetch_array_size!(stmt, fetch_array_size)
+    stmt(conn, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size) do stmt
         execute!(stmt, exec_mode=exec_mode)
         cursor = Cursor(stmt)
         f(cursor)

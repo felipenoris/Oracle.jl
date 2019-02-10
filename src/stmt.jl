@@ -53,7 +53,7 @@ function init_columns_info!(stmt::QueryStmt)
     nothing
 end
 
-function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
+function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool; fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
 
     function new_stmt_info(ctx::Context, stmt_handle::Ptr{Cvoid})
         stmt_info_ref = Ref{OraStmtInfo}()
@@ -105,19 +105,20 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool)
     end
 
     new_stmt = Stmt{stmt_info.statement_type}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index, true, nothing)
+    fetch_array_size!(new_stmt, fetch_array_size)
     @compat finalizer(destroy!, new_stmt)
     return new_stmt
 end
 
-function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
+function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     stmt_handle_ref = Ref{Ptr{Cvoid}}()
     result = dpiConn_prepareStmt(connection.handle, scrollable, sql, tag, stmt_handle_ref)
     error_check(connection.context, result)
-    return Stmt(connection, stmt_handle_ref[], scrollable)
+    return Stmt(connection, stmt_handle_ref[], scrollable, fetch_array_size=fetch_array_size)
 end
 
-function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool=false, tag::String="")
-    stmt = Stmt(connection, sql, scrollable=scrollable, tag=tag)
+function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool=false, tag::String="", fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+    stmt = Stmt(connection, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size)
 
     try
         f(stmt)
@@ -292,5 +293,5 @@ function query_oracle_value(stmt::Stmt, column_index::Integer) :: ExternOracleVa
     result = dpiStmt_getQueryValue(stmt.handle, UInt32(column_index), native_type_ref, data_handle_ref)
     error_check(context(stmt), result)
 
-    return ExternOracleValue(stmt, oracle_type(stmt, column_index), native_type_ref[], data_handle_ref[])
+    return ExternOracleValue(stmt, oracle_type(stmt, column_index), native_type_ref[], data_handle_ref[]; use_add_ref=true)
 end

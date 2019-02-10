@@ -12,17 +12,14 @@ function close!(lob::Lob)
         result = dpiLob_close(lob.handle)
         error_check(context(lob), result)
         lob.is_open = false
-
-        # looks like Lob is tied to Stmt's cursor state
-        # and may be unavailable as soon as the next
-        # row is fetched. So this will force
-        # a release on the Lob when there's still a
-        # valid dpiLob handle.
-        # Error message: DPI-1002: invalid dpiLob handle
-        destroy!(lob)
     end
 
     nothing
+end
+
+function add_ref(lob::Lob)
+    result = dpiLob_addRef(lob.handle)
+    error_check(context(lob), result)
 end
 
 @inline function check_valid_temp_lob_oracle_type_num(t::OraOracleTypeNum)

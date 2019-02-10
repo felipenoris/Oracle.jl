@@ -327,10 +327,11 @@ abstract type AbstractOracleValue{O,N} end
 struct ExternOracleValue{O,N,P} <: AbstractOracleValue{O,N}
     parent::P
     data_handle::Ptr{OraData}
+    use_add_ref::Bool # triggers a call to add_ref, if data_handle is a LOB, statement, object or rowid that is owned by the statement
 end
 
-function ExternOracleValue(parent::P, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum, handle::Ptr{OraData}) where {P}
-    return ExternOracleValue{oracle_type, native_type, P}(parent, handle)
+function ExternOracleValue(parent::P, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum, handle::Ptr{OraData}; use_add_ref::Bool=false) where {P}
+    return ExternOracleValue{oracle_type, native_type, P}(parent, handle, use_add_ref)
 end
 
 "Wraps a dpiData handle managed by Julia"
@@ -442,10 +443,15 @@ mutable struct Lob{ORATYPE,T}
     handle::Ptr{Cvoid}
     is_open::Bool
 
-    function Lob(p::T, handle::Ptr{Cvoid}, oracle_type::OraOracleTypeNum) where {T}
+    function Lob(p::T, handle::Ptr{Cvoid}, oracle_type::OraOracleTypeNum; use_add_ref::Bool=false) where {T}
         check_valid_lob_oracle_type_num(oracle_type)
         new_lob = new{oracle_type, T}(p, handle, true)
         @compat finalizer(destroy!, new_lob)
+
+        if use_add_ref
+            add_ref(new_lob)
+        end
+
         return new_lob
     end
 end

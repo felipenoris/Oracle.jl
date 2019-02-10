@@ -464,6 +464,11 @@ function dpiLob_release(lob_handle::Ptr{Cvoid})
     ccall((:dpiLob_release, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)
 end
 
+# int dpiLob_addRef(dpiLob *lob)
+function dpiLob_addRef(lob_handle::Ptr{Cvoid})
+    ccall((:dpiLob_addRef, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)
+end
+
 # int dpiLob_close(dpiLob *lob)
 function dpiLob_close(lob_handle::Ptr{Cvoid})
     ccall((:dpiLob_close, libdpi), OraResult, (Ptr{Cvoid},), lob_handle)

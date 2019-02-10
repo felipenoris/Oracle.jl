@@ -13,6 +13,9 @@ end
     return N
 end
 
+@inline use_add_ref(::AbstractOracleValue) = false
+@inline use_add_ref(v::ExternOracleValue) = v.use_add_ref
+
 @inline parent(v::ExternOracleValue) = v.parent
 @inline parent(v::JuliaOracleValue) = error("Not implemented.")
 
@@ -149,7 +152,7 @@ end
     if N == ORA_NATIVE_TYPE_LOB
         return quote
             ptr_native_lob = dpiData_getLOB(data_handle)
-            return Lob(parent(val), ptr_native_lob, O)
+            return Lob(parent(val), ptr_native_lob, O; use_add_ref=use_add_ref(val))
         end
     end
 
