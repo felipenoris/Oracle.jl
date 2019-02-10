@@ -212,11 +212,8 @@ Oracle.execute!(conn, "INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw('$
 Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
     for row in cursor
         blob = row["B"]
-        try
-            println(read(blob, String))
-        finally
-            Oracle.close!(blob)
-        end
+        bytes_vector = read(blob) # Vector{UInt8}
+        println(String(bytes_vector))
     end
 end
 ```
