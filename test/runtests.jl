@@ -852,7 +852,7 @@ end
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP ( TS ) VALUES ( :ts )")
         stmt[:ts] = dt_now
         Oracle.execute!(stmt)
-        ts = Oracle.Timestamps.Timestamp(2018, 12, 31, 23, 58, 59, 999_200_300)
+        ts = Oracle.Timestamp(2018, 12, 31, 23, 58, 59, 999_200_300)
         stmt[:ts] = ts
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
@@ -869,7 +869,7 @@ end
                         @test row["TS"] == ts
                     end
 
-                    @test isa(row["TS"], Oracle.Timestamps.Timestamp)
+                    @test isa(row["TS"], Oracle.Timestamp)
                 end
             end
 
@@ -883,8 +883,8 @@ end
     @testset "Bind DateTime and Timestamp" begin
         Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP_TZ ( TS_TZ TIMESTAMP(9) WITH TIME ZONE, TS_LTZ TIMESTAMP(9) WITH LOCAL TIME ZONE )")
 
-        ts_tz = Oracle.Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 0)
-        ts_ltz = Oracle.Timestamps.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400, -3, 0)
+        ts_tz = Oracle.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 0)
+        ts_ltz = Oracle.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400, -3, 0)
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )")
         stmt[:ts_tz] = ts_tz
