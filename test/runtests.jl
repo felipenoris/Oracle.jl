@@ -653,8 +653,7 @@ end
     Oracle.execute!(conn, "DROP TABLE TB_TEST_CURSOR")
 end
 
-@testset "Script File" begin
-    Oracle.execute!(conn, "DROP TABLE TB_ACCOUNTS")
+@testset "execute script" begin
     Oracle.execute!(conn, "CREATE TABLE TB_ACCOUNTS ( ID NUMBER(4,0), AMOUNT NUMBER(12,2) )")
 
     let
