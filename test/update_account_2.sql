@@ -1,0 +1,14 @@
+
+DECLARE
+    acct_amount NUMBER(12,2);
+    acct_id     CONSTANT NUMBER(4,0) := 2;
+
+BEGIN
+   SELECT AMOUNT INTO acct_amount FROM TB_ACCOUNTS
+      WHERE ID = acct_id
+      FOR UPDATE OF AMOUNT;
+
+   UPDATE TB_ACCOUNTS SET AMOUNT = 10.0 WHERE ID = acct_id;
+
+   COMMIT;
+END;

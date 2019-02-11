@@ -160,6 +160,17 @@ function execute!(connection::Connection, sql::String; scrollable::Bool=false, t
     return result
 end
 
+function execute_script!(connection::Connection, filepath::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    @assert isfile(filepath) "Couldn't find script file $filepath."
+
+    local sql::String
+    open(filepath, "r") do io
+        sql = read(io, String)
+    end
+
+    return execute!(connection, sql, scrollable=scrollable, tag=tag, exec_mode=exec_mode)
+end
+
 # execute many
 function execute!(connection::Connection, sql::String, columns::Vector; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     local result::UInt32

@@ -653,6 +653,42 @@ end
     Oracle.execute!(conn, "DROP TABLE TB_TEST_CURSOR")
 end
 
+@testset "Script File" begin
+    Oracle.execute!(conn, "DROP TABLE TB_ACCOUNTS")
+    Oracle.execute!(conn, "CREATE TABLE TB_ACCOUNTS ( ID NUMBER(4,0), AMOUNT NUMBER(12,2) )")
+
+    let
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_ACCOUNTS ( ID, AMOUNT ) VALUES ( :ID, :AMT )")
+        stmt[:ID] = 1
+        stmt[:AMT] = 20.50
+        Oracle.execute!(stmt)
+
+        stmt[:ID] = 2
+        stmt[:AMT] = 100.00
+        Oracle.execute!(stmt)
+
+        stmt[:ID] = 3
+        stmt[:AMT] = 150.00
+        Oracle.execute!(stmt)
+
+        Oracle.commit!(conn)
+    end
+
+    Oracle.execute_script!(conn, joinpath(@__DIR__, "update_account_2.sql"))
+
+    Oracle.query(conn, "SELECT AMOUNT FROM TB_ACCOUNTS WHERE ID = 2") do cursor
+        row_count = 0
+        for row in cursor
+            row_count += 1
+            @test row["AMOUNT"] == 10.0
+        end
+
+        @test row_count == 1
+    end
+
+    Oracle.execute!(conn, "DROP TABLE TB_ACCOUNTS")
+end
+
 @testset "Bind" begin
 
     @testset "bind int, flt, str, date by name" begin
