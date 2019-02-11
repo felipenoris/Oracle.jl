@@ -27,7 +27,9 @@ end
     end
 
     @testset "TimestampTZ" begin
-        ts = Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 30)
+        @test_throws AssertionError Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 30)
+
+        ts = Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, -30)
         @test Timestamps.is_ltz(ts) == false
         @test year(ts) == 2018
         @test month(ts) == 12
@@ -41,7 +43,7 @@ end
     end
 
     @testset "TimestampLTZ" begin
-        ts = Timestamps.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 30)
+        ts = Timestamps.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, -30)
         @test Timestamps.is_ltz(ts) == true
         @test year(ts) == 2018
         @test month(ts) == 12
@@ -65,7 +67,7 @@ end
             @test ora_ts.second == 59
             @test ora_ts.fsecond == 999_200_300
 
-            ora_ts_tz = Oracle.OraTimestamp(Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_400, -3, 30))
+            ora_ts_tz = Oracle.OraTimestamp(Timestamps.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_400, -3, -30))
             @test ora_ts_tz.year == 2018
             @test ora_ts_tz.month == 12
             @test ora_ts_tz.day == 31
@@ -74,7 +76,7 @@ end
             @test ora_ts_tz.second == 59
             @test ora_ts_tz.fsecond == 999_200_400
             @test ora_ts_tz.tzHourOffset == -3
-            @test ora_ts_tz.tzMinuteOffset == 30
+            @test ora_ts_tz.tzMinuteOffset == -30
         end
 
         @testset "ts Conversion" begin

@@ -18,7 +18,7 @@ import Dates: Date,
               value,
               year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
 
-export Timestamp, TimestampTZ, tz_hour_offset, tz_minute_offset
+export Timestamp, TimestampTZ, TimeZoneOffset
 
 "Nanosecond precision Date and Time."
 abstract type AbstractTimestamp <: AbstractDateTime end
@@ -28,13 +28,32 @@ struct Timestamp <: AbstractTimestamp
     time::Time
 end
 
-struct TimestampTZ{L} <: AbstractTimestamp
-    ts::Timestamp
-    tz_hour_offset::Int8
-    tz_minute_offset::Int8
+# https://github.com/oracle/odpi/issues/38
+# When fetched, tzMinuteOffset is negative if tzHourOffset is negative
+# and is positive when tzHourOffset is positive.
+struct TimeZoneOffset
+    hour::Int8
+    minute::Int8
+
+    function TimeZoneOffset(hour::Int8, minute::Int8)
+        @assert minute == 0 || signbit(hour) == signbit(minute) "`hour` and `minute` Time Zone offset must have the same sign."
+        return new(hour, minute)
+    end
 end
 
-TimestampTZ(local_time_zone::Bool, ts::Timestamp, hour_offset::Integer, minute_offset::Integer) = TimestampTZ{local_time_zone}(ts, Int8(hour_offset), Int8(minute_offset))
+TimeZoneOffset(hour::Integer, minute::Integer) = TimeZoneOffset(Int8(hour), Int8(minute))
+
+struct TimestampTZ{L} <: AbstractTimestamp
+    ts::Timestamp
+    tz_offset::TimeZoneOffset
+
+    function TimestampTZ{L}(ts::Timestamp, tz_offset::TimeZoneOffset) where {L}
+        @assert isa(L, Bool)
+        return new{L}(ts, tz_offset)
+    end
+end
+
+TimestampTZ(local_time_zone::Bool, ts::Timestamp, tz_offset::TimeZoneOffset) = TimestampTZ{local_time_zone}(ts, tz_offset)
 
 ts_date(t::Timestamp) = t.date
 ts_time(t::Timestamp) = t.time
@@ -61,14 +80,16 @@ function TimestampTZ(local_time_zone::Bool, y::Integer, m::Integer=1, d::Integer
                      h::Integer=0, mi::Integer=0, s::Integer=0, ns::Integer=0,
                      tz_hour_offset::Integer=0, tz_minute_offset::Integer=0)
     ts = Timestamp(y, m, d, h, mi, s, ns)
-    return TimestampTZ(local_time_zone, ts, tz_hour_offset, tz_minute_offset)
+    return TimestampTZ(local_time_zone, ts, TimeZoneOffset(tz_hour_offset, tz_minute_offset))
 end
 
 Base.eps(t::AbstractTimestamp) = Nanosecond(1)
 Base.:(==)(t1::Timestamp, t2::Timestamp) = t1.date == t2.date && t1.time == t2.time
-Base.:(==)(t1::TimestampTZ, t2::TimestampTZ) = t1.ts == t2.ts && t1.tz_hour_offset == t2.tz_hour_offset && t1.tz_minute_offset == t2.tz_minute_offset
+Base.:(==)(o1::TimeZoneOffset, o2::TimeZoneOffset) = o1.hour == o2.hour && o1.minute == o2.minute
+Base.:(==)(t1::TimestampTZ, t2::TimestampTZ) = t1.ts == t2.ts && t1.tz_offset == t2.tz_offset
 Base.hash(ts::Timestamp) = 1 + hash(ts.date) + hash(ts.time)
-Base.hash(ts::TimestampTZ) = 2 + hash(ts.ts) + hash(ts.tz_hour_offset) + hash(ts.tz_minute_offset)
+Base.hash(ts::TimestampTZ) = 2 + hash(ts.ts) + hash(ts.tz_offset)
+Base.hash(o::TimeZoneOffset) = 4 + hash(o.hour) + hash(o.minute)
 
 function Base.:(==)(ts::Timestamp, dt::DateTime)
     if microsecond(ts) == 0 && nanosecond(ts) == 0
@@ -126,7 +147,7 @@ function OraTimestamp(ts::TimestampTZ)
     mi = Dates.minute(ts)
     ss = Dates.second(ts)
     fsecond = Dates.millisecond(ts) * 1_000_000 + Dates.microsecond(ts) * 1_000 + Dates.nanosecond(ts)
-    return OraTimestamp(yy, mm, dd, hh, mi, ss, fsecond, ts.tz_hour_offset, ts.tz_minute_offset)
+    return OraTimestamp(yy, mm, dd, hh, mi, ss, fsecond, ts.tz_offset.hour, ts.tz_offset.minute)
 end
 
 function parse_timestamp(oracle_type::OraOracleTypeNum, oracle_timestamp::OraTimestamp) :: Union{Dates.DateTime, Timestamp, TimestampTZ}

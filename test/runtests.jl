@@ -880,41 +880,34 @@ end
         Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP")
     end
 
-    @testset "Bind DateTime and Timestamp" begin
+    @testset "Bind TimestampTZ" begin
         Oracle.execute!(conn, "CREATE TABLE TB_BIND_TIMESTAMP_TZ ( TS_TZ TIMESTAMP(9) WITH TIME ZONE, TS_LTZ TIMESTAMP(9) WITH LOCAL TIME ZONE )")
 
-        ts_tz = Oracle.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, -3, 0)
-        ts_ltz = Oracle.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400, -3, 0)
+        ts_tz = Oracle.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, 5, 30)
+        ts_ltz = Oracle.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400)
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )")
-        stmt[:ts_tz] = ts_tz
-        stmt[:ts_ltz] = ts_ltz
+
+        @test_throws ErrorException stmt[:ts_tz] = ts_tz
+        @test_throws ErrorException stmt[:ts_ltz] = ts_ltz
+
+        stmt[:ts_tz] = Oracle.Variable(conn, ts_tz)
+        stmt[:ts_ltz] = Oracle.Variable(conn, ts_ltz)
         Oracle.execute!(stmt)
         Oracle.commit!(conn)
-
-        let row_number = 0
-
-            Oracle.query(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ") do cursor
-                for row in cursor
-                    row_number += 1
-
-
-                    println("TS_TZ = ", row["TS_TZ"])
-                    println("TS_LTZ = ", row["TS_LTZ"])
-#=
-                    @test row["TS_TZ"] == ts_tz
-                    @test second(row["TS_LTZ"]) == second(ts_ltz)
-                    @test millisecond(row["TS_LTZ"]) == millisecond(ts_ltz)
-                    @test microsecond(row["TS_LTZ"]) == microsecond(ts_ltz)
-                    @test nanosecond(row["TS_LTZ"]) == nanosecond(ts_ltz)
-=#
-                end
-            end
-
-            @test row_number == 1
-        end
-
         Oracle.close!(stmt)
+
+        query_stmt = Oracle.Stmt(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ")
+        Oracle.execute!(query_stmt)
+        Oracle.fetch!(query_stmt)
+
+        read_ts_tz = Oracle.query_oracle_value(query_stmt, 1)[]
+        read_ts_ltz = Oracle.query_oracle_value(query_stmt, 2)[]
+
+        @test ts_tz == read_ts_tz
+        @test nanosecond(ts_ltz) == nanosecond(read_ts_ltz)
+
+        Oracle.close!(query_stmt)
         Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP_TZ")
     end
 

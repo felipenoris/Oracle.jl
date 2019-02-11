@@ -49,6 +49,12 @@ end
 #
 
 @generated function bind_value!(stmt::Stmt, value::JuliaOracleValue{O,N}, name_or_position::K) where {K<:NameOrPositionTypes,O,N}
+
+    # https://github.com/oracle/odpi/issues/99
+    if O == ORA_ORACLE_TYPE_TIMESTAMP_TZ || O == ORA_ORACLE_TYPE_TIMESTAMP_LTZ
+        error("Can't bind Timestamp with TimeZone directly to Statement. Use a Variable instead.")
+    end
+
     if name_or_position <: Integer
         name_or_position_exp = :(UInt32(name_or_position))
         bind_function_name = :dpiStmt_bindValueByPos
