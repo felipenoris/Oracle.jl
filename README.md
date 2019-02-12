@@ -144,7 +144,8 @@ end
 Oracle.close!(stmt)
 ```
 
-There is also the possibility to fetch one row at a time.
+There is also the possibility to fetch one row at a time manually,
+with a small overhead when compared to previous methods.
 
 ```julia
 stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND")
