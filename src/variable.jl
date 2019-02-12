@@ -1,5 +1,5 @@
 
-"Variable is a 0-indexed array of OpiData."
+"Variable is a 0-indexed array of OraData."
 function Variable(
         connection::Connection,
         ::Type{T},

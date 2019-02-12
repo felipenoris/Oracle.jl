@@ -2,9 +2,6 @@
 # 24 bytes -> sizeof dpiDataBuffer on 64bit arch
 primitive type OraDataBuffer 24 * 8 end
 
-"""
-This structure is used for passing data to and from the database for variables and for manipulating object attributes and collection values.
-"""
 struct OraData
     is_null::Int32 # Specifies if the value refers to a null value (1) or not (0).
     value::OraDataBuffer
@@ -74,9 +71,6 @@ struct OraAppContext
     value_length::UInt32 # Specifies the length of the OraAppContext.value member, in bytes.
 end
 
-"""
-This structure is used for creating connections to the database, whether standalone or acquired from a session pool. All members are initialized to default values using the dpiContext_initConnCreateParams() function. Care should be taken to ensure a copy of this structure exists only as long as needed to create the connection since it can contain a clear text copy of credentials used for connecting to the database.
-"""
 mutable struct OraConnCreateParams
     auth_mode::OraAuthMode
     connection_class::Ptr{UInt8}
@@ -101,14 +95,6 @@ mutable struct OraConnCreateParams
     num_super_sharding_key_columns::UInt8 # TODO
 end
 
-"""
-This structure is used for creating session pools,
-which can in turn be used to create connections that
-are acquired from that session pool.
-
-All members are initialized to default values using
-the dpiContext_initPoolCreateParams() function.
-"""
 mutable struct OraPoolCreateParams
     min_sessions::UInt32 # Specifies the minimum number of sessions to be created by the session pool. This value is ignored if the OraPoolCreateParams.homogeneous member has a value of 0. The default value is 1.
     max_sessions::UInt32 # Specifies the maximum number of sessions that can be created by the session pool. Values of 1 and higher are acceptable. The default value is 1.
@@ -328,9 +314,10 @@ function destroy!(stmt::Stmt)
     nothing
 end
 
+"Holds a 0-indexed vector of OraData."
 abstract type AbstractOracleValue{O,N} end
 
-"Wraps a dpiData handle managed by extern ODPI-C"
+"Wraps a OraData handle managed by extern ODPI-C. 0-indexed."
 struct ExternOracleValue{O,N,P} <: AbstractOracleValue{O,N}
     parent::P
     data_handle::Ptr{OraData}
@@ -341,7 +328,7 @@ function ExternOracleValue(parent::P, oracle_type::OraOracleTypeNum, native_type
     return ExternOracleValue{oracle_type, native_type, P}(parent, handle, use_add_ref)
 end
 
-"Wraps a dpiData handle managed by Julia"
+"Wraps a OraData handle managed by Julia. 0-indexed."
 struct JuliaOracleValue{O,N,T} <: AbstractOracleValue{O,N}
     buffer::Vector{T}
 end

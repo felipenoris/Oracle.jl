@@ -131,3 +131,13 @@ Base.eltype(::Cursor) = ResultSetRow
         return result
     end
 end
+
+function fetch_row!(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
+    fetch_result = fetch!(stmt)
+
+    if fetch_result.found
+        return ResultSetRow(Cursor(stmt))
+    else
+        return nothing
+    end
+end

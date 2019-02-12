@@ -147,6 +147,24 @@ end
     Oracle.close!(stmt)
 end
 
+@testset "fetch_row" begin
+    stmt = Oracle.Stmt(conn, "SELECT ID FROM TB_TEST")
+    Oracle.execute!(stmt)
+
+    row = Oracle.fetch_row!(stmt)
+    @test row != nothing
+    @test row["ID"] == 1.0
+    @test row[1] == 1.0
+
+    row = Oracle.fetch_row!(stmt)
+    @test row != nothing
+    @test ismissing(row["ID"])
+    @test ismissing(row[1])
+
+    row = Oracle.fetch_row!(stmt)
+    @test row == nothing
+end
+
 @testset "Drop" begin
     Oracle.execute!(conn, "DROP TABLE TB_TEST")
 end
@@ -163,8 +181,8 @@ end
     Oracle.execute!(stmt)
     @test Oracle.num_columns(stmt) == 3
 
-    result = Oracle.fetch!(stmt)
-    @test result.found
+    row = Oracle.fetch_row!(stmt)
+    @test row != nothing
 
     iter = 1
     id_values = [1, 2, 3]
@@ -174,11 +192,11 @@ end
     println("")
     println("Printing out UTF-8 strings")
 
-    while result.found
+    while row != nothing
 
-        value_id = Oracle.query_oracle_value(stmt, 1)[]
-        value_name = Oracle.query_oracle_value(stmt, 2)[]
-        value_amount = Oracle.query_oracle_value(stmt, 3)[]
+        value_id = row[1]
+        value_name = row[2]
+        value_amount = row[3]
 
         println(value_name)
 
@@ -186,7 +204,7 @@ end
         @test name_values[iter] == value_name
         @test amount_values[iter] == value_amount
 
-        result = Oracle.fetch!(stmt)
+        row = Oracle.fetch_row!(stmt)
         iter += 1
     end
 
@@ -358,16 +376,11 @@ end
 
         function query_and_check_blob_data(test_data::String, buffer_size)
             stmt = Oracle.Stmt(conn, "SELECT B FROM TB_BLOB")
-
-            try
-                Oracle.execute!(stmt)
-                result = Oracle.fetch!(stmt)
-                @test result.found
-                blob = Oracle.query_oracle_value(stmt, 1)[]
-                check_blob_data(test_data, blob, buffer_size)
-            finally
-                Oracle.close!(stmt)
-            end
+            Oracle.execute!(stmt)
+            row = Oracle.fetch_row!(stmt)
+            @test row != nothing
+            blob = row[1]
+            check_blob_data(test_data, blob, buffer_size)
         end
 
         buff_sizes_to_check = [ 30, sizeof(lyric)-1, sizeof(lyric), sizeof(lyric)+1, nothing ]
@@ -409,9 +422,9 @@ end
 
             try
                 Oracle.execute!(stmt)
-                result = Oracle.fetch!(stmt)
-                @test result.found
-                clob = Oracle.query_oracle_value(stmt, 1)[]
+                row = Oracle.fetch_row!(stmt)
+                @test row != nothing
+                clob = row[1]
 
                 open(clob, "r") do io
                     i = 1
@@ -440,9 +453,9 @@ end
 
             try
                 Oracle.execute!(stmt)
-                result = Oracle.fetch!(stmt)
-                @test result.found
-                clob = Oracle.query_oracle_value(stmt, 1)[]
+                row = Oracle.fetch_row!(stmt)
+                @test row != nothing
+                clob = row[1]
 
                 open(clob, "r") do io
                     @test read(io, String) == test_string
@@ -459,9 +472,9 @@ end
 
             try
                 Oracle.execute!(stmt)
-                result = Oracle.fetch!(stmt)
-                @test result.found
-                clob = Oracle.query_oracle_value(stmt, 1)[]
+                row = Oracle.fetch_row!(stmt)
+                @test row != nothing
+                clob = row[1]
 
                 open(clob, "r", buffer_size=2000) do io
 
@@ -487,9 +500,9 @@ end
 
             try
                 Oracle.execute!(stmt)
-                result = Oracle.fetch!(stmt)
-                @test result.found
-                clob = Oracle.query_oracle_value(stmt, 1)[]
+                row = Oracle.fetch_row!(stmt)
+                @test row != nothing
+                clob = row[1]
 
                 open(clob, "r", buffer_size=2000) do io
                     @test read(io, String) == test_string
@@ -886,28 +899,34 @@ end
         ts_tz = Oracle.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, 5, 30)
         ts_ltz = Oracle.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400)
 
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )")
+        let
+            stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )")
 
-        @test_throws ErrorException stmt[:ts_tz] = ts_tz
-        @test_throws ErrorException stmt[:ts_ltz] = ts_ltz
+            @test_throws ErrorException stmt[:ts_tz] = ts_tz
+            @test_throws ErrorException stmt[:ts_ltz] = ts_ltz
 
-        stmt[:ts_tz] = Oracle.Variable(conn, ts_tz)
-        stmt[:ts_ltz] = Oracle.Variable(conn, ts_ltz)
-        Oracle.execute!(stmt)
-        Oracle.commit!(conn)
-        Oracle.close!(stmt)
+            stmt[:ts_tz] = Oracle.Variable(conn, ts_tz)
+            stmt[:ts_ltz] = Oracle.Variable(conn, ts_ltz)
+            Oracle.execute!(stmt)
+            Oracle.commit!(conn)
+            Oracle.close!(stmt)
+        end
 
-        query_stmt = Oracle.Stmt(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ")
-        Oracle.execute!(query_stmt)
-        Oracle.fetch!(query_stmt)
+        let
+            query_stmt = Oracle.Stmt(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ")
+            Oracle.execute!(query_stmt)
+            row = Oracle.fetch_row!(query_stmt)
+            @test row != nothing
 
-        read_ts_tz = Oracle.query_oracle_value(query_stmt, 1)[]
-        read_ts_ltz = Oracle.query_oracle_value(query_stmt, 2)[]
+            read_ts_tz = row[1]
+            read_ts_ltz = row[2]
 
-        @test ts_tz == read_ts_tz
-        @test nanosecond(ts_ltz) == nanosecond(read_ts_ltz)
+            @test ts_tz == read_ts_tz
+            @test nanosecond(ts_ltz) == nanosecond(read_ts_ltz)
 
-        Oracle.close!(query_stmt)
+            Oracle.close!(query_stmt)
+        end
+
         Oracle.execute!(conn, "DROP TABLE TB_BIND_TIMESTAMP_TZ")
     end
 
