@@ -16,6 +16,12 @@ end
 @inline num_columns(schema::CursorSchema) = length(schema.column_names_index)
 @inline num_columns(row::ResultSetRow) = num_columns(row.cursor)
 @inline num_columns(cursor::Cursor) = num_columns(cursor.stmt)
+@inline num_columns(rs::ResultSet) = num_columns(rs.schema)
+
+@inline num_rows(rs::ResultSet) = length(rs.rows)
+
+@inline Base.isempty(rs::ResultSet) = isempty(rs.rows)
+@inline Base.size(rs::ResultSet) = ( num_rows(rs), num_columns(rs) )
 
 @inline stmt(cursor::Cursor) = cursor.stmt
 
@@ -83,7 +89,12 @@ else
     end
 end
 
-function query(f::Function, conn::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT, fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+function query(f::Function, conn::Connection, sql::String;
+               scrollable::Bool=false,
+               tag::String="",
+               fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE,
+               exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
+
     stmt(conn, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size) do stmt
         execute!(stmt, exec_mode=exec_mode)
         cursor = Cursor(stmt)
@@ -92,10 +103,44 @@ function query(f::Function, conn::Connection, sql::String; scrollable::Bool=fals
     nothing
 end
 
-function query(f::Function, stmt::Stmt, exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
+function execute_and_fetch_all!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: ResultSet
+    local schema::CursorSchema
+    rows = Vector{ResultSetRow}()
+
+    query(stmt, exec_mode=exec_mode) do cursor
+        schema = cursor.schema
+
+        for row in cursor
+            push!(rows, row)
+        end
+    end
+
+    return ResultSet(schema, rows)
+end
+
+function query(f::Function, stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
     execute!(stmt, exec_mode=exec_mode)
     f(Cursor(stmt))
     nothing
+end
+
+function query(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: ResultSet
+    return execute_and_fetch_all!(stmt, exec_mode=exec_mode)
+end
+
+function query(conn::Connection, sql::String;
+               scrollable::Bool=false,
+               tag::String="",
+               fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE,
+               exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: ResultSet
+
+    local rs::ResultSet
+
+    stmt(conn, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size) do stmt
+        rs = execute_and_fetch_all!(stmt, exec_mode=exec_mode)
+    end
+
+    return rs
 end
 
 function ResultSetRow(cursor::Cursor)
@@ -110,11 +155,33 @@ function ResultSetRow(cursor::Cursor)
     return ResultSetRow(cursor.schema, data)
 end
 
-@inline Base.getindex(row::ResultSetRow, column_index::Integer) = row.data[column_index]
+Base.length(row::ResultSetRow) = length(row.data)
+Base.isempty(row::ResultSetRow) = isempty(row.data)
+
+@inline function Base.getindex(row::ResultSetRow, column_index::Integer)
+    check_inbounds(row, column_index)
+    @inbounds return row.data[column_index]
+end
 
 @inline function Base.getindex(row::ResultSetRow, column_name::AbstractString)
+    check_inbounds(row, column_name)
     column_index = row.schema.column_names_index[column_name]
     @inbounds return row.data[column_index]
+end
+
+@inline function check_inbounds(schema::CursorSchema, column::Integer)
+    @assert 0 < column <= num_columns(schema) "Column $column not found."
+end
+
+@inline function check_inbounds(schema::CursorSchema, column::AbstractString)
+    @assert haskey(schema.column_names_index, column) "Column $column not found."
+end
+
+@inline check_inbounds(row::ResultSetRow, column::Union{AbstractString,Integer}) = check_inbounds(row.schema, column)
+
+@inline function check_inbounds(rs::ResultSet, row::Integer, column::Union{AbstractString, Integer})
+    check_inbounds(rs.schema, column)
+    @assert 0 < row <= num_rows(rs) "Row $row not found."
 end
 
 has_possibly_more_rows(r::FetchRowsResult) = Bool(r.more_rows)
@@ -140,4 +207,44 @@ function fetch_row!(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
     else
         return nothing
     end
+end
+
+function Base.getindex(rs::ResultSet, row::Integer, column::Union{AbstractString,Integer})
+    check_inbounds(rs, row, column)
+    return rs.rows[row][column]
+end
+
+function Base.getindex(rs::ResultSet, ::Colon, column::Union{AbstractString,Integer})
+    column_data = Vector()
+
+    !isempty(rs) && check_inbounds(rs.rows[1], column)
+
+    for row in rs.rows
+        push!(column_data, row[column])
+    end
+
+    return column_data
+end
+
+function Base.lastindex(rs::ResultSet, d::Integer)
+    @assert d == 1 || d == 2 "Invalid dimension for ResultSet: $d."
+
+    # rows
+    if d == 1
+        return num_rows(rs)
+    else
+        # columns
+        return num_columns(rs)
+    end
+end
+
+function Base.getindex(rs::ResultSet, row_range::UnitRange{T}, column::Union{AbstractString,Integer}) where {T<:Integer}
+    column_data = Vector()
+
+    for r in row_range
+        check_inbounds(rs, r, column)
+        push!(column_data, rs[r, column])
+    end
+
+    return column_data
 end

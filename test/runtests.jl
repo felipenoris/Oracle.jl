@@ -91,7 +91,7 @@ println("")
     end
 end
 
-@testset "query/commit/rollback" begin
+@testset "execute/commit/rollback" begin
     Oracle.execute!(conn, "CREATE TABLE TB_TEST ( ID INT NULL )")
     Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
     Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
@@ -167,6 +167,71 @@ end
 
 @testset "Drop" begin
     Oracle.execute!(conn, "DROP TABLE TB_TEST")
+end
+
+@testset "ResultSet" begin
+
+    function check_data(columns, rs::Oracle.ResultSet)
+        # check_data should be used with non-empty results
+        @assert !isempty(columns)
+        @assert !isempty(rs)
+
+        rows, cols = size(rs)
+        @test cols == length(columns)
+        for (c, col) in enumerate(columns)
+            @test length(col) == rows
+            for (r, value) in enumerate(col)
+                @test rs[r,c] == value
+            end
+        end
+    end
+
+    Oracle.execute!(conn, "CREATE TABLE TB_TEST_QUERY ( ID NUMBER(5,0), NAME VARCHAR2(255), AMOUNT NUMBER(15,2) )")
+
+    select_sql = "SELECT ID, NAME, AMOUNT FROM TB_TEST_QUERY"
+
+    let
+        rs = Oracle.query(conn, select_sql)
+        @test isa(rs, Oracle.ResultSet)
+        @test isempty(rs)
+        @test size(rs) == (0, 3)
+        @test_throws AssertionError rs[1,1]
+    end
+
+    col_id = [1, 2, 3, 4]
+    col_name = ["first", "sec", "third", "4th"]
+    col_amount = [10.5, 20.5, 30.5, 40.5]
+    num_rows = length(col_id)
+
+    columns = [ col_id, col_name, col_amount ]
+    Oracle.execute!(conn, "INSERT INTO TB_TEST_QUERY ( ID, NAME, AMOUNT ) VALUES ( :1, :2, :3 )", columns)
+    Oracle.commit!(conn)
+
+    let
+        rs = Oracle.query(conn, "SELECT COUNT(ID) FROM TB_TEST_QUERY")
+        @test rs[1,1] == 4
+        @test size(rs) == (1, 1)
+    end
+
+    let
+        rs = Oracle.query(conn, select_sql)
+        @test isa(rs, Oracle.ResultSet)
+        @test !isempty(rs)
+        @test Oracle.num_rows(rs) == 4
+        @test Oracle.num_columns(rs) == 3
+        @test size(rs) == (4, 3)
+
+        check_data(columns, rs)
+
+        @test rs[1, 1] == col_id[1]
+        @test rs[1, "ID"] == col_id[1]
+        @test rs[:, 1] == col_id
+        @test rs[:, "ID"] == col_id
+        @test rs[end, 1] == col_id[end]
+        @test rs[2:4, 1] == col_id[2:4]
+    end
+
+    Oracle.execute!(conn, "DROP TABLE TB_TEST_QUERY")
 end
 
 @testset "ExternOracleValue" begin

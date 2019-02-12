@@ -103,7 +103,19 @@ finished with it, to release database resources.
 
 ### Executing a Query
 
-Use `Oracle.query` method with *do-syntax* to get a reference to a cursor.
+Use `Oracle.query` to execute a query. It returns a `ResultSet`, which is a table-like struct.
+All data is fetched from the statement before returning the `ResultSet`.
+
+```julia
+rs = Oracle.query(conn, "SELECT ID, FLT, STR, DT FROM TB_BIND")
+
+println(rs[2, 1]) # will print the element at row 2, column 1.
+println(rs[2, "ID"]) # will print element at row 2, column ID (same as column 1).
+println(rs[:, 1]) # will print all the elements in column 1.
+```
+
+The last example was easy to use, but maybe your memory can't hold all the data in the ResultSet.
+Use `Oracle.query` method with *do-syntax* to get a reference to a cursor, which will fetch one row at a time.
 
 ```julia
 Oracle.query(conn, "SELECT * FROM TB_BIND") do cursor

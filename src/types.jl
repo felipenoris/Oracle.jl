@@ -366,6 +366,11 @@ struct ResultSetRow
     data::Vector{Any}
 end
 
+struct ResultSet
+    schema::CursorSchema
+    rows::Vector{ResultSetRow}
+end
+
 "Safe version of OraCommonCreateParams"
 mutable struct CommonCreateParams
     create_mode::Union{Nothing, OraCreateMode}
