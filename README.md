@@ -108,10 +108,11 @@ Use `Oracle.query` method with *do-syntax* to get a reference to a cursor.
 ```julia
 Oracle.query(conn, "SELECT * FROM TB_BIND") do cursor
     for row in cursor
-        println( row["ID"]  )
+        # row values can be accessed using column name or position
+        println( row["ID"]  ) # same as row[1]
         println( row["FLT"] )
         println( row["STR"] )
-        println( row["DT"]  )
+        println( row["DT"]  ) # same as row[4]
     end
 end
 ```
@@ -126,6 +127,21 @@ Oracle.query(stmt) do cursor
     for row in cursor
       println(row["FLT"])
     end
+end
+
+Oracle.close!(stmt)
+```
+
+There is also the possibility to fetch one row at a time.
+
+```julia
+stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND")
+Oracle.execute!(stmt)
+
+row = Oracle.fetch_row!(stmt)
+while row != nothing
+    println(row[1])
+    row = Oracle.fetch_row!(stmt)
 end
 
 Oracle.close!(stmt)
