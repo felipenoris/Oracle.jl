@@ -932,17 +932,17 @@ end
 
 #=
     @testset "Bind RAW" begin
-        #Oracle.execute!(conn, "DROP TABLE TB_RAW")
-        #Oracle.execute!(conn, "CREATE TABLE TB_RAW ( bytes RAW(2000), bytes_long LONG RAW )")
         Oracle.execute!(conn, "CREATE TABLE TB_RAW ( RAW_BYTES RAW(2000) )")
 
-        bytes = UInt8[0x01, 0xff, 0x22] #rand(UInt8, 2000)
-        #bytes_long = UInt8[0x01, 0xff, 0x22] #rand(UInt8, 10000)
+        bytes = rand(UInt8, 2000);
 
         let
             stmt = Oracle.Stmt(conn, "INSERT INTO TB_RAW ( RAW_BYTES ) VALUES ( :a )")
-            stmt[1] = bytes
-            #stmt[2] = bytes_long
+            @test_throws ErrorException stmt[1] = bytes
+            @test_throws ErrorException Oracle.Variable(conn, bytes)
+            ora_var = Oracle.Variable(conn, Vector{UInt8}, Oracle.ORA_ORACLE_TYPE_RAW, Oracle.ORA_NATIVE_TYPE_BYTES)
+            ora_var[0] = bytes
+            stmt[1] = ora_var
             Oracle.execute!(stmt)
             Oracle.commit!(conn)
             Oracle.close!(stmt)
@@ -951,14 +951,13 @@ end
         Oracle.query(conn, "SELECT RAW_BYTES FROM TB_RAW") do cursor
             for row in cursor
                 @test row["RAW_BYTES"] == bytes
-                #@test row["BYTES_LONG"] == bytes_long
             end
         end
 
         Oracle.execute!(conn, "DROP TABLE TB_RAW")
     end
-=#
 end
+=#
 
 @testset "Variables" begin
 

@@ -134,7 +134,9 @@ end
 @generated function Variable(conn::Connection, column::Vector{T};
     is_PLSQL_array::Bool=false, object_type_handle::Ptr{Cvoid}=C_NULL) where {T}
 
-    if T == Any
+    if T == UInt8
+        error("It's ambiguous whether this Variable has `UInt8` or `Vector{UInt8}` as the element type. Create this variable explicitly with `Variable(connection, type, oracle_type, native_type)`.")
+    elseif T == Any
         # probably Julia v0.6. Will infer types in runtime.
         return :(build_variable_runtime_inferred_types(conn, column; is_PLSQL_array=is_PLSQL_array))
     else

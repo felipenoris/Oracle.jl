@@ -55,6 +55,10 @@ end
         error("Can't bind Timestamp with TimeZone directly to Statement. Use a Variable instead.")
     end
 
+    if O == ORA_ORACLE_TYPE_RAW || O == ORA_ORACLE_TYPE_LONG_RAW
+        error("Can't bind RAW data type directly to Statement. Use a Variable instead.")
+    end
+
     if name_or_position <: Integer
         name_or_position_exp = :(UInt32(name_or_position))
         bind_function_name = :dpiStmt_bindValueByPos
