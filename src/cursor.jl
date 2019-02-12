@@ -107,13 +107,13 @@ function ResultSetRow(cursor::Cursor)
         push!(data, parse_oracle_value(oracle_value))
     end
 
-    return ResultSetRow(cursor, data)
+    return ResultSetRow(cursor.schema, data)
 end
 
 @inline Base.getindex(row::ResultSetRow, column_index::Integer) = row.data[column_index]
 
 @inline function Base.getindex(row::ResultSetRow, column_name::AbstractString)
-    column_index = row.cursor.schema.column_names_index[column_name]
+    column_index = row.schema.column_names_index[column_name]
     @inbounds return row.data[column_index]
 end
 

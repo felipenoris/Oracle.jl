@@ -362,7 +362,7 @@ struct Cursor
 end
 
 struct ResultSetRow
-    cursor::Cursor
+    schema::CursorSchema
     data::Vector{Any}
 end
 

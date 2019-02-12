@@ -934,7 +934,7 @@ end
     @testset "Bind RAW" begin
         Oracle.execute!(conn, "CREATE TABLE TB_RAW ( RAW_BYTES RAW(2000) )")
 
-        bytes = rand(UInt8, 2000);
+        bytes = rand(UInt8, 5);
 
         let
             stmt = Oracle.Stmt(conn, "INSERT INTO TB_RAW ( RAW_BYTES ) VALUES ( :a )")
@@ -948,16 +948,18 @@ end
             Oracle.close!(stmt)
         end
 
-        Oracle.query(conn, "SELECT RAW_BYTES FROM TB_RAW") do cursor
-            for row in cursor
-                @test row["RAW_BYTES"] == bytes
-            end
+        let
+            stmt = Oracle.Stmt(conn, "SELECT RAW_BYTES FROM TB_RAW")
+            Oracle.execute!(stmt)
+            row = Oracle.fetch_row!(stmt)
+            @test row != nothing
+            @test row["RAW_BYTES"] == bytes
         end
 
         Oracle.execute!(conn, "DROP TABLE TB_RAW")
     end
-end
 =#
+end
 
 @testset "Variables" begin
 
