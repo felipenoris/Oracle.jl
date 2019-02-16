@@ -61,7 +61,7 @@ To connect as SYSDBA, use the appropriate `auth_mode` parameter.
 conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA)
 ```
 
-Connections are closed automatically (by the garbage collector) when they go out of scope. But you can also close a connection using `Oracle.close!` method.
+You should always close connections using `Oracle.close!` method.
 
 ```julia
 Oracle.close!(conn)
@@ -84,6 +84,7 @@ Oracle.rollback!(conn) # abort insertion of the third line
 ```julia
 Oracle.execute!(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
+# get an explicit reference to a statement
 stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
 
 # will add a single line to TB_BIND
@@ -97,9 +98,8 @@ Oracle.commit!(conn)
 Oracle.close!(stmt)
 ```
 
-Statements are closed automatically (by the garbage collector) when they go out of scope.
-But it's good practice to close a Statement using `Oracle.close!` method as soon as you have
-finished with it, to release database resources.
+Whenever you get an explicit reference to a statement, you should always
+use `Oracle.close!` method when you're done with it.
 
 ### Executing a Query
 
@@ -202,9 +202,7 @@ Oracle.close!(conn_3)
 Oracle.close!(pool)
 ```
 
-A *Pool* is closed automatically (by the garbage collector) when it goes out of scope.
-You can use `Oracle.close!` method as soon as you have
-finished with it, to release database resources.
+You should always close Pools using `Oracle.close!` method.
 
 ### LOB
 
@@ -224,9 +222,7 @@ For incremental reading/writing, you can use `open` with *do-syntax* do get an I
 IO Streams created on Character LOBs use the character index as its position, and
 only support reading/writing for `Char` and `String` data types.
 
-A LOB is closed automatically (by the garbage collector) when it goes out of scope.
-You can use `Oracle.close!` method as soon as you have
-finished with it, to release database resources.
+You should always close a LOB using `Oracle.close!` method.
 
 *Currently, BFILE is not supported.*
 
