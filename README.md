@@ -4,6 +4,12 @@
 This package provides a driver to access Oracle databases using the Julia language,
 based on [ODPI-C](https://github.com/oracle/odpi) bindings.
 
+## Development Notice
+
+This package is under active development. Under version v0.1.0, there will be no deprecation warnings for API changes.
+
+You can check release notes for a list of API changes between versions.
+
 ## Requirements
 
 * [Julia](https://julialang.org/) v0.6, v0.7 or v1.0.
