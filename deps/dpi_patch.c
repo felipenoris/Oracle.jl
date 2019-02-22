@@ -28,3 +28,7 @@ dpiOracleTypeNum dpiLob_getOracleTypeNum(dpiLob *lob) {
 int dpiLob_isCharacterData(dpiLob *lob) {
     return lob->type->isCharacterData;
 }
+
+size_t sizeof_dpiNumber() {
+    return sizeof(dpiNumber);
+}

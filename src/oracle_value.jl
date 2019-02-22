@@ -101,7 +101,10 @@ end
             return quote
                 dpiData_getUint64(data_handle)
             end
-
+        elseif N == ORA_NATIVE_TYPE_NUMBER
+            return quote
+                dpiData_getNumber(data_handle)
+            end
         else
             error("Native type $N not expected for value with numeric oracle type.")
         end
@@ -281,6 +284,13 @@ end
         end
     end
 
+    if N == ORA_NATIVE_TYPE_NUMBER
+        @assert val <: OraNumber "Value must be of type `Oracle.OraNumber`."
+        return quote
+            dpiData_setNumber(at, val)
+        end
+    end
+
     error("Setting values to AbstractOracleValue{$O, $N} is not supported.")
 end
 
@@ -325,6 +335,7 @@ end
 @inline infer_oracle_type_tuple(::Type{Date}) = OracleTypeTuple(ORA_ORACLE_TYPE_DATE, ORA_NATIVE_TYPE_TIMESTAMP)
 @inline infer_oracle_type_tuple(::Type{DateTime}) = infer_oracle_type_tuple(Timestamp)
 @inline infer_oracle_type_tuple(::Type{Timestamp}) = OracleTypeTuple(ORA_ORACLE_TYPE_TIMESTAMP, ORA_NATIVE_TYPE_TIMESTAMP)
+@inline infer_oracle_type_tuple(::Type{OraNumber}) = OracleTypeTuple(ORA_ORACLE_TYPE_NUMBER, ORA_NATIVE_TYPE_NUMBER)
 
 # accept julia values as arguments
 for type_sym in (:Bool, :Float64, :Int64, :UInt64, :Date, :DateTime, :Timestamp)
