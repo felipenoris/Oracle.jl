@@ -1,5 +1,6 @@
 
 include("timestamps_tests.jl")
+include("oranumbers_tests.jl")
 
 import Oracle
 
@@ -457,6 +458,7 @@ end
         Oracle.execute!(conn, "DROP TABLE TB_BLOB")
     end
 #=
+    # TODO: not working
     @testset "Write BLOB" begin
         #Oracle.execute!(conn, "DROP TABLE TB_WRITE_BLOB")
         Oracle.execute!(conn, "CREATE TABLE TB_WRITE_BLOB ( B BLOB )")
@@ -1074,6 +1076,32 @@ end
         Oracle.rollback!(conn)
     end
 
+    @testset "high-level define API" begin
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 0.00 )")
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 1.00 )")
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 0.01 )")
+        Oracle.execute!(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( 100.00 )")
+
+        vals = [ 0.00, 1.00, 0.01, 100.00 ]
+
+        let
+            ora_var = Oracle.Variable(conn, Float64)
+            stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_VARIABLES")
+            Oracle.execute!(stmt)
+            Oracle.define(stmt, 1, ora_var)
+            result = Oracle.fetch!(stmt)
+            i = 1
+            while result.found
+                @test ora_var[result] ≈ vals[i]
+                result = Oracle.fetch!(stmt)
+                i += 1
+            end
+            Oracle.close!(stmt)
+        end
+
+        Oracle.rollback!(conn)
+    end
+
     @testset "bind to stmt" begin
         ora_var = Oracle.Variable(conn, Float64)
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_VARIABLES ( FLT ) VALUES ( :flt )")
@@ -1205,6 +1233,154 @@ end
         end
 
         Oracle.execute!(conn, "DROP TABLE TB_CLOB_VARIABLE")
+    end
+
+    @testset "OraNumber" begin
+        @testset "read" begin
+            nums_str = [
+                         "0",
+                         "1",
+                         "10",
+                         "100",
+                         "2200",
+                         "2244",
+                         "2244.5566",
+                         "0.01",
+                         "0.0001",
+                         "0.0002",
+                         "0.5555",
+                         "0.0505",
+                         "0.0121",
+                         "0.0005",
+                         "10000000",
+                         "10000001",
+                         "50000000",
+                         "50005000",
+                         "54200254000456.5005",
+                         "9999999999999999999999999999999999.9999",
+                         "-1",
+                         "-10",
+                         "-100",
+                         "-2200",
+                         "-2244",
+                         "-2244.5566",
+                         "-0.01",
+                         "-0.0001",
+                         "-0.0002",
+                         "-0.5555",
+                         "-0.0505",
+                         "-0.0121",
+                         "-0.0005",
+                         "-10000000",
+                         "-10000001",
+                         "-50000000",
+                         "-50005000",
+                         "-54200254000456.5005",
+                         "-9999999999999999999999999999999999.9999"
+                    ]
+
+            Oracle.execute!(conn, "CREATE TABLE TB_NUMBER_VARIABLE ( N NUMERIC(38, 4) )")
+
+            for str in nums_str
+                Oracle.execute!(conn, "INSERT INTO TB_NUMBER_VARIABLE ( N ) VALUES ( $str )")
+            end
+
+            let
+                ora_var_number = Oracle.Variable(conn, Oracle.OraNumbers.OraNumber)
+                stmt = Oracle.Stmt(conn, "SELECT N FROM TB_NUMBER_VARIABLE")
+                Oracle.execute!(stmt)
+                Oracle.define(stmt, 1, ora_var_number)
+                result = Oracle.fetch!(stmt)
+
+                i = 1
+                while result.found
+                    val = ora_var_number[result]
+
+                    @test Oracle.OraNumbers.isnormalized(val)
+                    @test Oracle.OraNumbers.normalize(val) == val
+
+                    if val != zero(Oracle.OraNumbers.OraNumber)
+                        # encode_exponent_byte cannot be used on zero or special numbers
+                        @test val.ex == Oracle.OraNumbers.encode_exponent_byte(Oracle.OraNumbers.decode_exponent_byte(val), Oracle.OraNumbers.isnegative(val))
+                    end
+
+                    for mantissa_byte_index in 1:Oracle.OraNumbers.sizeof_mantissa(val)
+                        @test Oracle.OraNumbers.encode_mantissa_byte(Oracle.OraNumbers.decode_mantissa_byte(val, mantissa_byte_index), Oracle.OraNumbers.isnegative(val)) == val.mantissa[mantissa_byte_index]
+                    end
+
+                    @test -(-val) == val
+
+                    # Testing normalize
+                    if val != zero(Oracle.OraNumbers.OraNumber)
+                        for exponent_increment in 1:3
+                            if val.len + exponent_increment > 21
+                                # overflow
+                                @test_throws ErrorException Oracle.OraNumbers.inc_exponent(val, exponent_increment)
+                            else
+                                @test Oracle.OraNumbers.normalize(Oracle.OraNumbers.inc_exponent(val, exponent_increment)) == val
+                            end
+                        end
+                    end
+
+                    #Oracle.OraNumbers.debug_number(val)
+                    str = nums_str[i]
+                    @test string(val) == str
+
+                    # Testing -x
+                    if val == zero(Oracle.OraNumbers.OraNumber)
+                        @test string(-val) == string(val)
+                    else
+                        if Oracle.OraNumbers.ispositive(val)
+                            @test string(-val) == "-" * str
+                        else
+                            @test string(-val) == str[2:end]
+                        end
+                    end
+
+                    result = Oracle.fetch!(stmt)
+                    i += 1
+                end
+                Oracle.close!(stmt)
+            end
+
+            Oracle.execute!(conn, "DROP TABLE TB_NUMBER_VARIABLE")
+        end
+
+        @testset "write" begin
+            Oracle.execute!(conn, "CREATE TABLE TB_WRITE_NUMBER_VARIABLE ( N NUMERIC(38, 4) )")
+
+            stmt = Oracle.Stmt(conn, "INSERT INTO TB_WRITE_NUMBER_VARIABLE ( N ) VALUES ( :1 )")
+
+            try
+
+                let
+                    ora_var = Oracle.Variable(conn, Oracle.OraNumber)
+                    ora_var[0] = zero(Oracle.OraNumber)
+                    ora_var[1] = one(Oracle.OraNumber)
+                    ora_var[2] = Oracle.OraNumber(11, 56, (0x2f, 0x51, 0x63, 0x2f, 0x65, 0x61, 0x2d, 0x33, 0x60, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00))
+
+                    stmt[1] = ora_var
+
+                    result = Oracle.dpiStmt_executeMany(stmt.handle, Oracle.ORA_MODE_EXEC_DEFAULT, UInt32(3))
+                    Oracle.error_check(Oracle.context(stmt), result)
+                end
+
+                Oracle.query(conn, "SELECT N FROM TB_WRITE_NUMBER_VARIABLE") do cursor
+
+                    data = [ 0, 1, -54200254000456.5005]
+
+                    i = 1
+                    for row in cursor
+                        @test row["N"] ≈ data[i]
+                        i += 1
+                    end
+                end
+
+            finally
+                Oracle.close!(stmt)
+                Oracle.execute!(conn, "DROP TABLE TB_WRITE_NUMBER_VARIABLE ")
+            end
+        end
     end
 end
 

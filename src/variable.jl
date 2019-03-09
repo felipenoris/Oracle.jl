@@ -87,6 +87,8 @@ function Base.getindex(variable::Variable, pos::Integer)
     return oracle_value[pos]
 end
 
+Base.getindex(variable::Variable, pos::FetchResult) = getindex(variable, pos.buffer_row_index)
+
 @inline function check_bounds(variable::Variable, pos::Integer)
     # pos is 0-indexed
     @assert pos >= 0 "Cannot bind variable at a negative position ($pos)."

@@ -33,9 +33,14 @@ function dpiLob_getOracleTypeNum(lob_handle::Ptr{Cvoid})
     ccall((:dpiLob_getOracleTypeNum, libdpi), OraOracleTypeNum, (Ptr{Cvoid},), lob_handle)
 end
 
-#int dpiLob_isCharacterData(dpiLob *lob)
+# int dpiLob_isCharacterData(dpiLob *lob)
 function dpiLob_isCharacterData(lob_handle::Ptr{Cvoid})
     ccall((:dpiLob_isCharacterData, libdpi), Int32, (Ptr{Cvoid},), lob_handle)
+end
+
+# size_t sizeof_dpiNumber()
+function sizeof_dpiNumber()
+    ccall((:sizeof_dpiNumber, libdpi), Csize_t, ())
 end
 
 #
@@ -386,6 +391,11 @@ function dpiData_getLOB(data_handle::Ref{OraData})
     ccall((:dpiData_getLOB, libdpi), Ptr{Cvoid}, (Ref{OraData},), data_handle)
 end
 
+# dpiNumber dpiData_getNumber(dpiData *data);
+function dpiData_getNumber(data_handle::Ref{OraData})
+    ccall((:dpiData_getNumber, libdpi), OraNumber, (Ref{OraData},), data_handle)
+end
+
 #
 # NOTE ON SET FUNCTIONS
 #
@@ -434,6 +444,11 @@ end
 # void dpiData_setLOB(dpiData *data, dpiLob *lob)
 function dpiData_setLOB(dpi_data_ptr::Ref{OraData}, lob_handle::Ptr{Cvoid})
     ccall((:dpiData_setLOB, libdpi), Cvoid, (Ref{OraData}, Ptr{Cvoid}), dpi_data_ptr, lob_handle)
+end
+
+# void dpiData_setNumber(dpiData *data, dpiNumber number);
+function dpiData_setNumber(dpi_data_ptr::Ref{OraData}, number::OraNumber)
+    ccall((:dpiData_setNumber, libdpi), Cvoid, (Ref{OraData}, OraNumber), dpi_data_ptr, number)
 end
 
 #

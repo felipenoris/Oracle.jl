@@ -343,6 +343,8 @@ struct FetchResult
     buffer_row_index::UInt32
 end
 
+Base.show(io::IO, result::FetchResult) = print(io, "FetchResult(", result.found, ", ", Int(result.buffer_row_index), ")")
+
 struct FetchRowsResult
     buffer_row_index::UInt32
     num_rows_fetched::UInt32

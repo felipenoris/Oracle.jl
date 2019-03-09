@@ -10,6 +10,9 @@ if !isfile(DEPS_FILE)
 end
 include(DEPS_FILE)
 
+include("oranumbers/oranumbers.jl")
+import .OraNumbers.OraNumber
+
 include("macros.jl")
 include("constants.jl")
 include("enums.jl")
@@ -37,6 +40,7 @@ function __init__()
     @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams()
     @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams()
     @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo()
+    @assert sizeof(OraNumber) == sizeof_dpiNumber()
 
     # Checks that ODPI-C works
     ctx = Context()
