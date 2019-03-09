@@ -1,5 +1,5 @@
 
-"Variable is a 0-indexed array of OraData."
+"Variable is a 1-indexed array of OraData."
 function Variable(
         connection::Connection,
         ::Type{T},
@@ -69,14 +69,14 @@ end
 
 function Base.setindex!(variable::Variable, value::String, pos::Integer)
     check_bounds(variable, pos)
-    result = dpiVar_setFromBytes(variable.handle, UInt32(pos), value)
+    result = dpiVar_setFromBytes(variable.handle, UInt32(pos-1), value)
     error_check(context(variable), result)
     nothing
 end
 
 function Base.setindex!(variable::Variable, value::Lob, pos::Integer)
     check_bounds(variable, pos)
-    result = dpiVar_setFromLob(variable.handle, UInt32(pos), value.handle)
+    result = dpiVar_setFromLob(variable.handle, UInt32(pos-1), value.handle)
     error_check(context(variable), result)
     nothing
 end
@@ -87,12 +87,12 @@ function Base.getindex(variable::Variable, pos::Integer)
     return oracle_value[pos]
 end
 
-Base.getindex(variable::Variable, pos::FetchResult) = getindex(variable, pos.buffer_row_index)
+Base.getindex(variable::Variable, pos::FetchResult) = getindex(variable, pos.buffer_row_index + 1)
 
 @inline function check_bounds(variable::Variable, pos::Integer)
-    # pos is 0-indexed
-    @assert pos >= 0 "Cannot bind variable at a negative position ($pos)."
-    @assert pos < variable.buffer_capacity "Position $pos is greater than variable's buffer capacity $(variable.buffer_capacity)."
+    # pos is 1-indexed
+    @assert pos > 0 "Cannot bind variable at position $pos."
+    @assert pos <= variable.buffer_capacity "Position $pos is greater than variable's buffer capacity $(variable.buffer_capacity)."
 end
 
 function find_max_byte_string_size(v::Vector{T}) where {T<:Union{Missing, AbstractString}}
@@ -156,7 +156,7 @@ end
                 object_type_handle=object_type_handle)
 
             for i in 1:capacity
-                variable[i-1] = column[i] # variables are 0-indexed
+                variable[i] = column[i]
             end
 
             return variable

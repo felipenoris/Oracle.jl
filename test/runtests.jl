@@ -303,7 +303,8 @@ end
         julia_oracle_value = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_NATIVE_INT, Oracle.ORA_NATIVE_TYPE_INT64, Int64)
         julia_oracle_value[] = 10
         @test julia_oracle_value[] == 10
-        @test julia_oracle_value[0] == julia_oracle_value[]
+        @test julia_oracle_value[1] == julia_oracle_value[]
+        @test_throws AssertionError julia_oracle_value[0]
     end
 
     @testset "UInt64" begin
@@ -1008,7 +1009,7 @@ end
             @test_throws ErrorException stmt[1] = bytes
             @test_throws ErrorException Oracle.Variable(conn, bytes)
             ora_var = Oracle.Variable(conn, Vector{UInt8}, Oracle.ORA_ORACLE_TYPE_RAW, Oracle.ORA_NATIVE_TYPE_BYTES)
-            ora_var[0] = bytes
+            ora_var[1] = bytes
             stmt[1] = ora_var
             Oracle.execute(stmt)
             Oracle.commit(conn)
@@ -1033,24 +1034,27 @@ end
     @testset "get/set values to Variables" begin
         ora_var = Oracle.Variable(conn, Float64, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
 
-        ora_var[0] = 0.0
-        @test ora_var[0] == 0.0
+        ora_var[1] = 0.0
+        @test ora_var[1] == 0.0
 
         let
-            for i in 0:(ora_var.buffer_capacity-1)
+            for i in 1:ora_var.buffer_capacity
                 ora_var[i] = Float64(i)
             end
 
-            for i in 0:(ora_var.buffer_capacity-1)
+            for i in 1:ora_var.buffer_capacity
                 @test ora_var[i] == Float64(i)
             end
         end
 
+        @test_throws AssertionError ora_var[0]
+        @test_throws AssertionError ora_var[0] = 1.0
+
         @test_throws AssertionError ora_var[-1] = 1.0
-        @test_throws AssertionError ora_var[ora_var.buffer_capacity] = 1.0
+        @test_throws AssertionError ora_var[ora_var.buffer_capacity+1] = 1.0
 
         @test_throws AssertionError ora_var[-1] == 1.0
-        @test_throws AssertionError ora_var[ora_var.buffer_capacity] == 1.0
+        @test_throws AssertionError ora_var[ora_var.buffer_capacity+1] == 1.0
     end
 
     Oracle.execute(conn, "CREATE TABLE TB_VARIABLES ( FLT NUMBER(15,4) NULL )")
@@ -1068,9 +1072,9 @@ end
         @test fetch_result.num_rows_fetched == 3
 
         v = Oracle.ExternOracleValue(ora_var, ora_var.oracle_type, ora_var.native_type, ora_var.buffer_handle)
-        @test v[fetch_result.buffer_row_index + 0] == 123.45
-        @test v[fetch_result.buffer_row_index + 1] == 456.78
-        @test ismissing(v[fetch_result.buffer_row_index + 2])
+        @test v[fetch_result.buffer_row_index + 1] == 123.45
+        @test v[fetch_result.buffer_row_index + 2] == 456.78
+        @test ismissing(v[fetch_result.buffer_row_index + 3])
 
         Oracle.close(stmt)
         Oracle.rollback(conn)
@@ -1115,7 +1119,7 @@ end
         let
             ora_var = Oracle.Variable(conn, Float64)
 
-            for i in 0:(how_many-1)
+            for i in 1:how_many
                 ora_var[i] = Float64(i)
             end
 
@@ -1129,12 +1133,12 @@ end
         end
 
         Oracle.query(conn, "SELECT FLT FROM TB_VARIABLES") do cursor
-            row_number = 0.0
+            row_number = 1.0
             for row in cursor
                 @test row["FLT"] == row_number
                 row_number += 1
             end
-            @test row_number == how_many
+            @test row_number == how_many + 1
         end
     end
 
@@ -1355,9 +1359,9 @@ end
 
                 let
                     ora_var = Oracle.Variable(conn, Oracle.OraNumber)
-                    ora_var[0] = zero(Oracle.OraNumber)
-                    ora_var[1] = one(Oracle.OraNumber)
-                    ora_var[2] = Oracle.OraNumber(11, 56, (0x2f, 0x51, 0x63, 0x2f, 0x65, 0x61, 0x2d, 0x33, 0x60, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00))
+                    ora_var[1] = zero(Oracle.OraNumber)
+                    ora_var[2] = one(Oracle.OraNumber)
+                    ora_var[3] = Oracle.OraNumber(11, 56, (0x2f, 0x51, 0x63, 0x2f, 0x65, 0x61, 0x2d, 0x33, 0x60, 0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00))
 
                     stmt[1] = ora_var
 

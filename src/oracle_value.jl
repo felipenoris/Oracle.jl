@@ -20,7 +20,8 @@ end
 @inline parent(v::JuliaOracleValue) = error("Not implemented.")
 
 @inline function get_data_handle(val::ExternOracleValue, offset::Integer) :: Ptr{OraData}
-    return val.data_handle + offset*SIZEOF_ORA_DATA
+    @assert offset > 0 "Invalid offset $offset."
+    return val.data_handle + (offset-1)*SIZEOF_ORA_DATA
 end
 
 @inline function get_data_handle(val::ExternOracleValue) :: Ptr{OraData}
@@ -29,7 +30,8 @@ end
 end
 
 @inline function get_data_handle(val::JuliaOracleValue, offset::Integer) :: Ptr{OraData}
-    return pointer(val.buffer, offset+1)
+    @assert offset > 0 "Invalid offset $offset."
+    return pointer(val.buffer, offset)
 end
 
 @inline function get_data_handle(val::JuliaOracleValue) :: Ptr{OraData}
@@ -202,10 +204,11 @@ end
 
 @inline Base.getindex(val::AbstractOracleValue) = parse_oracle_value(val)
 @inline Base.getindex(val::AbstractOracleValue, offset::Integer) = parse_oracle_value(val, offset)
-@inline Base.setindex!(oracle_value::AbstractOracleValue, value, offset::Integer=0) = set_oracle_value!(oracle_value, value, offset)
+@inline Base.setindex!(oracle_value::AbstractOracleValue, value, offset::Integer=1) = set_oracle_value!(oracle_value, value, offset)
 
-@inline function set_oracle_value!(oracle_value::JuliaOracleValue{O,N,T}, val::T, offset::Integer=0) where {O,N,T}
-    oracle_value.buffer[offset+1] = val
+@inline function set_oracle_value!(oracle_value::JuliaOracleValue{O,N,T}, val::T, offset::Integer=1) where {O,N,T}
+    @assert offset > 0 "Invalid offset $offset."
+    oracle_value.buffer[offset] = val
     nothing
 end
 
@@ -301,7 +304,8 @@ function encoding(ora_string_ptr::Ptr{OraBytes})
     return encoding(ora_string)
 end
 
-@generated function encoding(val::AbstractOracleValue{O,N}, offset::Integer=0) where {O,N}
+@generated function encoding(val::AbstractOracleValue{O,N}, offset::Integer=1) where {O,N}
+    @assert offset > 0 "Invalid offset $offset."
     @assert N == ORA_NATIVE_TYPE_BYTES "Native type must be Oracle.ORA_NATIVE_TYPE_BYTES. Found: $N."
 
     return quote
@@ -314,8 +318,9 @@ end
 # Get/Set Implementation for JuliaOracleValue
 #
 
-@inline function parse_oracle_value(oracle_value::JuliaOracleValue{O,N,T}, offset::Integer=0) where {O,N,T}
-    return oracle_value.buffer[offset+1]
+@inline function parse_oracle_value(oracle_value::JuliaOracleValue{O,N,T}, offset::Integer=1) where {O,N,T}
+    @assert offset > 0 "Invalid offset $offset."
+    return oracle_value.buffer[offset]
 end
 
 @inline function set_oracle_value!(oracle_value::AbstractOracleValue{O,N}, val::T, offset::Integer) where {O,N,T}
