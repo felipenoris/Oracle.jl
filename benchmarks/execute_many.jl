@@ -16,22 +16,22 @@ include(joinpath(@__DIR__, "..", "test","credentials.jl"))
 
 conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
 
-Oracle.execute!(conn, "CREATE TABLE TB_BENCH_EXECUTE_MANY ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL )")
+Oracle.execute(conn, "CREATE TABLE TB_BENCH_EXECUTE_MANY ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL )")
 
 let
     # JIT
     stmt = Oracle.Stmt(conn, "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )")
     stmt[1] = 1
     stmt[2] = 0.5
-    Oracle.execute!(stmt)
-    Oracle.rollback!(conn)
-    Oracle.close!(stmt)
+    Oracle.execute(stmt)
+    Oracle.rollback(conn)
+    Oracle.close(stmt)
 end
 
 let
     # JIT
-    Oracle.execute!(conn, "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )", [ [1, 2], [0.5, 1.5] ])
-    Oracle.rollback!(conn)
+    Oracle.execute(conn, "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )", [ [1, 2], [0.5, 1.5] ])
+    Oracle.rollback(conn)
 end
 
 NUM_ROWS = 1_000
@@ -45,16 +45,16 @@ println("one row at a time")
     for i in 1:NUM_ROWS
         stmt[1] = column_1[i]
         stmt[2] = column_2[i]
-        Oracle.execute!(stmt)
+        Oracle.execute(stmt)
     end
-    Oracle.rollback!(conn)
-    Oracle.close!(stmt)
+    Oracle.rollback(conn)
+    Oracle.close(stmt)
 end
 
 println("execute many")
 @time let
-    Oracle.execute!(conn, "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )", [ column_1, column_2 ])
-    Oracle.rollback!(conn)
+    Oracle.execute(conn, "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )", [ column_1, column_2 ])
+    Oracle.rollback(conn)
 end
 
-Oracle.execute!(conn, "DROP TABLE TB_BENCH_EXECUTE_MANY")
+Oracle.execute(conn, "DROP TABLE TB_BENCH_EXECUTE_MANY")

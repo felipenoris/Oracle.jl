@@ -21,7 +21,7 @@ function bench()
 
     try
 
-        Oracle.execute!(conn, "CREATE TABLE TB_BIND_BY_NAME ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
+        Oracle.execute(conn, "CREATE TABLE TB_BIND_BY_NAME ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
         stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_NAME ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
         @assert stmt.bind_count == 4
@@ -31,9 +31,9 @@ function bench()
             stmt[:flt] = 10.23 + i
             stmt[:str] = "🍕 $i"
             stmt[:dt] = Date(2018,12,31) + Dates.Day(i)
-            Oracle.execute!(stmt)
+            Oracle.execute(stmt)
         end
-        Oracle.commit!(conn)
+        Oracle.commit(conn)
 
         let
             row_number = 1
@@ -49,15 +49,15 @@ function bench()
             end
         end
 
-        Oracle.execute!(conn, "DELETE FROM TB_BIND_BY_NAME")
+        Oracle.execute(conn, "DELETE FROM TB_BIND_BY_NAME")
 
         stmt[:id, Int] = missing
         stmt[:flt, Float64] = missing
         stmt[:str, String] = missing
         stmt[:dt, Date] = missing
 
-        Oracle.execute!(stmt)
-        Oracle.commit!(conn)
+        Oracle.execute(stmt)
+        Oracle.commit(conn)
 
         let
             row_number = 0
@@ -74,11 +74,11 @@ function bench()
             @assert row_number == 1
         end
 
-        Oracle.close!(stmt)
-        Oracle.execute!(conn, "DROP TABLE TB_BIND_BY_NAME")
+        Oracle.close(stmt)
+        Oracle.execute(conn, "DROP TABLE TB_BIND_BY_NAME")
 
     finally
-        Oracle.close!(conn)
+        Oracle.close(conn)
     end
 end
 

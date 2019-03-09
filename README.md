@@ -67,28 +67,28 @@ To connect as SYSDBA, use the appropriate `auth_mode` parameter.
 conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA)
 ```
 
-You should always close connections using `Oracle.close!` method.
+You should always close connections using `Oracle.close` method.
 
 ```julia
-Oracle.close!(conn)
+Oracle.close(conn)
 ```
 
 ### Executing a Statement
 
 ```julia
-Oracle.execute!(conn, "CREATE TABLE TB_TEST ( ID INT NULL )")
-Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
-Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
-Oracle.commit!(conn) # will commit 2 lines
+Oracle.execute(conn, "CREATE TABLE TB_TEST ( ID INT NULL )")
+Oracle.execute(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )")
+Oracle.execute(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
+Oracle.commit(conn) # will commit 2 lines
 
-Oracle.execute!(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )")
-Oracle.rollback!(conn) # abort insertion of the third line
+Oracle.execute(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )")
+Oracle.rollback(conn) # abort insertion of the third line
 ```
 
 ### Binding values to a Statement
 
 ```julia
-Oracle.execute!(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
+Oracle.execute(conn, "CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
 # get an explicit reference to a statement
 stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )")
@@ -98,14 +98,14 @@ stmt[:id] = 1
 stmt[:flt] = 10.23
 stmt[:str] = "a string"
 stmt[:dt] = Date(2018,12,31)
-Oracle.execute!(stmt)
+Oracle.execute(stmt)
 
-Oracle.commit!(conn)
-Oracle.close!(stmt)
+Oracle.commit(conn)
+Oracle.close(stmt)
 ```
 
 Whenever you get an explicit reference to a statement, you should always
-use `Oracle.close!` method when you're done with it.
+use `Oracle.close` method when you're done with it.
 
 ### Executing a Query
 
@@ -147,7 +147,7 @@ Oracle.query(stmt) do cursor
     end
 end
 
-Oracle.close!(stmt)
+Oracle.close(stmt)
 ```
 
 There is also the possibility to fetch one row at a time manually,
@@ -155,21 +155,21 @@ with a small overhead when compared to previous methods.
 
 ```julia
 stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND")
-Oracle.execute!(stmt)
+Oracle.execute(stmt)
 
-row = Oracle.fetch_row!(stmt)
+row = Oracle.fetchrow(stmt)
 while row != nothing
     println(row[1])
-    row = Oracle.fetch_row!(stmt)
+    row = Oracle.fetchrow(stmt)
 end
 
-Oracle.close!(stmt)
+Oracle.close(stmt)
 ```
 
 ### Batch statement execution
 
 If you need to execute the same statement many times but binding different values each time,
-pass a vector of columns to `Oracle.execute!` method.
+pass a vector of columns to `Oracle.execute` method.
 
 This will use the ODPI-C *executeMany* feature.
 
@@ -180,7 +180,7 @@ column_1 = [ i for i in 1:NUM_ROWS ]
 column_2 = .5 * column_1
 
 sql = "INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )"
-Oracle.execute!(conn, sql, [ column_1, column_2 ])
+Oracle.execute(conn, sql, [ column_1, column_2 ])
 ```
 
 ### Session Pools
@@ -195,20 +195,20 @@ conn_1 = Oracle.Connection(pool)
 conn_2 = Oracle.Connection(pool) # at this point, we can't acquire more connections
 
 # release a connection so that we can acquire another one.
-Oracle.close!(conn_1)
+Oracle.close(conn_1)
 
 # by now, acquiring a new connection should be pretty fast
 # since the new connection will be taken from the pool
 conn_3 = Oracle.Connection(pool)
 
 # release all connections that are still open
-Oracle.close!(conn_2)
-Oracle.close!(conn_3)
+Oracle.close(conn_2)
+Oracle.close(conn_3)
 
-Oracle.close!(pool)
+Oracle.close(pool)
 ```
 
-You should always close Pools using `Oracle.close!` method.
+You should always close Pools using `Oracle.close` method.
 
 ### LOB
 
@@ -228,7 +228,7 @@ For incremental reading/writing, you can use `open` with *do-syntax* do get an I
 IO Streams created on Character LOBs use the character index as its position, and
 only support reading/writing for `Char` and `String` data types.
 
-You should always close a LOB using `Oracle.close!` method.
+You should always close a LOB using `Oracle.close` method.
 
 *Currently, BFILE is not supported.*
 
@@ -237,8 +237,8 @@ You should always close a LOB using `Oracle.close!` method.
 ```julia
 lyric = "hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼"
 
-Oracle.execute!(conn, "CREATE TABLE TB_BLOB ( b BLOB )")
-Oracle.execute!(conn, "INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw('$lyric'))")
+Oracle.execute(conn, "CREATE TABLE TB_BLOB ( b BLOB )")
+Oracle.execute(conn, "INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw('$lyric'))")
 
 Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
     for row in cursor
@@ -264,7 +264,7 @@ Follow these steps to write to a BLOB field in the database.
 5. Execute the statement.
 
 ```julia
-Oracle.execute!(conn, "CREATE TABLE TB_BLOB_VARIABLE ( B BLOB )")
+Oracle.execute(conn, "CREATE TABLE TB_BLOB_VARIABLE ( B BLOB )")
 
 test_data = rand(UInt8, 5000)
 
@@ -282,8 +282,8 @@ stmt = Oracle.Stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )")
 # binds the variable to the statement
 stmt[1] = ora_var
 
-Oracle.execute!(stmt)
-Oracle.close!(stmt)
+Oracle.execute(stmt)
+Oracle.close(stmt)
 ```
 
 ## ODPI-C Naming Conventions

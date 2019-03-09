@@ -47,7 +47,7 @@ end
     =#
 
     function Base.start(cursor::Cursor) :: FetchResult
-        return fetch!(cursor.stmt)
+        return fetch(cursor.stmt)
     end
 
     function Base.done(cursor::Cursor, state::FetchResult)
@@ -56,7 +56,7 @@ end
 
     function Base.next(cursor::Cursor, state::FetchResult)
         current_row = ResultSetRow(cursor)
-        next_state = fetch!(cursor.stmt)
+        next_state = fetch(cursor.stmt)
         return (current_row, next_state)
     end
 
@@ -79,7 +79,7 @@ else
     =#
 
     function Base.iterate(cursor::Cursor, nil::Nothing=nothing)
-        fetch_result = fetch!(cursor.stmt)
+        fetch_result = fetch(cursor.stmt)
         if fetch_result.found
             current_row = ResultSetRow(cursor)
             return (current_row, nothing)
@@ -96,7 +96,7 @@ function query(f::Function, conn::Connection, sql::String;
                exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
 
     stmt(conn, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size) do stmt
-        execute!(stmt, exec_mode=exec_mode)
+        execute(stmt, exec_mode=exec_mode)
         cursor = Cursor(stmt)
         f(cursor)
     end
@@ -119,7 +119,7 @@ function execute_and_fetch_all!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC
 end
 
 function query(f::Function, stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
-    execute!(stmt, exec_mode=exec_mode)
+    execute(stmt, exec_mode=exec_mode)
     f(Cursor(stmt))
     nothing
 end
@@ -199,8 +199,8 @@ Base.eltype(::Cursor) = ResultSetRow
     end
 end
 
-function fetch_row!(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
-    fetch_result = fetch!(stmt)
+function fetchrow(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
+    fetch_result = fetch(stmt)
 
     if fetch_result.found
         return ResultSetRow(Cursor(stmt))

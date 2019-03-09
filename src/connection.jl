@@ -128,19 +128,19 @@ function shutdown_database(conn::Connection, shutdown_mode::OraShutdownMode=ORA_
     nothing
 end
 
-function commit!(conn::Connection)
+function commit(conn::Connection)
     result = dpiConn_commit(conn.handle)
     error_check(context(conn), result)
     nothing
 end
 
-function rollback!(conn::Connection)
+function rollback(conn::Connection)
     result = dpiConn_rollback(conn.handle)
     error_check(context(conn), result)
     nothing
 end
 
-function close!(conn::Connection; close_mode::OraConnCloseMode=ORA_MODE_CONN_CLOSE_DEFAULT, tag::String="")
+function close(conn::Connection; close_mode::OraConnCloseMode=ORA_MODE_CONN_CLOSE_DEFAULT, tag::String="")
     result = dpiConn_close(conn.handle, close_mode=close_mode, tag=tag)
     error_check(context(conn), result)
     conn.pool = nothing
