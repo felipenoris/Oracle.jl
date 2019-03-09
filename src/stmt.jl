@@ -1,7 +1,7 @@
 
 @inline column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_info.name_length)
 
-function num_columns(stmt::QueryStmt)
+function ncol(stmt::QueryStmt)
     if stmt.columns_info == nothing
         init_columns_info!(stmt)
     end
@@ -123,7 +123,7 @@ function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool
     try
         f(stmt)
     finally
-        close!(stmt)
+        close(stmt)
     end
 
     nothing
@@ -138,29 +138,29 @@ function row_count(stmt::Stmt)
 end
 
 """
-    execute!(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    execute(stmt::Stmt; exec_mode::dpiExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
 
 Returns the number of columns which are being queried.
 If the statement does not refer to a query, the value is set to 0.
 """
-function execute!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     num_columns_ref = Ref{UInt32}(0)
     result = dpiStmt_execute(stmt.handle, exec_mode, num_columns_ref)
     error_check(context(stmt), result)
     return num_columns_ref[]
 end
 
-function execute!(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     local result::UInt32
 
     stmt(connection, sql, scrollable=scrollable, tag=tag) do stmt
-        result = execute!(stmt, exec_mode=exec_mode)
+        result = execute(stmt, exec_mode=exec_mode)
     end
 
     return result
 end
 
-function execute_script!(connection::Connection, filepath::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute_script(connection::Connection, filepath::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     @assert isfile(filepath) "Couldn't find script file $filepath."
 
     local sql::String
@@ -168,22 +168,22 @@ function execute_script!(connection::Connection, filepath::String; scrollable::B
         sql = read(io, String)
     end
 
-    return execute!(connection, sql, scrollable=scrollable, tag=tag, exec_mode=exec_mode)
+    return execute(connection, sql, scrollable=scrollable, tag=tag, exec_mode=exec_mode)
 end
 
 # execute many
-function execute!(connection::Connection, sql::String, columns::Vector; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute(connection::Connection, sql::String, columns::Vector; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     local result::UInt32
 
     stmt(connection, sql, scrollable=scrollable, tag=tag) do stmt
-        result = execute!(stmt, columns, exec_mode=exec_mode)
+        result = execute(stmt, columns, exec_mode=exec_mode)
     end
 
     return result
 end
 
 # execute many
-function execute!(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     @assert !isempty(columns) "Cannot bind empty columns to statement."
     @assert eltype(columns) <: Vector "`columns` argument is expected to be a vector of vectors."
 
@@ -236,7 +236,7 @@ function execute!(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_E
 end
 
 
-function close!(stmt::Stmt; tag::String="")
+function close(stmt::Stmt; tag::String="")
     if stmt.is_open
         result = dpiStmt_close(stmt.handle, tag=tag)
         error_check(context(stmt), result)
@@ -271,11 +271,11 @@ end
 reset_fetch_array_size!(stmt::Stmt) = fetch_array_size!(stmt, UInt32(0))
 
 """
-    fetch!(stmt::Stmt) :: FetchResult
+    fetch(stmt::Stmt) :: FetchResult
 
 Fetches a single row from the statement.
 """
-function fetch!(stmt::Stmt) :: FetchResult
+function fetch(stmt::Stmt) :: FetchResult
     found_ref = Ref{Int32}(0)
     buffer_row_index_ref = Ref{UInt32}(0) # This index is used as the array position for getting values from the variables that have been defined for the statement.
     result = dpiStmt_fetch(stmt.handle, found_ref, buffer_row_index_ref)
@@ -288,7 +288,7 @@ function fetch!(stmt::Stmt) :: FetchResult
     return FetchResult(found, buffer_row_index_ref[])
 end
 
-function fetch_rows!(stmt::Stmt, max_rows::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE) :: FetchRowsResult
+function fetchrows(stmt::Stmt, max_rows::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE) :: FetchRowsResult
     buffer_row_index_ref = Ref{UInt32}()
     num_rows_fetched_ref = Ref{UInt32}()
     more_rows_ref = Ref{Int32}()

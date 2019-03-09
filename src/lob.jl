@@ -7,7 +7,7 @@ end
     return ORA_NATIVE_TYPE_LOB
 end
 
-function close!(lob::Lob)
+function close(lob::Lob)
     if lob.is_open
         result = dpiLob_close(lob.handle)
         error_check(context(lob), result)

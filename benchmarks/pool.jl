@@ -22,8 +22,8 @@ let
     conn = Oracle.Connection(ctx, username, password, connect_string)
     pool = Oracle.Pool(ctx, username, password, connect_string)
 
-    Oracle.close!(conn)
-    Oracle.close!(pool)
+    Oracle.close(conn)
+    Oracle.close(pool)
 end
 
 println("Create $NUM_CONNECTIONS Connections")
@@ -36,7 +36,7 @@ println("Create $NUM_CONNECTIONS Connections")
     end
 
     for c in v
-        Oracle.close!(c)
+        Oracle.close(c)
     end
 end
 
@@ -55,7 +55,7 @@ let
         end
 
         for c in v
-            Oracle.close!(c)
+            Oracle.close(c)
         end
     end
 
@@ -69,9 +69,9 @@ let
         end
 
         for c in v
-            Oracle.close!(c)
+            Oracle.close(c)
         end
     end
 
-    Oracle.close!(pool)
+    Oracle.close(pool)
 end

@@ -1,7 +1,7 @@
 
 function CursorSchema(stmt::QueryStmt)
 
-    columns_count = num_columns(stmt)
+    columns_count = ncol(stmt)
     column_query_info = columns_info(stmt)
 
     column_names_index = Dict{String, Int}()
@@ -13,15 +13,15 @@ function CursorSchema(stmt::QueryStmt)
     return CursorSchema(column_query_info, column_names_index)
 end
 
-@inline num_columns(schema::CursorSchema) = length(schema.column_names_index)
-@inline num_columns(row::ResultSetRow) = num_columns(row.cursor)
-@inline num_columns(cursor::Cursor) = num_columns(cursor.stmt)
-@inline num_columns(rs::ResultSet) = num_columns(rs.schema)
+@inline ncol(schema::CursorSchema) = length(schema.column_names_index)
+@inline ncol(row::ResultSetRow) = ncol(row.cursor)
+@inline ncol(cursor::Cursor) = ncol(cursor.stmt)
+@inline ncol(rs::ResultSet) = ncol(rs.schema)
 
-@inline num_rows(rs::ResultSet) = length(rs.rows)
+@inline nrow(rs::ResultSet) = length(rs.rows)
 
 @inline Base.isempty(rs::ResultSet) = isempty(rs.rows)
-@inline Base.size(rs::ResultSet) = ( num_rows(rs), num_columns(rs) )
+@inline Base.size(rs::ResultSet) = ( nrow(rs), ncol(rs) )
 
 @inline stmt(cursor::Cursor) = cursor.stmt
 
@@ -47,7 +47,7 @@ end
     =#
 
     function Base.start(cursor::Cursor) :: FetchResult
-        return fetch!(cursor.stmt)
+        return fetch(cursor.stmt)
     end
 
     function Base.done(cursor::Cursor, state::FetchResult)
@@ -56,7 +56,7 @@ end
 
     function Base.next(cursor::Cursor, state::FetchResult)
         current_row = ResultSetRow(cursor)
-        next_state = fetch!(cursor.stmt)
+        next_state = fetch(cursor.stmt)
         return (current_row, next_state)
     end
 
@@ -79,7 +79,7 @@ else
     =#
 
     function Base.iterate(cursor::Cursor, nil::Nothing=nothing)
-        fetch_result = fetch!(cursor.stmt)
+        fetch_result = fetch(cursor.stmt)
         if fetch_result.found
             current_row = ResultSetRow(cursor)
             return (current_row, nothing)
@@ -96,7 +96,7 @@ function query(f::Function, conn::Connection, sql::String;
                exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
 
     stmt(conn, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size) do stmt
-        execute!(stmt, exec_mode=exec_mode)
+        execute(stmt, exec_mode=exec_mode)
         cursor = Cursor(stmt)
         f(cursor)
     end
@@ -119,7 +119,7 @@ function execute_and_fetch_all!(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC
 end
 
 function query(f::Function, stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
-    execute!(stmt, exec_mode=exec_mode)
+    execute(stmt, exec_mode=exec_mode)
     f(Cursor(stmt))
     nothing
 end
@@ -147,7 +147,7 @@ function ResultSetRow(cursor::Cursor)
     data = Vector{Any}()
 
     # parse data from Cursor
-    for column_index in 1:num_columns(cursor)
+    for column_index in 1:ncol(cursor)
         oracle_value = query_oracle_value(stmt(cursor), column_index)
         push!(data, parse_oracle_value(oracle_value))
     end
@@ -170,7 +170,7 @@ end
 end
 
 @inline function check_inbounds(schema::CursorSchema, column::Integer)
-    @assert 0 < column <= num_columns(schema) "Column $column not found."
+    @assert 0 < column <= ncol(schema) "Column $column not found."
 end
 
 @inline function check_inbounds(schema::CursorSchema, column::AbstractString)
@@ -181,7 +181,7 @@ end
 
 @inline function check_inbounds(rs::ResultSet, row::Integer, column::Union{AbstractString, Integer})
     check_inbounds(rs.schema, column)
-    @assert 0 < row <= num_rows(rs) "Row $row not found."
+    @assert 0 < row <= nrow(rs) "Row $row not found."
 end
 
 has_possibly_more_rows(r::FetchRowsResult) = Bool(r.more_rows)
@@ -199,8 +199,8 @@ Base.eltype(::Cursor) = ResultSetRow
     end
 end
 
-function fetch_row!(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
-    fetch_result = fetch!(stmt)
+function fetchrow(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
+    fetch_result = fetch(stmt)
 
     if fetch_result.found
         return ResultSetRow(Cursor(stmt))
@@ -231,10 +231,10 @@ function Base.lastindex(rs::ResultSet, d::Integer)
 
     # rows
     if d == 1
-        return num_rows(rs)
+        return nrow(rs)
     else
         # columns
-        return num_columns(rs)
+        return ncol(rs)
     end
 end
 

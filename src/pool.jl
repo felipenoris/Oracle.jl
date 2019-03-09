@@ -111,7 +111,7 @@ function Connection(pool::Pool; auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT)
     return Connection(context(pool), connection_handle_ref[], pool)
 end
 
-function close!(pool::Pool; close_mode::OraPoolCloseMode=ORA_MODE_POOL_CLOSE_DEFAULT)
+function close(pool::Pool; close_mode::OraPoolCloseMode=ORA_MODE_POOL_CLOSE_DEFAULT)
     result = dpiPool_close(pool.handle, close_mode)
     error_check(context(pool), result)
     nothing
