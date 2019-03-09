@@ -226,7 +226,7 @@ function Base.getindex(rs::ResultSet, ::Colon, column::Union{AbstractString,Inte
     return column_data
 end
 
-function Base.lastindex(rs::ResultSet, d::Integer)
+function _lastindex(rs::ResultSet, d::Integer)
     @assert d == 1 || d == 2 "Invalid dimension for ResultSet: $d."
 
     # rows
@@ -236,6 +236,12 @@ function Base.lastindex(rs::ResultSet, d::Integer)
         # columns
         return ncol(rs)
     end
+end
+
+@static if VERSION < v"0.7-"
+    Base.size(rs::ResultSet, d::Integer) = _lastindex(rs, d)
+else
+    Base.lastindex(rs::ResultSet, d::Integer) = _lastindex(rs, d)
 end
 
 function Base.getindex(rs::ResultSet, row_range::UnitRange{T}, column::Union{AbstractString,Integer}) where {T<:Integer}

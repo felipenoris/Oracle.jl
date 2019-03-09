@@ -13,6 +13,10 @@ the internal representation of `NUMBER` values in Oracle Databases.
 """
 module OraNumbers
 
+@static if VERSION < v"0.7-"
+	import ..Nothing
+end
+
 export OraNumber
 
 include("types.jl")
