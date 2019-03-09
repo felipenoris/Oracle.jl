@@ -1,7 +1,7 @@
 
 @inline column_name(query_info::OraQueryInfo) = unsafe_string(query_info.name, query_info.name_length)
 
-function num_columns(stmt::QueryStmt)
+function ncol(stmt::QueryStmt)
     if stmt.columns_info == nothing
         init_columns_info!(stmt)
     end

@@ -119,7 +119,7 @@ end
     end
 
     Oracle.execute(stmt)
-    @test Oracle.num_columns(stmt) == 1
+    @test Oracle.ncol(stmt) == 1
 
     column_info = Oracle.column_info(stmt, 1)
     @test Oracle.column_name(column_info) == "ID"
@@ -218,8 +218,8 @@ end
         rs = Oracle.query(conn, select_sql)
         @test isa(rs, Oracle.ResultSet)
         @test !isempty(rs)
-        @test Oracle.num_rows(rs) == 4
-        @test Oracle.num_columns(rs) == 3
+        @test Oracle.nrow(rs) == 4
+        @test Oracle.ncol(rs) == 3
         @test size(rs) == (4, 3)
 
         check_data(columns, rs)
@@ -245,7 +245,7 @@ end
 
     stmt = Oracle.Stmt(conn, "SELECT ID, name, amount FROM TB_TEST_DATATYPES")
     Oracle.execute(stmt)
-    @test Oracle.num_columns(stmt) == 3
+    @test Oracle.ncol(stmt) == 3
 
     row = Oracle.fetchrow(stmt)
     @test row != nothing
@@ -342,8 +342,8 @@ end
         val_a[] = 10.5
         val_b = Oracle.JuliaOracleValue(Oracle.ORA_ORACLE_TYPE_VARCHAR, Oracle.ORA_NATIVE_TYPE_BYTES, String)
         val_b[] = "hey"
-        Oracle.bind_value!(stmt, val_a, :A)
-        Oracle.bind_value!(stmt, val_b, 2)
+        Oracle.bind!(stmt, val_a, :A)
+        Oracle.bind!(stmt, val_b, 2)
         Oracle.close(stmt)
     end
 
@@ -595,7 +595,7 @@ end
 
     stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
     Oracle.execute(stmt)
-    @test Oracle.num_columns(stmt) == 2
+    @test Oracle.ncol(stmt) == 2
 
     fetch_rows_result = Oracle.fetchrows(stmt, 3)
 

@@ -17,10 +17,10 @@ const NameOrPositionTypes = Union{Integer, String, Symbol}
 #
 
 @inline function Base.setindex!(stmt::Stmt, value::Variable, name_or_position::NameOrPositionTypes)
-    bind_variable!(stmt, value, name_or_position)
+    bind!(stmt, value, name_or_position)
 end
 
-@generated function bind_variable!(stmt::Stmt, variable::Variable, name_or_position::K) where {K<:NameOrPositionTypes}
+@generated function bind!(stmt::Stmt, variable::Variable, name_or_position::K) where {K<:NameOrPositionTypes}
 
     if name_or_position <: Integer
         name_or_position_exp = :(UInt32(name_or_position))
@@ -48,7 +48,7 @@ end
 # Bind Value to Stmt
 #
 
-@generated function bind_value!(stmt::Stmt, value::JuliaOracleValue{O,N}, name_or_position::K) where {K<:NameOrPositionTypes,O,N}
+@generated function bind!(stmt::Stmt, value::JuliaOracleValue{O,N}, name_or_position::K) where {K<:NameOrPositionTypes,O,N}
 
     # https://github.com/oracle/odpi/issues/99
     if O == ORA_ORACLE_TYPE_TIMESTAMP_TZ || O == ORA_ORACLE_TYPE_TIMESTAMP_LTZ
@@ -84,11 +84,11 @@ end
 end
 
 @inline function Base.setindex!(stmt::Stmt, value::JuliaOracleValue, name_or_position::N) where {N<:NameOrPositionTypes}
-    bind_value!(stmt, value, name_or_position)
+    bind!(stmt, value, name_or_position)
 end
 
 @inline function Base.setindex!(stmt::Stmt, value::T, name_or_position::N) where {T, N<:NameOrPositionTypes}
-    bind_value!(stmt, JuliaOracleValue(value), name_or_position)
+    bind!(stmt, JuliaOracleValue(value), name_or_position)
 end
 
 @inline function Base.setindex!(stmt::Stmt, ::Missing, name_or_position::N) where {N<:NameOrPositionTypes}
@@ -98,7 +98,7 @@ end
 @inline function Base.setindex!(stmt::Stmt, ::Missing, name_or_position::N, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum) where {N<:NameOrPositionTypes}
     val = JuliaOracleValue(oracle_type, native_type, Missing)
     val[] = missing
-    bind_value!(stmt, val, name_or_position)
+    bind!(stmt, val, name_or_position)
 end
 
 @inline function Base.setindex!(stmt::Stmt, m::Missing, name_or_position::N, ::Type{T}) where {T,N<:NameOrPositionTypes}
