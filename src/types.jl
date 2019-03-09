@@ -314,10 +314,10 @@ function destroy!(stmt::Stmt)
     nothing
 end
 
-"Holds a 0-indexed vector of OraData."
+"Holds a 1-indexed vector of OraData."
 abstract type AbstractOracleValue{O,N} end
 
-"Wraps a OraData handle managed by extern ODPI-C. 0-indexed."
+"Wraps a OraData handle managed by extern ODPI-C. 1-indexed."
 struct ExternOracleValue{O,N,P} <: AbstractOracleValue{O,N}
     parent::P
     data_handle::Ptr{OraData}
@@ -328,7 +328,7 @@ function ExternOracleValue(parent::P, oracle_type::OraOracleTypeNum, native_type
     return ExternOracleValue{oracle_type, native_type, P}(parent, handle, use_add_ref)
 end
 
-"Wraps a OraData handle managed by Julia. 0-indexed."
+"Wraps a OraData handle managed by Julia. 1-indexed."
 struct JuliaOracleValue{O,N,T} <: AbstractOracleValue{O,N}
     buffer::Vector{T}
 end
