@@ -60,7 +60,7 @@ make install prefix=$HOME/local
 Then add the following to your shell profile:
 
 ```shell
-LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
 ```
 
 ## Package installation
