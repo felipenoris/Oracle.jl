@@ -30,13 +30,38 @@ To install it, follow these instructions:
 
 * Unzip and add `instantclient` folder to your LD_LIBRARY_PATH:
 
-```
+```shell
 export LD_LIBRARY_PATH=/path-to-folder/instantclient_XX_Y:$LD_LIBRARY_PATH
 ```
 
 Check [ODPI-C documentation](https://oracle.github.io/odpi/doc/installation.html),
 or [Instant Client documentation](https://www.oracle.com/technetwork/database/database-technologies/instant-client/documentation/index.html)
 for alternative installation methods.
+
+[libaio](https://pagure.io/libaio) is a dependency of Instant Client.
+
+If you have root access to you machine, you can install is using the package manager, as in:
+
+```shell
+yum -y install libaio
+```
+
+If you don't have root access, you can compile it from source
+and set your `LD_LIBRARY_PATH` to point to the library.
+
+```shell
+wget https://pagure.io/libaio/archive/libaio-0.3.111/libaio-libaio-0.3.111.tar.gz
+tar xf libaio-libaio-0.3.111.tar.gz
+cd libaio-libaio-0.3.111
+make prefix=$HOME/local
+make install prefix=$HOME/local
+```
+
+Then add the following to your shell profile:
+
+```shell
+LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
+```
 
 ## Package installation
 
