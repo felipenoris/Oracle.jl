@@ -40,14 +40,16 @@ for alternative installation methods.
 
 [libaio](https://pagure.io/libaio) is a dependency of Instant Client.
 
-If you have root access to you machine, you can install is using the package manager, as in:
+If you have root access to your machine, you can install it using the package manager, as in:
 
 ```shell
 yum -y install libaio
 ```
 
-If you don't have root access, you can compile it from source
-and set your `LD_LIBRARY_PATH` to point to the library.
+If you don't have root access to your machine, you can compile it from source
+and set your `LD_LIBRARY_PATH` environment variable to point to the library.
+
+The compilation can be done using the following script:
 
 ```shell
 wget https://pagure.io/libaio/archive/libaio-0.3.111/libaio-libaio-0.3.111.tar.gz
@@ -57,7 +59,7 @@ make prefix=$HOME/local
 make install prefix=$HOME/local
 ```
 
-Then add the following to your shell profile:
+Then add the following to your shell profile (`$HOME/.bashrc`):
 
 ```shell
 export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
