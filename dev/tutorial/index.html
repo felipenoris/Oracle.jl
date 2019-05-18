@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · Oracle.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link href="../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>Oracle.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../">Home</a></li><li class="current"><a class="toctext" href>Tutorial</a><ul class="internal"><li><a class="toctext" href="#Getting-a-Connection-1">Getting a Connection</a></li><li><a class="toctext" href="#Executing-a-Statement-1">Executing a Statement</a></li><li><a class="toctext" href="#Binding-values-to-a-Statement-1">Binding values to a Statement</a></li><li><a class="toctext" href="#Executing-a-Query-1">Executing a Query</a></li><li><a class="toctext" href="#Batch-statement-execution-1">Batch statement execution</a></li><li><a class="toctext" href="#Session-Pools-1">Session Pools</a></li><li><a class="toctext" href="#LOB-1">LOB</a></li></ul></li><li><a class="toctext" href="../api/">API Reference</a></li></ul></nav><article id="docs"><header><nav><ul><li><a href>Tutorial</a></li></ul><a class="edit-page" href="https://github.com/felipenoris/Oracle.jl/blob/master/docs/src/tutorial.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Tutorial</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Tutorial-1" href="#Tutorial-1">Tutorial</a></h1><h2><a class="nav-anchor" id="Getting-a-Connection-1" href="#Getting-a-Connection-1">Getting a Connection</a></h2><pre><code class="language-julia">import Oracle
+
+username = &quot;my_username&quot;
+password = &quot;my_password&quot;
+connect_string = &quot;//IP_ADDRESS/XE&quot; # a valid Oracle connect string
+
+conn = Oracle.Connection(username, password, connect_string)</code></pre><p>Currently, this driver only supports connections using ASCII or UTF-8 encodings. All connections are created using UTF-8 encoding by default, for both CHAR and NCHAR.</p><p>To connect as SYSDBA, use the appropriate <code>auth_mode</code> parameter.</p><pre><code class="language-julia">conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA)</code></pre><p>You should always close connections using <code>Oracle.close</code> method.</p><pre><code class="language-julia">Oracle.close(conn)</code></pre><h2><a class="nav-anchor" id="Executing-a-Statement-1" href="#Executing-a-Statement-1">Executing a Statement</a></h2><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_TEST ( ID INT NULL )&quot;)
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 1 )&quot;)
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( null )&quot;)
+Oracle.commit(conn) # will commit 2 lines
+
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 3 )&quot;)
+Oracle.rollback(conn) # abort insertion of the third line</code></pre><h2><a class="nav-anchor" id="Binding-values-to-a-Statement-1" href="#Binding-values-to-a-Statement-1">Binding values to a Statement</a></h2><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)&quot;)
+
+# get an explicit reference to a statement
+stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )&quot;)
+
+# will add a single line to TB_BIND
+stmt[:id] = 1
+stmt[:flt] = 10.23
+stmt[:str] = &quot;a string&quot;
+stmt[:dt] = Date(2018,12,31)
+Oracle.execute(stmt)
+
+Oracle.commit(conn)
+Oracle.close(stmt)</code></pre><p>Whenever you get an explicit reference to a statement, you should always use <code>Oracle.close</code> method when you&#39;re done with it.</p><h2><a class="nav-anchor" id="Executing-a-Query-1" href="#Executing-a-Query-1">Executing a Query</a></h2><p>Use <code>Oracle.query</code> to execute a query. It returns a <code>ResultSet</code>, which is a table-like struct. All data is fetched from the statement before returning the <code>ResultSet</code>.</p><pre><code class="language-julia">rs = Oracle.query(conn, &quot;SELECT ID, FLT, STR, DT FROM TB_BIND&quot;)
+
+println(rs[2, 1]) # will print the element at row 2, column 1.
+println(rs[2, &quot;ID&quot;]) # will print element at row 2, column ID (same as column 1).
+println(rs[:, 1]) # will print all the elements in column 1.</code></pre><p>The last example was easy to use, but maybe your memory can&#39;t hold all the data in the ResultSet. Use <code>Oracle.query</code> method with <em>do-syntax</em> to get a reference to a cursor, which will fetch one row at a time.</p><pre><code class="language-julia">Oracle.query(conn, &quot;SELECT * FROM TB_BIND&quot;) do cursor
+    for row in cursor
+        # row values can be accessed using column name or position
+        println( row[&quot;ID&quot;]  ) # same as row[1]
+        println( row[&quot;FLT&quot;] )
+        println( row[&quot;STR&quot;] )
+        println( row[&quot;DT&quot;]  ) # same as row[4]
+    end
+end</code></pre><p>You can also use a prepared statement to execute a query.</p><pre><code class="language-julia">stmt = Oracle.Stmt(conn, &quot;SELECT FLT FROM TB_BIND WHERE ID = :id&quot;)
+stmt[:id] = 1
+
+Oracle.query(stmt) do cursor
+    for row in cursor
+      println(row[&quot;FLT&quot;])
+    end
+end
+
+Oracle.close(stmt)</code></pre><p>There is also the possibility to fetch one row at a time manually, with a small overhead when compared to previous methods.</p><pre><code class="language-julia">stmt = Oracle.Stmt(conn, &quot;SELECT FLT FROM TB_BIND&quot;)
+Oracle.execute(stmt)
+
+row = Oracle.fetchrow(stmt)
+while row != nothing
+    println(row[1])
+    row = Oracle.fetchrow(stmt)
+end
+
+Oracle.close(stmt)</code></pre><h2><a class="nav-anchor" id="Batch-statement-execution-1" href="#Batch-statement-execution-1">Batch statement execution</a></h2><p>If you need to execute the same statement many times but binding different values each time, pass a vector of columns to <code>Oracle.execute</code> method.</p><p>This will use the ODPI-C <em>executeMany</em> feature.</p><pre><code class="language-julia">NUM_ROWS = 1_000
+
+column_1 = [ i for i in 1:NUM_ROWS ]
+column_2 = .5 * column_1
+
+sql = &quot;INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )&quot;
+Oracle.execute(conn, sql, [ column_1, column_2 ])</code></pre><h2><a class="nav-anchor" id="Session-Pools-1" href="#Session-Pools-1">Session Pools</a></h2><p>A <em>Pool</em> represents a pool of connections, and provides a faster way to acquire connections to the database.</p><pre><code class="language-julia"># creates a pool for a maximum of 2 sessions
+pool = Oracle.Pool(username, password, connect_string, max_sessions=2, session_increment=1)
+
+conn_1 = Oracle.Connection(pool)
+conn_2 = Oracle.Connection(pool) # at this point, we can&#39;t acquire more connections
+
+# release a connection so that we can acquire another one.
+Oracle.close(conn_1)
+
+# by now, acquiring a new connection should be pretty fast
+# since the new connection will be taken from the pool
+conn_3 = Oracle.Connection(pool)
+
+# release all connections that are still open
+Oracle.close(conn_2)
+Oracle.close(conn_3)
+
+Oracle.close(pool)</code></pre><p>You should always close Pools using <code>Oracle.close</code> method.</p><h2><a class="nav-anchor" id="LOB-1" href="#LOB-1">LOB</a></h2><p>Oracle LOB fields can hold <a href="https://docs.oracle.com/cd/B28359_01/server.111/b28320/limits001.htm">up to 4GB of data</a>.</p><p>They come in two flavors:</p><ul><li><p>Binary LOBs: BLOB or BFILE.</p></li><li><p>Character LOBs: CLOB or NCLOB.</p></li></ul><p>LOB values are represented as a value of type <code>Oracle.Lob</code> in this package.</p><p>From a LOB value, you can use <code>read</code> and <code>write</code> methods to manipulate whole contents of the LOB value. For incremental reading/writing, you can use <code>open</code> with <em>do-syntax</em> do get an IO stream out of a <code>Oracle.Lob</code>.</p><p>IO Streams created on Character LOBs use the character index as its position, and only support reading/writing for <code>Char</code> and <code>String</code> data types.</p><p>You should always close a LOB using <code>Oracle.close</code> method.</p><p><em>Currently, BFILE is not supported.</em></p><h3><a class="nav-anchor" id="Reading-from-a-BLOB-1" href="#Reading-from-a-BLOB-1">Reading from a BLOB</a></h3><pre><code class="language-julia">lyric = &quot;hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼&quot;
+
+Oracle.execute(conn, &quot;CREATE TABLE TB_BLOB ( b BLOB )&quot;)
+Oracle.execute(conn, &quot;INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw(&#39;$lyric&#39;))&quot;)
+
+Oracle.query(conn, &quot;SELECT B FROM TB_BLOB&quot;) do cursor
+    for row in cursor
+        blob = row[&quot;B&quot;]
+        bytes_vector = read(blob) # Vector{UInt8}
+        println(String(bytes_vector))
+    end
+end</code></pre><h3><a class="nav-anchor" id="Writing-to-a-BLOB-1" href="#Writing-to-a-BLOB-1">Writing to a BLOB</a></h3><p>Follow these steps to write to a BLOB field in the database.</p><ol><li><p>Create a temporary Lob associated with the connection using <code>Oracle.Lob(connection, oracle_type)</code>.</p></li><li><p>Write data to the Lob.</p></li><li><p>Wrap the Lob into a Variable.</p></li><li><p>Bind the variable to the statement.</p></li><li><p>Execute the statement.</p></li></ol><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_BLOB_VARIABLE ( B BLOB )&quot;)
+
+test_data = rand(UInt8, 5000)
+
+# creates a temporary Lob bounded to the Connection
+blob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_BLOB)
+
+# replaces all Lob data with the contents of the array test_data
+write(blob, test_data)
+
+# wraps the blob in a Variable
+ora_var = Oracle.Variable(conn, blob)
+
+stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )&quot;)
+
+# binds the variable to the statement
+stmt[1] = ora_var
+
+Oracle.execute(stmt)
+Oracle.close(stmt)</code></pre><footer><hr/><a class="previous" href="../"><span class="direction">Previous</span><span class="title">Home</span></a><a class="next" href="../api/"><span class="direction">Next</span><span class="title">API Reference</span></a></footer></article></body></html>
