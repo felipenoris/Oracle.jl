@@ -3,7 +3,7 @@
     @assert pos > 0 && pos <= stmt.bind_count "Bind position $pos out of bounds."
 end
 
-@inline function check_bind_bounds(stmt::Stmt, name::String)
+@inline function check_bind_bounds(stmt::Stmt, name::AbstractString)
     name_upper = uppercase(name)
     @assert haskey(stmt.bind_names_index, name_upper) "Bind name $name_upper not found in statement."
 end

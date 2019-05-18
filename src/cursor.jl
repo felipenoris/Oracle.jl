@@ -89,9 +89,9 @@ else
     end
 end
 
-function query(f::Function, conn::Connection, sql::String;
+function query(f::Function, conn::Connection, sql::AbstractString;
                scrollable::Bool=false,
-               tag::String="",
+               tag::AbstractString="",
                fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE,
                exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
 
@@ -128,9 +128,9 @@ function query(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: Resu
     return execute_and_fetch_all!(stmt, exec_mode=exec_mode)
 end
 
-function query(conn::Connection, sql::String;
+function query(conn::Connection, sql::AbstractString;
                scrollable::Bool=false,
-               tag::String="",
+               tag::AbstractString="",
                fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE,
                exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: ResultSet
 

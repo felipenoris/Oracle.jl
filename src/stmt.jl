@@ -110,14 +110,14 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool; fetc
     return new_stmt
 end
 
-function Stmt(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+function Stmt(connection::Connection, sql::AbstractString; scrollable::Bool=false, tag::AbstractString="", fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     stmt_handle_ref = Ref{Ptr{Cvoid}}()
-    result = dpiConn_prepareStmt(connection.handle, scrollable, sql, tag, stmt_handle_ref)
+    result = dpiConn_prepareStmt(connection.handle, scrollable, String(sql), String(tag), stmt_handle_ref)
     error_check(connection.context, result)
     return Stmt(connection, stmt_handle_ref[], scrollable, fetch_array_size=fetch_array_size)
 end
 
-function stmt(f::Function, connection::Connection, sql::String; scrollable::Bool=false, tag::String="", fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
+function stmt(f::Function, connection::Connection, sql::AbstractString; scrollable::Bool=false, tag::AbstractString="", fetch_array_size::Integer=ORA_DEFAULT_FETCH_ARRAY_SIZE)
     stmt = Stmt(connection, sql, scrollable=scrollable, tag=tag, fetch_array_size=fetch_array_size)
 
     try
@@ -150,7 +150,19 @@ function execute(stmt::Stmt; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UI
     return num_columns_ref[]
 end
 
-function execute(connection::Connection, sql::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+"""
+    execute(connection::Connection, sql::AbstractString;
+        scrollable::Bool=false,
+        tag::AbstractString="",
+        exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT
+    ) :: UInt32
+
+Execute a single `sql` statement.
+
+Returns the number of columns which are being queried.
+If the statement does not refer to a query, the value is set to 0.
+"""
+function execute(connection::Connection, sql::AbstractString; scrollable::Bool=false, tag::AbstractString="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     local result::UInt32
 
     stmt(connection, sql, scrollable=scrollable, tag=tag) do stmt
@@ -160,7 +172,7 @@ function execute(connection::Connection, sql::String; scrollable::Bool=false, ta
     return result
 end
 
-function execute_script(connection::Connection, filepath::String; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute_script(connection::Connection, filepath::AbstractString; scrollable::Bool=false, tag::AbstractString="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     @assert isfile(filepath) "Couldn't find script file $filepath."
 
     local sql::String
@@ -172,7 +184,7 @@ function execute_script(connection::Connection, filepath::String; scrollable::Bo
 end
 
 # execute many
-function execute(connection::Connection, sql::String, columns::Vector; scrollable::Bool=false, tag::String="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute(connection::Connection, sql::AbstractString, columns::Vector; scrollable::Bool=false, tag::AbstractString="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     local result::UInt32
 
     stmt(connection, sql, scrollable=scrollable, tag=tag) do stmt
@@ -236,9 +248,9 @@ function execute(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EX
 end
 
 
-function close(stmt::Stmt; tag::String="")
+function close(stmt::Stmt; tag::AbstractString="")
     if stmt.is_open
-        result = dpiStmt_close(stmt.handle, tag=tag)
+        result = dpiStmt_close(stmt.handle, tag=String(tag))
         error_check(context(stmt), result)
         stmt.is_open = false
     end
