@@ -78,7 +78,38 @@ function Connection(ctx::Context, user::String, password::String, connect_string
     return Connection(ctx, user, password, connect_string, common_params, conn_create_params)
 end
 
-function Connection(user::String, password::String, connect_string::String;
+"""
+    Connection(user::AbstractString, password::AbstractString, connect_string::AbstractString;
+            encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
+            nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
+            create_mode::Union{Nothing, OraCreateMode}=nothing,
+            edition::Union{Nothing, String}=nothing,
+            driver_name::Union{Nothing, String}=nothing,
+            auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT,
+            pool::Union{Nothing, Pool}=nothing
+        )
+
+Creates a connection to the Oracle Database.
+
+Connections should always be closed after use
+by calling `Oracle.close`.
+
+# Example
+
+```julia
+import Oracle
+
+username = "my_username"
+password = "my_password"
+connect_string = "//IP_ADDRESS/XE" # a valid Oracle connect string
+
+conn = Oracle.Connection(username, password, connect_string)
+
+# connections should always be closed after use.
+Oracle.close(conn)
+```
+"""
+function Connection(user::AbstractString, password::AbstractString, connect_string::AbstractString;
         encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
         nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
         create_mode::Union{Nothing, OraCreateMode}=nothing,
@@ -88,7 +119,7 @@ function Connection(user::String, password::String, connect_string::String;
         pool::Union{Nothing, Pool}=nothing
     )
 
-    return Connection(Context(), user, password, connect_string,
+    return Connection(Context(), String(user), String(password), String(connect_string),
                 encoding=encoding,
                 nencoding=nencoding,
                 create_mode=create_mode,
@@ -110,6 +141,12 @@ function server_version(conn::Connection)
     return (release_string, version_info_ref[])
 end
 
+"""
+    ping(conn::Connection)
+
+Pings the database server to check if the connection is still alive.
+Throws error if can't ping the server.
+"""
 function ping(conn::Connection)
     result = dpiConn_ping(conn.handle)
     error_check(context(conn), result)
@@ -128,12 +165,22 @@ function shutdown_database(conn::Connection, shutdown_mode::OraShutdownMode=ORA_
     nothing
 end
 
+"""
+    commit(conn::Connection)
+
+Commits the current active transaction.
+"""
 function commit(conn::Connection)
     result = dpiConn_commit(conn.handle)
     error_check(context(conn), result)
     nothing
 end
 
+"""
+    rollback(conn::Connection)
+
+Rolls back the current active transaction.
+"""
 function rollback(conn::Connection)
     result = dpiConn_rollback(conn.handle)
     error_check(context(conn), result)

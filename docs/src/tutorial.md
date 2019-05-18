@@ -13,10 +13,10 @@ connect_string = "//IP_ADDRESS/XE" # a valid Oracle connect string
 conn = Oracle.Connection(username, password, connect_string)
 ```
 
-Currently, this driver only supports connections using ASCII or UTF-8 encodings.
-All connections are created using UTF-8 encoding by default, for both CHAR and NCHAR.
+Currently, this driver only supports connections using *ASCII* or *UTF-8* encodings.
+All connections are created using *UTF-8* encoding by default, for both `CHAR` and `NCHAR` data types.
 
-To connect as SYSDBA, use the appropriate `auth_mode` parameter.
+To connect as `SYSDBA`, use the appropriate `auth_mode` parameter.
 
 ```julia
 conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA)

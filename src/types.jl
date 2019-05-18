@@ -248,9 +248,6 @@ function destroy!(pool::Pool)
     nothing
 end
 
-"""
-Connection handles are used to represent connections to the database. These can be standalone connections created by calling the function dpiConn_create() or acquired from a session pool by calling the function dpiPool_acquireConnection(). They can be closed by calling the function dpiConn_close() or releasing the last reference to the connection by calling the function dpiConn_release(). Connection handles are used to create all handles other than session pools and context handles.
-"""
 mutable struct Connection
     context::Context
     handle::Ptr{Cvoid}

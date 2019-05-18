@@ -1,6 +1,11 @@
 
 # API Reference
 
-```@autodocs
-Modules = [Oracle]
+## Connection
+
+```@docs
+Oracle.Connection
+Oracle.ping
+Oracle.commit
+Oracle.rollback
 ```
