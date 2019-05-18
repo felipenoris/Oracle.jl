@@ -42,10 +42,6 @@ function __init__()
     @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams()
     @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo()
     @assert sizeof(OraNumber) == sizeof_dpiNumber()
-
-    # Checks that ODPI-C works
-    ctx = Context()
-    destroy!(ctx)
 end
 
 @inline function error_check(ctx::Context, result::OraResult)

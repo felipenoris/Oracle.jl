@@ -2,3 +2,4 @@ deps/usr
 deps/deps.jl
 deps/build.log
 **/credentials.jl
+docs/build/
