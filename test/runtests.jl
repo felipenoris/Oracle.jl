@@ -766,6 +766,15 @@ end
         @test row_count == 1
     end
 
+    @testset "query with substring" begin
+        i = 1
+        for sql in split("SELECT 1 FROM DUAL; SELECT 2 FROM DUAL", ';')
+            rs = Oracle.query(conn, sql)
+            @test rs[1,1] == i
+            i += 1
+        end
+    end
+
     Oracle.execute(conn, "DROP TABLE TB_ACCOUNTS")
 end
 
