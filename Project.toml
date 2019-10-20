@@ -2,7 +2,7 @@ name = "Oracle"
 uuid = "7240a794-28ba-5199-b477-df5fe5cf6155"
 license = "MIT"
 authors = ["Felipe Noronha <felipenoris@gmail.com>"]
-version = "0.0.6"
+version = "0.0.7"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
