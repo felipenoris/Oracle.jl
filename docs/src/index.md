@@ -109,6 +109,9 @@ the instant client library.
 }
 ```
 
+The `LD_LIBRARY_PATH` environment variable must be set before the Julia process starts.
+This is why you can't just set this variable inside the Jupyter notebook.
+
 ## License
 
 The source code for the package *Oracle.jl* is licensed under the [MIT License](https://github.com/felipenoris/Oracle.jl/blob/master/LICENSE).
