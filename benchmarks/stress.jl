@@ -2,8 +2,6 @@
 import Oracle
 using Dates
 
-@assert VERSION >= v"0.7-"
-
 @assert isfile(joinpath(@__DIR__, "..", "test","credentials.jl")) """
 Before running tests, create a file `test/credentials.jl` with the content:
 

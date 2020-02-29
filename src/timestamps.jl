@@ -1,42 +1,22 @@
 
 module Timestamps
 
-@static if VERSION < v"0.7-"
-    import Base.Dates
-    import Base.Dates: Date,
-                  Time,
-                  TimeType,
-                  DateTime,
-                  Hour,
-                  Minute,
-                  Second,
-                  Nanosecond,
-                  UTInstant,
-                  totaldays,
-                  argerror,
-                  daysinmonth,
-                  days,
-                  value,
-                  year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
-else
-
-    import Dates
-    import Dates: Date,
-                  Time,
-                  TimeType,
-                  DateTime,
-                  Hour,
-                  Minute,
-                  Second,
-                  Nanosecond,
-                  UTInstant,
-                  totaldays,
-                  argerror,
-                  daysinmonth,
-                  days,
-                  value,
-                  year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
-end
+import Dates
+import Dates: Date,
+              Time,
+              TimeType,
+              DateTime,
+              Hour,
+              Minute,
+              Second,
+              Nanosecond,
+              UTInstant,
+              totaldays,
+              argerror,
+              daysinmonth,
+              days,
+              value,
+              year, month, day, hour, minute, second, millisecond, microsecond, nanosecond
 
 export Timestamp, TimestampTZ, TimeZoneOffset
 

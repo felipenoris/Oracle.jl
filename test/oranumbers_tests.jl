@@ -2,11 +2,7 @@
 import Oracle
 import Oracle.OraNumbers
 
-if VERSION < v"0.7-"
-    using Base.Test
-else
-    using Test
-end
+using Test
 
 @testset "OraNumbers" begin
     @testset "basic numbers" begin

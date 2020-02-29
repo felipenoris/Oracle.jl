@@ -108,7 +108,7 @@ Base.write(lob::Lob, data::String) = write(lob, pointer(data), sizeof(data))
 
 function Base.read(blob::Lob{ORA_ORACLE_TYPE_BLOB}) :: Vector{UInt8}
     blob_size = size_in_bytes(blob)
-    result = undef_vector(UInt8, blob_size)
+    result = Vector{UInt8}(undef, blob_size)
 
     open(blob, "r") do io
         i = 0
@@ -230,7 +230,7 @@ end
 function new_LobIO_buffer(lob::Lob, buffer, capacity) :: Vector{UInt8}
 
     function alloc_buffer(cap) :: Vector{UInt8}
-        buf = undef_vector(UInt8, cap)
+        buf = Vector{UInt8}(undef, cap)
         sizehint!(buf, cap)
         return buf
     end

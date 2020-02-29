@@ -2,14 +2,8 @@
 import Oracle
 import Oracle.Timestamps
 
-if VERSION < v"0.7-"
-    using Base.Test
-    using Missings
-    using Base.Dates
-else
-    using Test
-    using Dates
-end
+using Test
+using Dates
 
 @testset "Timestamps" begin
 

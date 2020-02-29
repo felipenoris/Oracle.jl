@@ -30,62 +30,13 @@ function Cursor(stmt::QueryStmt)
     return Cursor(stmt, schema)
 end
 
-@static if VERSION < v"0.7-"
-    # Iteration protocol for Julia v0.6
-
-    #=
-    for i = I   # or  "for i in I"
-        # body
-    end
-    is translated into:
-
-    state = start(I)
-    while !done(I, state)
-        (i, state) = next(I, state)
-        # body
-    end
-    =#
-
-    function Base.start(cursor::Cursor) :: FetchResult
-        return fetch(cursor.stmt)
-    end
-
-    function Base.done(cursor::Cursor, state::FetchResult)
-        return !state.found
-    end
-
-    function Base.next(cursor::Cursor, state::FetchResult)
+function Base.iterate(cursor::Cursor, nil::Nothing=nothing)
+    fetch_result = fetch(cursor.stmt)
+    if fetch_result.found
         current_row = ResultSetRow(cursor)
-        next_state = fetch(cursor.stmt)
-        return (current_row, next_state)
-    end
-
-else
-    # Iteration protocol for Julia v0.7 and v1.0
-
-    #=
-    for i in iter   # or  "for i = iter"
-        # body
-    end
-
-    is translated into:
-
-    next = iterate(iter)
-    while next !== nothing
-        (i, state) = next
-        # body
-        next = iterate(iter, state)
-    end
-    =#
-
-    function Base.iterate(cursor::Cursor, nil::Nothing=nothing)
-        fetch_result = fetch(cursor.stmt)
-        if fetch_result.found
-            current_row = ResultSetRow(cursor)
-            return (current_row, nothing)
-        else
-            return nothing
-        end
+        return (current_row, nothing)
+    else
+        return nothing
     end
 end
 
@@ -189,16 +140,6 @@ has_possibly_more_rows(r::FetchRowsResult) = Bool(r.more_rows)
 Base.IteratorSize(::Cursor) = Base.SizeUnknown()
 Base.eltype(::Cursor) = ResultSetRow
 
-@static if VERSION < v"0.7-"
-    function Base.collect(cursor::Cursor)
-        result = Vector{eltype(cursor)}()
-        for row in cursor
-            push!(result, row)
-        end
-        return result
-    end
-end
-
 function fetchrow(stmt::QueryStmt) :: Union{Nothing, ResultSetRow}
     fetch_result = fetch(stmt)
 
@@ -226,7 +167,7 @@ function Base.getindex(rs::ResultSet, ::Colon, column::Union{AbstractString,Inte
     return column_data
 end
 
-function _lastindex(rs::ResultSet, d::Integer)
+function Base.lastindex(rs::ResultSet, d::Integer)
     @assert d == 1 || d == 2 "Invalid dimension for ResultSet: $d."
 
     # rows
@@ -236,12 +177,6 @@ function _lastindex(rs::ResultSet, d::Integer)
         # columns
         return ncol(rs)
     end
-end
-
-@static if VERSION < v"0.7-"
-    Base.size(rs::ResultSet, d::Integer) = _lastindex(rs, d)
-else
-    Base.lastindex(rs::ResultSet, d::Integer) = _lastindex(rs, d)
 end
 
 function Base.getindex(rs::ResultSet, row_range::UnitRange{T}, column::Union{AbstractString,Integer}) where {T<:Integer}

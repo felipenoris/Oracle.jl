@@ -71,7 +71,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool; fetc
 
     function get_bind_names(ctx::Context, stmt_handle::Ptr{Cvoid}, expected_num_bind_names::UInt32)
         num_bind_names_ref = Ref{UInt32}(expected_num_bind_names) # IN/OUT parameter
-        bind_names_vec = undef_vector(Ptr{UInt8}, expected_num_bind_names)
+        bind_names_vec = Vector{Ptr{UInt8}}(undef, expected_num_bind_names)
 
         bind_name_lenghts_vec = zeros(UInt32, expected_num_bind_names)
         result = dpiStmt_getBindNames(stmt_handle, num_bind_names_ref, pointer(bind_names_vec), pointer(bind_name_lenghts_vec))
@@ -79,7 +79,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool; fetc
 
         @assert expected_num_bind_names == num_bind_names_ref[]
 
-        result_names = undef_vector(String, expected_num_bind_names)
+        result_names = Vector{String}(undef, expected_num_bind_names)
 
         for i in 1:expected_num_bind_names
             @inbounds result_names[i] = unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i])
@@ -106,7 +106,7 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool; fetc
 
     new_stmt = Stmt{stmt_info.statement_type}(connection, handle, scrollable, stmt_info, bind_count, bind_names, bind_names_index, true, nothing)
     fetch_array_size!(new_stmt, fetch_array_size)
-    @compat finalizer(destroy!, new_stmt)
+    finalizer(destroy!, new_stmt)
     return new_stmt
 end
 
@@ -236,7 +236,7 @@ function execute(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EX
         row_counts_length = row_counts_length_ref[]
         row_counts_array_as_ptr = row_counts_array_ref[]
 
-        row_counts = undef_vector(UInt64, row_counts_length)
+        row_counts = Vector{UInt64}(undef, row_counts_length)
         for i in 1:row_counts_length
             @inbounds row_counts[i] = unsafe_load(row_counts_array_as_ptr, i)
         end

@@ -1,8 +1,7 @@
 
-__precompile__(true)
 module Oracle
 
-include("compat.jl")
+using Dates
 
 const DEPS_FILE = joinpath(@__DIR__, "..", "deps", "deps.jl")
 if !isfile(DEPS_FILE)

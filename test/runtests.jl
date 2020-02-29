@@ -4,13 +4,8 @@ include("oranumbers_tests.jl")
 
 import Oracle
 
-if VERSION < v"0.7-"
-    using Base.Test
-    using Missings
-else
-    using Test
-    using Dates
-end
+using Test
+using Dates
 
 @testset "subtract_missing" begin
     @test Oracle.subtract_missing(Float64) == Float64

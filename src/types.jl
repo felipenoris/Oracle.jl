@@ -213,7 +213,7 @@ mutable struct Context
 
     function Context(handle::Ptr{Cvoid})
         new_context = new(handle)
-        @compat finalizer(destroy!, new_context)
+        finalizer(destroy!, new_context)
         return new_context
     end
 end
@@ -234,7 +234,7 @@ mutable struct Pool
 
     function Pool(context::Context, handle::Ptr{Cvoid}, name::String)
         new_pool = new(context, handle, name)
-        @compat finalizer(destroy!, new_pool)
+        finalizer(destroy!, new_pool)
         return new_pool
     end
 end
@@ -266,7 +266,7 @@ mutable struct Connection
         check_supported_encoding(ei)
 
         new_connection = new(context, handle, ei, pool)
-        @compat finalizer(destroy!, new_connection)
+        finalizer(destroy!, new_connection)
         return new_connection
     end
 end
@@ -331,7 +331,7 @@ struct JuliaOracleValue{O,N,T} <: AbstractOracleValue{O,N}
 end
 
 function JuliaOracleValue(oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum, ::Type{T}, capacity::Integer=1) where {T}
-    buffer = undef_vector(T, capacity)
+    buffer = Vector{T}(undef, capacity)
     return JuliaOracleValue{oracle_type,native_type,T}(buffer)
 end
 
@@ -419,7 +419,7 @@ mutable struct Variable{T}
             buffer_handle,
             buffer_capacity)
 
-        @compat finalizer(destroy!, new_ora_variable)
+        finalizer(destroy!, new_ora_variable)
 
         return new_ora_variable
     end
@@ -444,7 +444,7 @@ mutable struct Lob{ORATYPE,T}
     function Lob(p::T, handle::Ptr{Cvoid}, oracle_type::OraOracleTypeNum; use_add_ref::Bool=false) where {T}
         check_valid_lob_oracle_type_num(oracle_type)
         new_lob = new{oracle_type, T}(p, handle, true)
-        @compat finalizer(destroy!, new_lob)
+        finalizer(destroy!, new_lob)
 
         if use_add_ref
             add_ref(new_lob)
