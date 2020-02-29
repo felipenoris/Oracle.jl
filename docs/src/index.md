@@ -71,6 +71,44 @@ export LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
 julia> Pkg.add("Oracle")
 ```
 
+## Installation on Jupyter environment
+
+When loading this package on a Jupyter Notebook environment
+you might get this error:
+
+```
+InitError: DPI-1047: Cannot locate a 64-bit Oracle Client library: "libclntsh.so: cannot open shared object file: No such file or directory"
+```
+
+First, check that the package loads outside the Jupyter environment.
+If it does work, than the problem is that `LD_LIBRARY_PATH` is not set
+in the Jupyter environment.
+
+To solve this, edit your `kernel.json` file, usually located at `~/.local/share/jupyter/kernels/julia-v`
+where `v` is the Julia version, and add an environment variable for your `LD_LIBRARY_PATH`,
+as in the following example, where `/myhomedir/local/instantclient_18_3` is the location for
+the instant client library.
+
+```json
+{
+  "display_name": "Julia 1.1.0",
+  "argv": [
+    "env",
+    "LD_LIBRARY_PATH=/myhomedir/local/instantclient_18_3",
+    "/myhomedir/local/julia-1.1.0/bin/julia",
+    "-i",
+    "--startup-file=yes",
+    "--color=yes",
+    "--project=@.",
+    "/myhomedir/.julia/packages/IJulia/gI2uA/src/kernel.jl",
+    "{connection_file}"
+  ],
+  "language": "julia",
+  "env": {},
+  "interrupt_mode": "signal"
+}
+```
+
 ## License
 
 The source code for the package *Oracle.jl* is licensed under the [MIT License](https://github.com/felipenoris/Oracle.jl/blob/master/LICENSE).
