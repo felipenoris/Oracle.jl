@@ -28,7 +28,6 @@ include("lob.jl")
 include("cursor.jl")
 include("pool.jl")
 include("variable.jl")
-include("deprecated.jl")
 
 function __init__()
     # this function is defined in DEPS_FILE
