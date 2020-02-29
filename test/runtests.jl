@@ -1,4 +1,10 @@
 
+#=
+[ Info: Benchmark ResultSet
+  0.001309 seconds (296 allocations: 8.453 KiB)
+Number of rows: 10
+=#
+
 include("timestamps_tests.jl")
 include("oranumbers_tests.jl")
 
@@ -807,6 +813,12 @@ end
             end
 
             @test row_number == 11
+        end
+
+        @testset "Benchmark ResultSet" begin
+            @info("Benchmark ResultSet")
+            @time rs = Oracle.query(conn, "SELECT * FROM TB_BIND_BY_NAME")
+            println("Number of rows: $(Oracle.nrow(rs))")
         end
 
         @testset "reuse stmt for queries" begin
