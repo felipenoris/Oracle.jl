@@ -2,7 +2,8 @@
 using Documenter, Oracle
 
 makedocs(
-    sitename="Oracle.jl",
+    sitename = "Oracle.jl",
+    modules = [ Oracle ],
     pages = [ "Home" => "index.md",
               "Tutorial" => "tutorial.md",
               "API Reference" => "api.md"

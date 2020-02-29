@@ -12,7 +12,7 @@ You can check the [release notes](https://github.com/felipenoris/Oracle.jl/relea
 
 ## Requirements
 
-* [Julia](https://julialang.org/) v0.6, v0.7 or v1.0.
+* [Julia](https://julialang.org/) v1.0 or newer.
 
 * Oracle's [Instant Client](https://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html).
 
