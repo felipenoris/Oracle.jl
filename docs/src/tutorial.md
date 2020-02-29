@@ -240,3 +240,20 @@ stmt[1] = ora_var
 Oracle.execute(stmt)
 Oracle.close(stmt)
 ```
+
+## Transactions
+
+The way Oracle Database works, [“a transaction in Oracle begins when the first executable SQL statement is encountered”](https://docs.oracle.com/cd/B19306_01/server.102/b14220/transact.htm).
+
+Use [`Oracle.commit`](@ref) to commit and [`Oracle.rollback`](@ref) to abort a transaction.
+
+The following example is a valid transaction.
+
+```julia
+Oracle.execute(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 1 )") # will start a transaction
+Oracle.execute(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( null )")
+Oracle.commit(conn) # will commit 2 lines
+
+Oracle.execute(conn, "INSERT INTO TB_TEST ( ID ) VALUES ( 3 )") # will start a new transaction
+Oracle.rollback(conn) # abort insertion of the third line
+```
