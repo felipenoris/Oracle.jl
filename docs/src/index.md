@@ -106,9 +106,14 @@ the instant client library.
 The `LD_LIBRARY_PATH` environment variable must be set before the Julia process starts.
 This is why you can't just set this variable inside the Jupyter notebook.
 
+## Source Code
+
+The source code for this package is hosted at
+[https://github.com/felipenoris/Oracle.jl](https://github.com/felipenoris/Oracle.jl).
+
 ## License
 
 The source code for the package *Oracle.jl* is licensed under the [MIT License](https://github.com/felipenoris/Oracle.jl/blob/master/LICENSE).
 
-During installation, *Oracle.jl* downloads the source code and compile the library [ODPI-C](https://github.com/oracle/odpi)
+During installation, *Oracle.jl* downloads the source code and compiles the library [ODPI-C](https://github.com/oracle/odpi)
 which is licensed under [The Universal Permissive License (UPL), Version 1.0](https://oracle.github.io/odpi/doc/license.html) and/or the [Apache License](https://oracle.github.io/odpi/doc/license.html).
