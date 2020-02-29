@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · Oracle.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">Oracle.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Getting-a-Connection-1"><span>Getting a Connection</span></a></li><li><a class="tocitem" href="#Executing-a-Statement-1"><span>Executing a Statement</span></a></li><li><a class="tocitem" href="#Binding-values-to-a-Statement-1"><span>Binding values to a Statement</span></a></li><li><a class="tocitem" href="#Executing-a-Query-1"><span>Executing a Query</span></a></li><li><a class="tocitem" href="#Batch-statement-execution-1"><span>Batch statement execution</span></a></li><li><a class="tocitem" href="#Session-Pools-1"><span>Session Pools</span></a></li><li><a class="tocitem" href="#LOB-1"><span>LOB</span></a></li><li><a class="tocitem" href="#Transactions-1"><span>Transactions</span></a></li></ul></li><li><a class="tocitem" href="../api/">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/felipenoris/Oracle.jl/blob/master/docs/src/tutorial.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial-1"><a class="docs-heading-anchor" href="#Tutorial-1">Tutorial</a><a class="docs-heading-anchor-permalink" href="#Tutorial-1" title="Permalink"></a></h1><h2 id="Getting-a-Connection-1"><a class="docs-heading-anchor" href="#Getting-a-Connection-1">Getting a Connection</a><a class="docs-heading-anchor-permalink" href="#Getting-a-Connection-1" title="Permalink"></a></h2><pre><code class="language-julia">import Oracle
+
+username = &quot;my_username&quot;
+password = &quot;my_password&quot;
+connect_string = &quot;//IP_ADDRESS/XE&quot; # a valid Oracle connect string
+
+conn = Oracle.Connection(username, password, connect_string)</code></pre><p>Currently, this driver only supports connections using <em>ASCII</em> or <em>UTF-8</em> encodings. All connections are created using <em>UTF-8</em> encoding by default, for both <code>CHAR</code> and <code>NCHAR</code> data types.</p><p>To connect as <code>SYSDBA</code>, use the appropriate <code>auth_mode</code> parameter.</p><pre><code class="language-julia">conn = Oracle.Connection(username, password, connect_string, auth_mode=Oracle.ORA_MODE_AUTH_SYSDBA)</code></pre><p>You should always close connections using <code>Oracle.close</code> method.</p><pre><code class="language-julia">Oracle.close(conn)</code></pre><h2 id="Executing-a-Statement-1"><a class="docs-heading-anchor" href="#Executing-a-Statement-1">Executing a Statement</a><a class="docs-heading-anchor-permalink" href="#Executing-a-Statement-1" title="Permalink"></a></h2><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_TEST ( ID INT NULL )&quot;)
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 1 )&quot;)
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( null )&quot;)
+Oracle.commit(conn) # will commit 2 lines
+
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 3 )&quot;)
+Oracle.rollback(conn) # abort insertion of the third line</code></pre><h2 id="Binding-values-to-a-Statement-1"><a class="docs-heading-anchor" href="#Binding-values-to-a-Statement-1">Binding values to a Statement</a><a class="docs-heading-anchor-permalink" href="#Binding-values-to-a-Statement-1" title="Permalink"></a></h2><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_BIND ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)&quot;)
+
+# get an explicit reference to a statement
+stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )&quot;)
+
+# will add a single line to TB_BIND
+stmt[:id] = 1
+stmt[:flt] = 10.23
+stmt[:str] = &quot;a string&quot;
+stmt[:dt] = Date(2018,12,31)
+Oracle.execute(stmt)
+
+Oracle.commit(conn)
+Oracle.close(stmt)</code></pre><p>Whenever you get an explicit reference to a statement, you should always use <code>Oracle.close</code> method when you&#39;re done with it.</p><h2 id="Executing-a-Query-1"><a class="docs-heading-anchor" href="#Executing-a-Query-1">Executing a Query</a><a class="docs-heading-anchor-permalink" href="#Executing-a-Query-1" title="Permalink"></a></h2><p>Use <code>Oracle.query</code> to execute a query. It returns a <code>ResultSet</code>, which is a table-like struct. All data is fetched from the statement before returning the <code>ResultSet</code>.</p><pre><code class="language-julia">rs = Oracle.query(conn, &quot;SELECT ID, FLT, STR, DT FROM TB_BIND&quot;)
+
+println(rs[2, 1]) # will print the element at row 2, column 1.
+println(rs[2, &quot;ID&quot;]) # will print element at row 2, column ID (same as column 1).
+println(rs[:, 1]) # will print all the elements in column 1.</code></pre><p>The last example was easy to use, but maybe your memory can&#39;t hold all the data in the ResultSet. Use <code>Oracle.query</code> method with <em>do-syntax</em> to get a reference to a cursor, which will fetch one row at a time.</p><pre><code class="language-julia">Oracle.query(conn, &quot;SELECT * FROM TB_BIND&quot;) do cursor
+    for row in cursor
+        # row values can be accessed using column name or position
+        println( row[&quot;ID&quot;]  ) # same as row[1]
+        println( row[&quot;FLT&quot;] )
+        println( row[&quot;STR&quot;] )
+        println( row[&quot;DT&quot;]  ) # same as row[4]
+    end
+end</code></pre><p>You can also use a prepared statement to execute a query.</p><pre><code class="language-julia">stmt = Oracle.Stmt(conn, &quot;SELECT FLT FROM TB_BIND WHERE ID = :id&quot;)
+stmt[:id] = 1
+
+Oracle.query(stmt) do cursor
+    for row in cursor
+      println(row[&quot;FLT&quot;])
+    end
+end
+
+Oracle.close(stmt)</code></pre><p>There is also the possibility to fetch one row at a time manually, with a small overhead when compared to previous methods.</p><pre><code class="language-julia">stmt = Oracle.Stmt(conn, &quot;SELECT FLT FROM TB_BIND&quot;)
+Oracle.execute(stmt)
+
+row = Oracle.fetchrow(stmt)
+while row != nothing
+    println(row[1])
+    row = Oracle.fetchrow(stmt)
+end
+
+Oracle.close(stmt)</code></pre><h2 id="Batch-statement-execution-1"><a class="docs-heading-anchor" href="#Batch-statement-execution-1">Batch statement execution</a><a class="docs-heading-anchor-permalink" href="#Batch-statement-execution-1" title="Permalink"></a></h2><p>If you need to execute the same statement many times but binding different values each time, pass a vector of columns to <code>Oracle.execute</code> method.</p><p>This will use the ODPI-C <em>executeMany</em> feature.</p><pre><code class="language-julia">NUM_ROWS = 1_000
+
+column_1 = [ i for i in 1:NUM_ROWS ]
+column_2 = .5 * column_1
+
+sql = &quot;INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )&quot;
+Oracle.execute(conn, sql, [ column_1, column_2 ])</code></pre><h2 id="Session-Pools-1"><a class="docs-heading-anchor" href="#Session-Pools-1">Session Pools</a><a class="docs-heading-anchor-permalink" href="#Session-Pools-1" title="Permalink"></a></h2><p>A <em>Pool</em> represents a pool of connections, and provides a faster way to acquire connections to the database.</p><pre><code class="language-julia"># creates a pool for a maximum of 2 sessions
+pool = Oracle.Pool(username, password, connect_string, max_sessions=2, session_increment=1)
+
+conn_1 = Oracle.Connection(pool)
+conn_2 = Oracle.Connection(pool) # at this point, we can&#39;t acquire more connections
+
+# release a connection so that we can acquire another one.
+Oracle.close(conn_1)
+
+# by now, acquiring a new connection should be pretty fast
+# since the new connection will be taken from the pool
+conn_3 = Oracle.Connection(pool)
+
+# release all connections that are still open
+Oracle.close(conn_2)
+Oracle.close(conn_3)
+
+Oracle.close(pool)</code></pre><p>You should always close Pools using <code>Oracle.close</code> method.</p><h2 id="LOB-1"><a class="docs-heading-anchor" href="#LOB-1">LOB</a><a class="docs-heading-anchor-permalink" href="#LOB-1" title="Permalink"></a></h2><p>Oracle LOB fields can hold <a href="https://docs.oracle.com/cd/B28359_01/server.111/b28320/limits001.htm">up to 4GB of data</a>.</p><p>They come in two flavors:</p><ul><li><p>Binary LOBs: BLOB or BFILE.</p></li><li><p>Character LOBs: CLOB or NCLOB.</p></li></ul><p>LOB values are represented as a value of type <code>Oracle.Lob</code> in this package.</p><p>From a LOB value, you can use <code>read</code> and <code>write</code> methods to manipulate whole contents of the LOB value. For incremental reading/writing, you can use <code>open</code> with <em>do-syntax</em> do get an IO stream out of a <code>Oracle.Lob</code>.</p><p>IO Streams created on Character LOBs use the character index as its position, and only support reading/writing for <code>Char</code> and <code>String</code> data types.</p><p>You should always close a LOB using <code>Oracle.close</code> method.</p><p><em>Currently, BFILE is not supported.</em></p><h3 id="Reading-from-a-BLOB-1"><a class="docs-heading-anchor" href="#Reading-from-a-BLOB-1">Reading from a BLOB</a><a class="docs-heading-anchor-permalink" href="#Reading-from-a-BLOB-1" title="Permalink"></a></h3><pre><code class="language-julia">lyric = &quot;hey you. 🎵 🎶 Out there in the cold. getting lonely, getting old. Can you feel me? 📼📼📼📼&quot;
+
+Oracle.execute(conn, &quot;CREATE TABLE TB_BLOB ( b BLOB )&quot;)
+Oracle.execute(conn, &quot;INSERT INTO TB_BLOB ( B ) VALUES ( utl_raw.cast_to_raw(&#39;$lyric&#39;))&quot;)
+
+Oracle.query(conn, &quot;SELECT B FROM TB_BLOB&quot;) do cursor
+    for row in cursor
+        blob = row[&quot;B&quot;]
+        bytes_vector = read(blob) # Vector{UInt8}
+        println(String(bytes_vector))
+    end
+end</code></pre><h3 id="Writing-to-a-BLOB-1"><a class="docs-heading-anchor" href="#Writing-to-a-BLOB-1">Writing to a BLOB</a><a class="docs-heading-anchor-permalink" href="#Writing-to-a-BLOB-1" title="Permalink"></a></h3><p>Follow these steps to write to a BLOB field in the database.</p><ol><li><p>Create a temporary Lob associated with the connection using <code>Oracle.Lob(connection, oracle_type)</code>.</p></li><li><p>Write data to the Lob.</p></li><li><p>Wrap the Lob into a Variable.</p></li><li><p>Bind the variable to the statement.</p></li><li><p>Execute the statement.</p></li></ol><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_BLOB_VARIABLE ( B BLOB )&quot;)
+
+test_data = rand(UInt8, 5000)
+
+# creates a temporary Lob bounded to the Connection
+blob = Oracle.Lob(conn, Oracle.ORA_ORACLE_TYPE_BLOB)
+
+# replaces all Lob data with the contents of the array test_data
+write(blob, test_data)
+
+# wraps the blob in a Variable
+ora_var = Oracle.Variable(conn, blob)
+
+stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )&quot;)
+
+# binds the variable to the statement
+stmt[1] = ora_var
+
+Oracle.execute(stmt)
+Oracle.close(stmt)</code></pre><h2 id="Transactions-1"><a class="docs-heading-anchor" href="#Transactions-1">Transactions</a><a class="docs-heading-anchor-permalink" href="#Transactions-1" title="Permalink"></a></h2><p>The way Oracle Database works, <a href="https://docs.oracle.com/cd/B19306_01/server.102/b14220/transact.htm">“a transaction in Oracle begins when the first executable SQL statement is encountered”</a>.</p><p>Use <a href="../api/#Oracle.commit"><code>Oracle.commit</code></a> to commit and <a href="../api/#Oracle.rollback"><code>Oracle.rollback</code></a> to abort a transaction.</p><p>The following example is a valid transaction.</p><pre><code class="language-julia">Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 1 )&quot;) # will start a transaction
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( null )&quot;)
+Oracle.commit(conn) # will commit 2 lines
+
+Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 3 )&quot;) # will start a new transaction
+Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 29 February 2020 23:37">Saturday 29 February 2020</span>. Using Julia version 1.3.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
