@@ -87,7 +87,28 @@ function Base.getindex(variable::Variable, pos::Integer)
     return oracle_value[pos]
 end
 
+"""
+    get_returned_data(variable::Variable, pos::Integer) :: Vector
+
+Collects all the data bounded to `variable` at position `pos` being transfered to and from the database.
+"""
+function get_returned_data(variable::Variable, pos::Integer)
+    ref_num_elements = Ref{UInt32}(0)
+    ref_data_array = Ref{Ptr{OraData}}()
+    result = dpiVar_getReturnedData(variable.handle, UInt32(pos-1), ref_num_elements, ref_data_array)
+    error_check(context(variable), result)
+    oracle_value = ExternOracleValue(variable, variable.oracle_type, variable.native_type, ref_data_array[])
+    return [ oracle_value[i] for i in 1:ref_num_elements[] ]
+end
+
 Base.getindex(variable::Variable, pos::FetchResult) = getindex(variable, pos.buffer_row_index + 1)
+
+function Base.length(variable::Variable)
+    ref_num_elements = Ref{UInt32}(0)
+    result = dpiVar_getNumElementsInArray(variable.handle, ref_num_elements)
+    error_check(context(variable), result)
+    return Int(ref_num_elements[])
+end
 
 @inline function check_bounds(variable::Variable, pos::Integer)
     # pos is 1-indexed

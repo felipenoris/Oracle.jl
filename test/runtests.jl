@@ -1049,6 +1049,7 @@ end
 
     @testset "get/set values to Variables" begin
         ora_var = Oracle.Variable(conn, Float64, Oracle.ORA_ORACLE_TYPE_NATIVE_DOUBLE, Oracle.ORA_NATIVE_TYPE_DOUBLE)
+        @test length(ora_var) == ora_var.buffer_capacity
 
         ora_var[1] = 0.0
         @test ora_var[1] == 0.0
@@ -1189,6 +1190,41 @@ end
         end
 
         Oracle.execute(conn, "DROP TABLE TB_EXECUTE_MANY")
+    end
+
+    @testset "execute_many with inputs and outputs" begin
+        Oracle.execute(conn, "CREATE TABLE TB_EXEC_MANY_INOUT ( ID NUMBER(15, 0) NOT NULL, STR VARCHAR2(4000) )")
+        Oracle.execute(conn, "ALTER TABLE TB_EXEC_MANY_INOUT ADD CONSTRAINT XPK_TB_EXEC_MANY_INOUT PRIMARY KEY (ID)")
+        Oracle.execute(conn, "CREATE SEQUENCE SQ_TB_EXEC_MANY_INOUT INCREMENT BY 1  START WITH 1001")
+
+        input_data = ["input1", "input2", "input3"]
+        num_iters = length(input_data)
+        var_input = Oracle.Variable(conn, input_data)
+        var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
+
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input ) RETURNING ID INTO :var_output")
+        try
+            Oracle.execute_many(stmt, num_iters, Dict(:var_input => var_input, :var_output => var_output))
+            Oracle.commit(conn)
+
+            Oracle.query(conn, "SELECT ID, STR FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
+                i = 1
+                for row in cursor
+                    @test parse(Int, row["STR"][end]) + 1000 == row["ID"]
+                    @test row["ID"] == Oracle.get_returned_data(var_output, i)[1]
+                    i += 1
+                end
+            end
+
+            for i in 1:num_iters
+                @test Oracle.get_returned_data(var_output, i)[1] == 1000 + i
+            end
+
+        finally
+            Oracle.close(stmt)
+            Oracle.execute(conn, "DROP SEQUENCE SQ_TB_EXEC_MANY_INOUT")
+            Oracle.execute(conn, "DROP TABLE TB_EXEC_MANY_INOUT")
+        end
     end
 
     @testset "BLOB Variable" begin

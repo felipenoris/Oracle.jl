@@ -184,7 +184,7 @@ function execute_script(connection::Connection, filepath::AbstractString; scroll
 end
 
 # execute many
-function execute(connection::Connection, sql::AbstractString, columns::Vector; scrollable::Bool=false, tag::AbstractString="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+function execute_many(connection::Connection, sql::AbstractString, columns::Vector; scrollable::Bool=false, tag::AbstractString="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
     local result::UInt32
 
     stmt(connection, sql, scrollable=scrollable, tag=tag) do stmt
@@ -195,9 +195,9 @@ function execute(connection::Connection, sql::AbstractString, columns::Vector; s
 end
 
 # execute many
-function execute(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
-    @assert !isempty(columns) "Cannot bind empty columns to statement."
-    @assert eltype(columns) <: Vector "`columns` argument is expected to be a vector of vectors."
+function execute_many(stmt::Stmt, input_columns::Vector; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    @assert !isempty(input_columns) "Cannot bind empty columns to statement."
+    @assert eltype(input_columns) <: Vector "`input_columns` argument is expected to be a vector of vectors."
 
     function check_columns_length(columns::Vector)
         columns_count = length(columns)
@@ -215,14 +215,14 @@ function execute(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EX
         nothing
     end
 
-    check_columns_length(columns)
+    check_columns_length(input_columns)
 
-    for (c, column) in enumerate(columns)
+    for (c, column) in enumerate(input_columns)
         stmt[c] = Variable(stmt.connection, column)
     end
 
     # execute
-    rows_count = length(columns[1])
+    rows_count = length(input_columns[1])
     result = dpiStmt_executeMany(stmt.handle, exec_mode | ORA_MODE_EXEC_ARRAY_DML_ROWCOUNTS, UInt32(rows_count))
     error_check(context(stmt), result)
 
@@ -247,6 +247,30 @@ function execute(stmt::Stmt, columns::Vector; exec_mode::OraExecMode=ORA_MODE_EX
     return sum(row_counts(stmt))
 end
 
+# DEPRECATE
+function execute(connection::Connection, sql::AbstractString, columns::Vector; scrollable::Bool=false, tag::AbstractString="", exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    execute_many(connection, sql, columns, scrollable=scrollable, tag=tag, exec_mode=exec_mode)
+end
+
+# DEPRECATE
+function execute(stmt::Stmt, input_columns::Vector; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) :: UInt32
+    execute_many(stmt, input_columns, exec_mode=exec_mode)
+end
+
+function execute_many(stmt::Stmt,
+        num_iters::Integer,
+        variables::Dict
+        ; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
+
+    for (k, v) in variables
+        stmt[k] = v
+    end
+
+    result = dpiStmt_executeMany(stmt.handle, exec_mode, UInt32(num_iters))
+    error_check(context(stmt), result)
+
+    nothing
+end
 
 function close(stmt::Stmt; tag::AbstractString="")
     if stmt.is_open
