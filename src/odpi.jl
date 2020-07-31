@@ -475,6 +475,16 @@ function dpiVar_setFromLob(var_handle::Ptr{Cvoid}, pos::UInt32, lob_handle::Ptr{
     ccall((:dpiVar_setFromLob, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{Cvoid}), var_handle, pos, lob_handle)
 end
 
+# int dpiVar_getNumElementsInArray(dpiVar *var, uint32_t *numElements)
+function dpiVar_getNumElementsInArray(var_handle::Ptr{Cvoid}, ref_num_elements::Ref{UInt32})
+    ccall((:dpiVar_getNumElementsInArray, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), var_handle, ref_num_elements)
+end
+
+# int dpiVar_getReturnedData(dpiVar *var, uint32_t pos, uint32_t *numElements, dpiData **data)
+function dpiVar_getReturnedData(var_handle::Ptr{Cvoid}, pos::UInt32, ref_num_elements::Ref{UInt32}, ref_data_array::Ref{Ptr{OraData}})
+    ccall((:dpiVar_getReturnedData, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ref{UInt32}, Ref{Ptr{OraData}}), var_handle, pos, ref_num_elements, ref_data_array)
+end
+
 #
 # ODPI-C LOB Functions
 #

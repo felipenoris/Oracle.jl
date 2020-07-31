@@ -29,3 +29,9 @@ Oracle.ping
 Oracle.commit
 Oracle.rollback
 ```
+
+## Variables
+
+```@docs
+Oracle.get_returned_data
+```
