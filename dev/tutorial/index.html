@@ -60,7 +60,38 @@ column_1 = [ i for i in 1:NUM_ROWS ]
 column_2 = .5 * column_1
 
 sql = &quot;INSERT INTO TB_BENCH_EXECUTE_MANY ( ID, FLT ) VALUES ( :1, :2 )&quot;
-Oracle.execute(conn, sql, [ column_1, column_2 ])</code></pre><h2 id="Session-Pools-1"><a class="docs-heading-anchor" href="#Session-Pools-1">Session Pools</a><a class="docs-heading-anchor-permalink" href="#Session-Pools-1" title="Permalink"></a></h2><p>A <em>Pool</em> represents a pool of connections, and provides a faster way to acquire connections to the database.</p><pre><code class="language-julia"># creates a pool for a maximum of 2 sessions
+Oracle.execute_many(conn, sql, [ column_1, column_2 ])</code></pre><p>It is also possible to bind input and output variables in one go. The following example shows how to insert data to a table that generates keys with a sequence, returning the keys that were created.</p><pre><code class="language-julia">Oracle.execute(conn, &quot;CREATE TABLE TB_EXEC_MANY_INOUT ( ID NUMBER(15, 0) NOT NULL, STR VARCHAR2(4000) )&quot;)
+Oracle.execute(conn, &quot;ALTER TABLE TB_EXEC_MANY_INOUT ADD CONSTRAINT XPK_TB_EXEC_MANY_INOUT PRIMARY KEY (ID)&quot;)
+Oracle.execute(conn, &quot;CREATE SEQUENCE SQ_TB_EXEC_MANY_INOUT INCREMENT BY 1  START WITH 1001&quot;)
+
+input_data = [&quot;input1&quot;, &quot;input2&quot;, &quot;input3&quot;]
+num_iters = length(input_data)
+var_input = Oracle.Variable(conn, input_data)
+var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
+
+stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input ) RETURNING ID INTO :var_output&quot;)
+try
+    Oracle.execute_many(stmt, num_iters, Dict(:var_input =&gt; var_input, :var_output =&gt; var_output))
+    Oracle.commit(conn)
+
+    Oracle.query(conn, &quot;SELECT ID, STR FROM TB_EXEC_MANY_INOUT ORDER BY ID&quot;) do cursor
+        i = 1
+        for row in cursor
+            @test parse(Int, row[&quot;STR&quot;][end]) + 1000 == row[&quot;ID&quot;]
+            @test row[&quot;ID&quot;] == Oracle.get_returned_data(var_output, i)[1]
+            i += 1
+        end
+    end
+
+    for i in 1:num_iters
+        @test Oracle.get_returned_data(var_output, i)[1] == 1000 + i
+    end
+
+finally
+    Oracle.close(stmt)
+    Oracle.execute(conn, &quot;DROP SEQUENCE SQ_TB_EXEC_MANY_INOUT&quot;)
+    Oracle.execute(conn, &quot;DROP TABLE TB_EXEC_MANY_INOUT&quot;)
+end</code></pre><h2 id="Session-Pools-1"><a class="docs-heading-anchor" href="#Session-Pools-1">Session Pools</a><a class="docs-heading-anchor-permalink" href="#Session-Pools-1" title="Permalink"></a></h2><p>A <em>Pool</em> represents a pool of connections, and provides a faster way to acquire connections to the database.</p><pre><code class="language-julia"># creates a pool for a maximum of 2 sessions
 pool = Oracle.Pool(username, password, connect_string, max_sessions=2, session_increment=1)
 
 conn_1 = Oracle.Connection(pool)
@@ -112,4 +143,4 @@ Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( null )&quot;)
 Oracle.commit(conn) # will commit 2 lines
 
 Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 3 )&quot;) # will start a new transaction
-Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 26 July 2020 19:37">Sunday 26 July 2020</span>. Using Julia version 1.3.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 31 July 2020 20:42">Friday 31 July 2020</span>. Using Julia version 1.3.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
