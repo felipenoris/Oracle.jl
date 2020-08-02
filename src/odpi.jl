@@ -446,6 +446,11 @@ function dpiData_setNumber(dpi_data_ptr::Ref{OraData}, number::OraNumber)
     ccall((:dpiData_setNumber, libdpi), Cvoid, (Ref{OraData}, OraNumber), dpi_data_ptr, number)
 end
 
+# void dpiData_setBool(dpiData *data, int value)
+function dpiData_setBool(dpi_data_ptr::Ref{OraData}, val::Union{Bool, Integer})
+    ccall((:dpiData_setBool, libdpi), Cvoid, (Ref{OraData}, Cint), dpi_data_ptr, val)
+end
+
 #
 # ODPI-C Variable Functions
 #
