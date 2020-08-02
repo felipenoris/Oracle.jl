@@ -965,7 +965,7 @@ end
                 stmt[1] = 1
                 stmt[2] = 10.1234
                 stmt[3] = "this is a string"
-                stmt[4, Date] = missing # we must inform the date type when setting value as missing
+                stmt[4, Date] = missing # we must inform the type when setting value as missing
 
                 Oracle.execute(stmt)
                 Oracle.commit(conn)
