@@ -13,6 +13,15 @@ import Oracle
 using Test
 using Dates
 
+@testset "exec mode" begin
+    a = Oracle.ORA_MODE_EXEC_DESCRIBE_ONLY
+    b = Oracle.ORA_MODE_EXEC_COMMIT_ON_SUCCESS
+    x = a | b
+    @test x == Oracle.OraExecMode(0x00000030)
+    @test x & a == Oracle.ORA_MODE_EXEC_DESCRIBE_ONLY
+    @test x & b == Oracle.ORA_MODE_EXEC_COMMIT_ON_SUCCESS
+end
+
 @testset "subtract_missing" begin
     @test Oracle.subtract_missing(Float64) == Float64
     @test_throws AssertionError Oracle.subtract_missing(Missing)

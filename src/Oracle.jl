@@ -15,6 +15,7 @@ import .OraNumbers.OraNumber
 include("macros.jl")
 include("constants.jl")
 include("enums.jl")
+include("exec_mode.jl")
 include("types.jl")
 include("odpi.jl")
 include("timestamps.jl")

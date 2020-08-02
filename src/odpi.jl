@@ -242,16 +242,11 @@ end
 
 # int dpiStmt_execute(dpiStmt *stmt, dpiExecMode mode, uint32_t *numQueryColumns)
 function dpiStmt_execute(stmt_handle::Ptr{Cvoid}, exec_mode::OraExecMode, num_query_columns_ref::Ref{UInt32})
-    ccall((:dpiStmt_execute, libdpi), OraResult, (Ptr{Cvoid}, OraExecMode, Ref{UInt32}), stmt_handle, exec_mode, num_query_columns_ref)
+    ccall((:dpiStmt_execute, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ref{UInt32}), stmt_handle, exec_mode, num_query_columns_ref)
 end
 
 # int dpiStmt_executeMany(dpiStmt *stmt, dpiExecMode mode, uint32_t numIters)
 function dpiStmt_executeMany(stmt_handle::Ptr{Cvoid}, exec_mode::OraExecMode, num_iters::UInt32)
-    ccall((:dpiStmt_executeMany, libdpi), OraResult, (Ptr{Cvoid}, OraExecMode, UInt32), stmt_handle, exec_mode, num_iters)
-end
-
-# exec_mode may be "ored" together
-function dpiStmt_executeMany(stmt_handle::Ptr{Cvoid}, exec_mode::UInt32, num_iters::UInt32)
     ccall((:dpiStmt_executeMany, libdpi), OraResult, (Ptr{Cvoid}, UInt32, UInt32), stmt_handle, exec_mode, num_iters)
 end
 

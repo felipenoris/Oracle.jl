@@ -68,15 +68,6 @@ end
     ORA_MODE_STARTUP_RESTRICT = 2
 end
 
-@enum OraExecMode::UInt32 begin
-    ORA_MODE_EXEC_DEFAULT             = 0
-    ORA_MODE_EXEC_DESCRIBE_ONLY       = 16
-    ORA_MODE_EXEC_COMMIT_ON_SUCCESS   = 32
-    ORA_MODE_EXEC_BATCH_ERRORS        = 128
-    ORA_MODE_EXEC_PARSE_ONLY          = 256
-    ORA_MODE_EXEC_ARRAY_DML_ROWCOUNTS = 1048576
-end
-
 @enum OraOracleTypeNum::UInt32 begin
     ORA_ORACLE_TYPE_NONE          = 2000
     ORA_ORACLE_TYPE_VARCHAR       = 2001
@@ -147,10 +138,3 @@ end
     ORA_MODE_POOL_CLOSE_DEFAULT = 0x0000
     ORA_MODE_POOL_CLOSE_FORCE   = 0x0001
 end
-
-
-#
-# Enable bit arithmetic for enums that can be "ored" together.
-#
-
-Base.:|(a::OraExecMode, b::OraExecMode) = UInt32(a) | UInt32(b)

@@ -222,9 +222,8 @@ function execute_many(stmt::Stmt, input_columns::Vector; exec_mode::OraExecMode=
     end
 
     # execute
-    rows_count = length(input_columns[1])
-    result = dpiStmt_executeMany(stmt.handle, exec_mode | ORA_MODE_EXEC_ARRAY_DML_ROWCOUNTS, UInt32(rows_count))
-    error_check(context(stmt), result)
+    num_iters = length(input_columns[1])
+    execute_many(stmt, num_iters, exec_mode | ORA_MODE_EXEC_ARRAY_DML_ROWCOUNTS)
 
     # get row counts
     function row_counts(stmt::Stmt) :: Vector{UInt64}
@@ -257,6 +256,12 @@ function execute(stmt::Stmt, input_columns::Vector; exec_mode::OraExecMode=ORA_M
     execute_many(stmt, input_columns, exec_mode=exec_mode)
 end
 
+@inline function execute_many(stmt::Stmt, num_iters::Integer, exec_mode::OraExecMode)
+    result = dpiStmt_executeMany(stmt.handle, exec_mode, UInt32(num_iters))
+    error_check(context(stmt), result)
+    return
+end
+
 function execute_many(stmt::Stmt,
         num_iters::Integer,
         variables::Dict{K,V}
@@ -266,10 +271,7 @@ function execute_many(stmt::Stmt,
         stmt[k] = v
     end
 
-    result = dpiStmt_executeMany(stmt.handle, exec_mode, UInt32(num_iters))
-    error_check(context(stmt), result)
-
-    nothing
+    execute_many(stmt, num_iters, exec_mode)
 end
 
 function execute_many(stmt::Stmt,
@@ -281,10 +283,7 @@ function execute_many(stmt::Stmt,
         stmt[k] = v
     end
 
-    result = dpiStmt_executeMany(stmt.handle, exec_mode, UInt32(num_iters))
-    error_check(context(stmt), result)
-
-    nothing
+    execute_many(stmt, num_iters, exec_mode)
 end
 
 function close(stmt::Stmt; tag::AbstractString="")
