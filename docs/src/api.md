@@ -30,8 +30,18 @@ Oracle.commit
 Oracle.rollback
 ```
 
-## Variables
+## Statement
+
+```@docs
+Oracle.execute
+Oracle.row_count
+Oracle.fetch_array_size!
+Oracle.fetch
+```
+
+## Variable
 
 ```@docs
 Oracle.get_returned_data
+Oracle.define
 ```
