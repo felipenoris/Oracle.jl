@@ -358,6 +358,13 @@ end
         Oracle.close(stmt)
     end
 
+    @testset "Stmt bind repeated vars" begin
+        Oracle.stmt(conn, "SELECT :A, :A FROM DUAL") do stmt
+            stmt[:A] = 1
+            Oracle.execute(stmt)
+        end
+    end
+
     @testset "type inference" begin
 
         @test Oracle.infer_oracle_type_tuple(Bool) == Oracle.infer_oracle_type_tuple(true)

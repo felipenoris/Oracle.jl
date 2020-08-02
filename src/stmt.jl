@@ -69,20 +69,20 @@ function Stmt(connection::Connection, handle::Ptr{Cvoid}, scrollable::Bool; fetc
         return count_ref[]
     end
 
-    function get_bind_names(ctx::Context, stmt_handle::Ptr{Cvoid}, expected_num_bind_names::UInt32)
-        num_bind_names_ref = Ref{UInt32}(expected_num_bind_names) # IN/OUT parameter
-        bind_names_vec = Vector{Ptr{UInt8}}(undef, expected_num_bind_names)
+    function get_bind_names(ctx::Context, stmt_handle::Ptr{Cvoid}, expected_max_bind_names::UInt32)
+        num_bind_names_ref = Ref{UInt32}(expected_max_bind_names) # IN/OUT parameter
+        bind_names_vec = Vector{Ptr{UInt8}}(undef, expected_max_bind_names)
 
-        bind_name_lenghts_vec = zeros(UInt32, expected_num_bind_names)
+        bind_name_lenghts_vec = zeros(UInt32, expected_max_bind_names)
         result = dpiStmt_getBindNames(stmt_handle, num_bind_names_ref, pointer(bind_names_vec), pointer(bind_name_lenghts_vec))
         error_check(ctx, result)
 
-        @assert expected_num_bind_names == num_bind_names_ref[]
+        @assert expected_max_bind_names >= num_bind_names_ref[] "Expected max $expected_num_bind_names bind names, but got $(num_bind_names_ref[])."
 
-        result_names = Vector{String}(undef, expected_num_bind_names)
+        result_names = Vector{String}()
 
-        for i in 1:expected_num_bind_names
-            @inbounds result_names[i] = unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i])
+        for i in 1:num_bind_names_ref[]
+            push!(result_names, unsafe_string(bind_names_vec[i], bind_name_lenghts_vec[i]))
         end
 
         return result_names
