@@ -877,7 +877,7 @@ end
     @testset "bind int, flt, str, date by position" begin
         Oracle.execute(conn, "CREATE TABLE TB_BIND_BY_POSITION ( ID NUMBER(15,0) NULL, FLT NUMBER(15,4) NULL, STR VARCHAR(255) NULL, DT DATE NULL)")
 
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :a, :b, :c, :d )")
+        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :1, :2, :3, :4 )")
         @test stmt.bind_count == 4
 
         @test_throws AssertionError stmt[0] = 10
@@ -939,6 +939,37 @@ end
         end
 
         Oracle.close(stmt)
+
+        Oracle.execute(conn, "DELETE FROM TB_BIND_BY_POSITION")
+        Oracle.commit(conn)
+
+        let
+            # tutorial example
+            Oracle.stmt(conn, "INSERT INTO TB_BIND_BY_POSITION ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )") do stmt
+                stmt[1] = 1
+                stmt[2] = 10.1234
+                stmt[3] = "this is a string"
+                stmt[4, Date] = missing # we must inform the date type when setting value as missing
+
+                Oracle.execute(stmt)
+                Oracle.commit(conn)
+            end
+
+            row_number = 0
+
+            Oracle.query(conn, "SELECT * FROM TB_BIND_BY_POSITION") do cursor
+                for row in cursor
+                    @test row["ID"] == 1
+                    @test row["FLT"] ≈ 10.1234
+                    @test row["STR"] == "this is a string"
+                    @test ismissing(row["DT"])
+                    row_number += 1
+                end
+            end
+
+            @test row_number == 1
+        end
+
         Oracle.execute(conn, "DROP TABLE TB_BIND_BY_POSITION")
     end
 

@@ -62,6 +62,21 @@ Oracle.close(stmt)
 Whenever you get an explicit reference to a statement, you should always
 use `Oracle.close` method when you're done with it.
 
+The next example constructs a Statement using the do-syntax, that automatically closes the statement at the end.
+It also shows how to bind values by position.
+
+```julia
+Oracle.stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )") do stmt
+    stmt[1] = 1
+    stmt[2] = 10.1234
+    stmt[3] = "this is a string"
+    stmt[4, Date] = missing # we must inform the date type when setting value as missing
+
+    Oracle.execute(stmt)
+    Oracle.commit(conn)
+end
+```
+
 ## Executing a Query
 
 Use `Oracle.query` to execute a query. It returns a `ResultSet`, which is a table-like struct.
