@@ -24,7 +24,15 @@ stmt[:dt] = Date(2018,12,31)
 Oracle.execute(stmt)
 
 Oracle.commit(conn)
-Oracle.close(stmt)</code></pre><p>Whenever you get an explicit reference to a statement, you should always use <code>Oracle.close</code> method when you&#39;re done with it.</p><h2 id="Executing-a-Query-1"><a class="docs-heading-anchor" href="#Executing-a-Query-1">Executing a Query</a><a class="docs-heading-anchor-permalink" href="#Executing-a-Query-1" title="Permalink"></a></h2><p>Use <code>Oracle.query</code> to execute a query. It returns a <code>ResultSet</code>, which is a table-like struct. All data is fetched from the statement before returning the <code>ResultSet</code>.</p><pre><code class="language-julia">rs = Oracle.query(conn, &quot;SELECT ID, FLT, STR, DT FROM TB_BIND&quot;)
+Oracle.close(stmt)</code></pre><p>Whenever you get an explicit reference to a statement, you should always use <code>Oracle.close</code> method when you&#39;re done with it.</p><p>The next example constructs a Statement using the do-syntax, that automatically closes the statement at the end. It also shows how to bind values by position.</p><pre><code class="language-julia">Oracle.stmt(conn, &quot;INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, :str, :dt )&quot;) do stmt
+    stmt[1] = 1
+    stmt[2] = 10.1234
+    stmt[3] = &quot;this is a string&quot;
+    stmt[4, Date] = missing # we must inform the date type when setting value as missing
+
+    Oracle.execute(stmt)
+    Oracle.commit(conn)
+end</code></pre><h2 id="Executing-a-Query-1"><a class="docs-heading-anchor" href="#Executing-a-Query-1">Executing a Query</a><a class="docs-heading-anchor-permalink" href="#Executing-a-Query-1" title="Permalink"></a></h2><p>Use <code>Oracle.query</code> to execute a query. It returns a <code>ResultSet</code>, which is a table-like struct. All data is fetched from the statement before returning the <code>ResultSet</code>.</p><pre><code class="language-julia">rs = Oracle.query(conn, &quot;SELECT ID, FLT, STR, DT FROM TB_BIND&quot;)
 
 println(rs[2, 1]) # will print the element at row 2, column 1.
 println(rs[2, &quot;ID&quot;]) # will print element at row 2, column ID (same as column 1).
@@ -69,9 +77,11 @@ num_iters = length(input_data)
 var_input = Oracle.Variable(conn, input_data)
 var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
 
+vars = [ var_input, var_output ] # or `Dict(:var_input =&gt; var_input, :var_output =&gt; var_output)` for binding by names
+
 stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input ) RETURNING ID INTO :var_output&quot;)
 try
-    Oracle.execute_many(stmt, num_iters, Dict(:var_input =&gt; var_input, :var_output =&gt; var_output))
+    Oracle.execute_many(stmt, num_iters, vars)
     Oracle.commit(conn)
 
     Oracle.query(conn, &quot;SELECT ID, STR FROM TB_EXEC_MANY_INOUT ORDER BY ID&quot;) do cursor
@@ -143,4 +153,4 @@ Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( null )&quot;)
 Oracle.commit(conn) # will commit 2 lines
 
 Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 3 )&quot;) # will start a new transaction
-Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 31 July 2020 20:44">Friday 31 July 2020</span>. Using Julia version 1.3.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 2 August 2020 02:04">Sunday 2 August 2020</span>. Using Julia version 1.3.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
