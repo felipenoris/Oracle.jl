@@ -259,10 +259,25 @@ end
 
 function execute_many(stmt::Stmt,
         num_iters::Integer,
-        variables::Dict
-        ; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT)
+        variables::Dict{K,V}
+        ; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) where {K<:Union{Integer, Symbol}, V<:Variable}
 
     for (k, v) in variables
+        stmt[k] = v
+    end
+
+    result = dpiStmt_executeMany(stmt.handle, exec_mode, UInt32(num_iters))
+    error_check(context(stmt), result)
+
+    nothing
+end
+
+function execute_many(stmt::Stmt,
+        num_iters::Integer,
+        variables::Vector{V}
+        ; exec_mode::OraExecMode=ORA_MODE_EXEC_DEFAULT) where {V<:Variable}
+
+    for (k, v) in enumerate(variables)
         stmt[k] = v
     end
 

@@ -167,9 +167,11 @@ num_iters = length(input_data)
 var_input = Oracle.Variable(conn, input_data)
 var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
 
+vars = [ var_input, var_output ] # or `Dict(:var_input => var_input, :var_output => var_output)` for binding by names
+
 stmt = Oracle.Stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input ) RETURNING ID INTO :var_output")
 try
-    Oracle.execute_many(stmt, num_iters, Dict(:var_input => var_input, :var_output => var_output))
+    Oracle.execute_many(stmt, num_iters, vars)
     Oracle.commit(conn)
 
     Oracle.query(conn, "SELECT ID, STR FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
