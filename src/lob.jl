@@ -307,7 +307,7 @@ function read_next_chunk_to_buffer_if_exhausted!(io::AbstractLobIO)
 end
 
 # Returns the number of chars or bytes available in the IO buffer.
-function buffer_data_available(io::AbstractLobIO) :: UInt64
+@inline function buffer_data_available(io::AbstractLobIO) :: UInt64
 
     if is_buffer_uninitialized(io)
         return UInt64(0)
@@ -366,6 +366,26 @@ end
 function Base.read(io::BinaryLobIO, ::Type{UInt8}) :: UInt8
     prepare_read_next!(io)
     @inbounds return io.buffer[io.pos - io.buffer_start_pos + 1]
+end
+
+# Read at most nb bytes from stream into b, returning the number of bytes read.
+function Base.readbytes!(io::BinaryLobIO, buffer::AbstractVector{UInt8}, nb::Integer=length(buffer))
+    buffer_length = length(buffer)
+    i = 0
+    while !eof(io)
+        i += 1
+
+        if i > buffer_length
+            push!(buffer, read(io, UInt8))
+        else
+            buffer[i] = read(io, UInt8)
+        end
+
+        if i == nb
+            break
+        end
+    end
+    return i
 end
 
 function Base.read(io::CharacterLobIO, ::Type{Char}) :: Char

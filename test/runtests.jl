@@ -473,6 +473,45 @@ end
             query_and_check_blob_data(lyric, buff_size)
         end
 
+        Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
+            for row in cursor
+                blob = row[1]
+                bytes = Vector{UInt8}(undef, 1000)
+                local n_bytes_read
+                open(blob, "r") do io
+                    n_bytes_read = readbytes!(io, bytes)
+                end
+                result_str = String(bytes[1:n_bytes_read])
+                @test result_str == lyric
+            end
+        end
+
+        Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
+            for row in cursor
+                blob = row[1]
+                bytes = Vector{UInt8}(undef, 8)
+                local n_bytes_read
+                open(blob, "r") do io
+                    n_bytes_read = readbytes!(io, bytes)
+                end
+                result_str = String(bytes[1:n_bytes_read])
+                @test result_str == "hey you."
+            end
+        end
+
+        Oracle.query(conn, "SELECT B FROM TB_BLOB") do cursor
+            for row in cursor
+                blob = row[1]
+                bytes = Vector{UInt8}(undef, 8)
+                local n_bytes_read
+                open(blob, "r") do io
+                    n_bytes_read = readbytes!(io, bytes, 9)
+                end
+                result_str = String(bytes[1:n_bytes_read])
+                @test result_str == "hey you. "
+            end
+        end
+
         Oracle.execute(conn, "DROP TABLE TB_BLOB")
     end
 #=
