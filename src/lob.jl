@@ -49,6 +49,11 @@ function Lob(conn::Connection, lob_type::OraOracleTypeNum)
 end
 
 # Reading and writing to the Lob in multiples of this size will improve performance.
+"""
+    chunk_size(lob::Lob) :: UInt32
+
+Returns the chunk size, in bytes, of the internal LOB. Reading and writing to the LOB in multiples of this size will improve performance.
+"""
 function chunk_size(lob::Lob) :: UInt32
     chunk_size_ref = Ref{UInt32}()
     result = dpiLob_getChunkSize(lob.handle, chunk_size_ref)
@@ -211,21 +216,11 @@ function Base.open(f::Function, lob::Lob, mode;
               buffer::Union{Nothing, Vector{UInt8}}=nothing,
               buffer_size::Union{Nothing, Integer}=nothing)
 
-    local io::AbstractLobIO = new_LobIO(lob, mode, buffer=buffer, buffer_size=buffer_size)
-
-    try
-        f(io)
-    finally
-    end
+    f(new_LobIO(lob, mode, buffer=buffer, buffer_size=buffer_size))
+    nothing
 end
 
-const APPROX_DEFAULT_CHUNK_SIZE_IN_BYTES = UInt64(1E6) # 1MB
-
-function default_buffer_size_in_bytes(l::Lob)
-    chunk_sz = chunk_size(l)
-    num_chunks = div(APPROX_DEFAULT_CHUNK_SIZE_IN_BYTES, chunk_sz) + 1
-    return chunk_sz*num_chunks
-end
+default_buffer_size_in_bytes(l::Lob) = chunk_size(l)
 
 function new_LobIO_buffer(lob::Lob, buffer, capacity) :: Vector{UInt8}
 

@@ -45,3 +45,9 @@ Oracle.fetch
 Oracle.get_returned_data
 Oracle.define
 ```
+
+## Lob
+
+```@docs
+Oracle.chunk_size
+```
