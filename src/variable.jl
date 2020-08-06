@@ -67,7 +67,14 @@ function Base.setindex!(variable::Variable, value, pos::Integer)
     nothing
 end
 
-function Base.setindex!(variable::Variable, value::String, pos::Integer)
+function Base.setindex!(variable::Variable, value::AbstractString, pos::Integer)
+    check_bounds(variable, pos)
+    result = dpiVar_setFromBytes(variable.handle, UInt32(pos-1), String(value))
+    error_check(context(variable), result)
+    nothing
+end
+
+function Base.setindex!(variable::Variable, value::Vector{UInt8}, pos::Integer)
     check_bounds(variable, pos)
     result = dpiVar_setFromBytes(variable.handle, UInt32(pos-1), value)
     error_check(context(variable), result)

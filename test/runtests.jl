@@ -1100,7 +1100,6 @@ end
         Oracle.execute(conn, "DROP TABLE TB_BIND_TIMESTAMP_TZ")
     end
 
-#=
     @testset "Bind RAW" begin
         Oracle.execute(conn, "CREATE TABLE TB_RAW ( RAW_BYTES RAW(2000) )")
 
@@ -1128,7 +1127,6 @@ end
 
         Oracle.execute(conn, "DROP TABLE TB_RAW")
     end
-=#
 end
 
 @testset "Variables" begin
