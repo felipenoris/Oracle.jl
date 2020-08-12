@@ -1281,7 +1281,7 @@ end
         Oracle.execute(conn, "ALTER TABLE TB_EXEC_MANY_INOUT ADD CONSTRAINT XPK_TB_EXEC_MANY_INOUT PRIMARY KEY (ID)")
         Oracle.execute(conn, "CREATE SEQUENCE SQ_TB_EXEC_MANY_INOUT INCREMENT BY 1  START WITH 1001")
 
-        input_data = ["input1", "input2", "input3"]
+        input_data = ["input1", "input2", missing]
         num_iters = length(input_data)
         var_input = Oracle.Variable(conn, input_data)
 
@@ -1305,7 +1305,9 @@ end
             Oracle.query(conn, "SELECT ID, STR, LB FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
                 i = 1
                 for row in cursor
-                    @test parse(Int, row["STR"][end]) + 1000 == row["ID"]
+                    if !ismissing(row["STR"])
+                        @test parse(Int, row["STR"][end]) + 1000 == row["ID"]
+                    end
                     @test row["ID"] == Oracle.get_returned_data(var_output, i)[1]
                     @test read(row["LB"]) == blob_data[i]
                     i += 1
@@ -1328,7 +1330,7 @@ end
         Oracle.execute(conn, "ALTER TABLE TB_EXEC_MANY_INOUT ADD CONSTRAINT XPK_TB_EXEC_MANY_INOUT PRIMARY KEY (ID)")
         Oracle.execute(conn, "CREATE SEQUENCE SQ_TB_EXEC_MANY_INOUT INCREMENT BY 1  START WITH 1001")
 
-        input_data = ["input1", "input2", "input3"]
+        input_data = ["input1", "input2", missing]
         num_iters = length(input_data)
         var_input = Oracle.Variable(conn, input_data)
         var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
@@ -1343,7 +1345,9 @@ end
             Oracle.query(conn, "SELECT ID, STR FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
                 i = 1
                 for row in cursor
-                    @test parse(Int, row["STR"][end]) + 1000 == row["ID"]
+                    if !ismissing(row["STR"])
+                        @test parse(Int, row["STR"][end]) + 1000 == row["ID"]
+                    end
                     @test row["ID"] == Oracle.get_returned_data(var_output, i)[1]
                     i += 1
                 end
