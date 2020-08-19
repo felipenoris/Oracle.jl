@@ -123,7 +123,7 @@ end
     @assert pos <= variable.buffer_capacity "Position $pos is greater than variable's buffer capacity $(variable.buffer_capacity)."
 end
 
-function find_max_byte_string_size(v::Vector{T}) where {T<:Union{Missing, AbstractString}}
+function find_max_byte_string_size(v::Vector{T}) where {T<:Union{Missing, AbstractString, Vector{UInt8}}}
     if isempty(v)
         return 0
     end
