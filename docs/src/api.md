@@ -28,6 +28,8 @@ Oracle.Connection
 Oracle.ping
 Oracle.commit
 Oracle.rollback
+Oracle.set_client_identifier
+Oracle.set_client_info
 ```
 
 ## Statement

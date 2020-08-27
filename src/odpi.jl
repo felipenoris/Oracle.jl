@@ -182,6 +182,18 @@ function dpiConn_newTempLob(connection_handle::Ptr{Cvoid}, lob_type::OraOracleTy
     ccall((:dpiConn_newTempLob, libdpi), OraResult, (Ptr{Cvoid}, OraOracleTypeNum, Ref{Ptr{Cvoid}}), connection_handle, lob_type, lob_handle_ref)
 end
 
+# int dpiConn_setClientIdentifier(dpiConn *conn, const char *value, uint32_t valueLength)
+function dpiConn_setClientIdentifier(connection_handle::Ptr{Cvoid}, value::String)
+    value_length = sizeof(value)
+    ccall((:dpiConn_setClientIdentifier, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), connection_handle, value, value_length)
+end
+
+# int dpiConn_setClientInfo(dpiConn *conn, const char *value, uint32_t valueLength)
+function dpiConn_setClientInfo(connection_handle::Ptr{Cvoid}, value::String)
+    value_length = sizeof(value)
+    ccall((:dpiConn_setClientInfo, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), connection_handle, value, value_length)
+end
+
 #
 # ODPI Pool Functions
 #

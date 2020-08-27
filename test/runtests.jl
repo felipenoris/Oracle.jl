@@ -77,6 +77,21 @@ println("Current Schema: ", Oracle.current_schema(conn))
 
 println("")
 
+# https://www.oraclehome.com.br/2012/03/29/sys_context-userenv/
+function get_client_identifier_and_info(conn::Oracle.Connection)
+    local identifier
+    local info
+
+    Oracle.query(conn, "SELECT SYS_CONTEXT('USERENV', 'CLIENT_IDENTIFIER') CTX_CLIENT_IDENTIFIER, SYS_CONTEXT('USERENV', 'CLIENT_INFO') CTX_CLIENT_INFO FROM DUAL") do cursor
+        for row in cursor
+            identifier = row["CTX_CLIENT_IDENTIFIER"]
+            info = row["CTX_CLIENT_INFO"]
+        end
+    end
+
+    return identifier, info
+end
+
 @testset "connection" begin
 
     @testset "ping" begin
@@ -99,6 +114,19 @@ println("")
             conn_enc = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode, encoding=enc, nencoding=enc)
             Oracle.close(conn_enc)
         end
+    end
+
+    @testset "sys_context" begin
+        identifier, info = get_client_identifier_and_info(conn)
+        @test ismissing(identifier)
+        @test ismissing(info)
+
+        Oracle.set_client_identifier(conn, "NEW-CLIENT-IDENTIFIER")
+        Oracle.set_client_info(conn, "NEW-CLIENT-INFO")
+
+        identifier, info = get_client_identifier_and_info(conn)
+        @test identifier == "NEW-CLIENT-IDENTIFIER"
+        @test info == "NEW-CLIENT-INFO"
     end
 end
 

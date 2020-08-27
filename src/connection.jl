@@ -217,3 +217,37 @@ function stmt_cache_size!(conn::Connection, cache_size::Integer)
     result = dpiConn_setStmtCacheSize(conn.handle, UInt32(cache_size))
     error_check(context(conn), result)
 end
+
+"""
+    set_client_identifier(conn::Connection, client_identifier::AbstractString)
+
+Sets the `CLIENT_IDENTIFIER` attribute on the connection.
+This is useful for audit trails and database triggers.
+
+The following query can be used to retrieve this attribute.
+
+```sql
+SELECT SYS_CONTEXT('USERENV', 'CLIENT_IDENTIFIER') CTX_CLIENT_IDENTIFIER FROM DUAL
+```
+"""
+function set_client_identifier(conn::Connection, client_identifier::AbstractString)
+    result = dpiConn_setClientIdentifier(conn.handle, String(client_identifier))
+    error_check(context(conn), result)
+end
+
+"""
+    set_client_info(conn::Connection, client_info::AbstractString)
+
+Sets the `CLIENT_INFO` attribute on the connection.
+This is useful for audit trails and database triggers.
+
+The following query can be used to retrieve this attribute.
+
+```sql
+SELECT SYS_CONTEXT('USERENV', 'CLIENT_INFO') CTX_CLIENT_INFO FROM DUAL
+```
+"""
+function set_client_info(conn::Connection, client_info::AbstractString)
+    result = dpiConn_setClientInfo(conn.handle, String(client_info))
+    error_check(context(conn), result)
+end
