@@ -102,6 +102,20 @@ function pool_get_mode(pool::Pool) :: OraPoolGetMode
     return pool_get_mode_ref[]
 end
 
+function pool_get_open_count(pool::Pool) :: UInt32
+    result = Ref{UInt32}()
+    err = dpiPool_getOpenCount(pool.handle, result)
+    error_check(context(pool), err)
+    return result[]
+end
+
+function pool_get_busy_count(pool::Pool) :: UInt32
+    result = Ref{UInt32}()
+    err = dpiPool_getBusyCount(pool.handle, result)
+    error_check(context(pool), err)
+    return result[]
+end
+
 function Connection(pool::Pool; auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT)
     conn_create_params = ConnCreateParams(auth_mode, pool)
     ora_conn_create_params = OraConnCreateParams(context(pool), conn_create_params)

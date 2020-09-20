@@ -233,6 +233,14 @@ function dpiPool_acquireConnection(pool_handle::Ptr{Cvoid}, conn_create_params_r
     ccall((:dpiPool_acquireConnection, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{UInt8}, UInt32, Ref{OraConnCreateParams}, Ref{Ptr{Cvoid}}), pool_handle, C_NULL, 0, C_NULL, 0, conn_create_params_ref, connection_handle_ref)
 end
 
+function dpiPool_getOpenCount(pool_handle::Ptr{Cvoid}, value::Ref{UInt32})
+    ccall((:dpiPool_getOpenCount, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), pool_handle, value)
+end
+
+function dpiPool_getBusyCount(pool_handle::Ptr{Cvoid}, value::Ref{UInt32})
+    ccall((:dpiPool_getBusyCount, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}), pool_handle, value)
+end
+
 #
 # ODPI Statement Functions
 #

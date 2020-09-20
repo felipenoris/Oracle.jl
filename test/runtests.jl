@@ -1641,18 +1641,32 @@ if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
             end
         end
 
+function print_open_busy_count(pool)
+    println("Open Count = $(Oracle.pool_get_open_count(pool)), busy count = $(Oracle.pool_get_busy_count(pool))")
+end
+
         @testset "Acquire connection from pool" begin
             pool = Oracle.Pool(username, password, connect_string, max_sessions=2, session_increment=1)
+
+            print_open_busy_count(pool)
 
             conn_1 = Oracle.Connection(pool)
             conn_2 = Oracle.Connection(pool)
 
+            print_open_busy_count(pool)
+
             Oracle.close(conn_1)
+
+            print_open_busy_count(pool)
 
             conn_3 = Oracle.Connection(pool)
 
+            print_open_busy_count(pool)
+
             Oracle.close(conn_2)
             Oracle.close(conn_3)
+
+            print_open_busy_count(pool)
 
             Oracle.close(pool)
         end
