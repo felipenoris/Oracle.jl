@@ -85,5 +85,12 @@ using Dates
             @test ts == dt
             @test dt == ts
         end
+
+        @testset "DateTime conversion" begin
+            datetime = Dates.now()
+            timestamp = Timestamps.Timestamp(datetime)
+            datetime2 = convert(DateTime, timestamp)
+            @test datetime2 == datetime
+        end
     end
 end

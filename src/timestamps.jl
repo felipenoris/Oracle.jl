@@ -121,4 +121,8 @@ function Timestamp(dt::DateTime)
     return Timestamp(year(dt), month(dt), day(dt), hour(dt), minute(dt), second(dt), Int64(millisecond(dt)*1E6))
 end
 
+function Base.convert(::Type{DateTime}, ts::Timestamp)
+    return DateTime(ts.date, ts.time)
+end
+
 end # module Timestamps
