@@ -2,13 +2,15 @@ name = "Oracle"
 uuid = "7240a794-28ba-5199-b477-df5fe5cf6155"
 license = "MIT"
 authors = ["Felipe Noronha <felipenoris@gmail.com>"]
-version = "0.1.7"
+version = "0.2.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 
 [compat]
+Tables = "1"
 julia = "1"
 
 [extras]

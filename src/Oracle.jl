@@ -1,6 +1,7 @@
 
 module Oracle
 
+import Tables
 using Dates
 
 const DEPS_FILE = joinpath(@__DIR__, "..", "deps", "deps.jl")
@@ -29,6 +30,7 @@ include("lob.jl")
 include("cursor.jl")
 include("pool.jl")
 include("variable.jl")
+include("tables_interface.jl")
 
 function __init__()
     # this function is defined in DEPS_FILE
