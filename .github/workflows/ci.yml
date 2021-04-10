@@ -19,7 +19,7 @@ jobs:
           - 'nightly'
         os:
           - ubuntu-latest
-          - windows-latest
+#          - windows-latest
           - macOS-latest
         arch:
           - x64
@@ -57,6 +57,7 @@ jobs:
           julia --project=docs -e '
             using Pkg
             Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.build()
             Pkg.instantiate()'
       - run: julia --project=docs docs/make.jl
         env:
