@@ -35,6 +35,7 @@ end
 
 function client_version(ctx::Context) :: OraVersionInfo
     version_info_ref = Ref{OraVersionInfo}()
-    dpiContext_getClientVersion(ctx.handle, version_info_ref)
+    result = dpiContext_getClientVersion(ctx.handle, version_info_ref)
+    error_check(ctx, result)
     return version_info_ref[]
 end

@@ -43,6 +43,7 @@ function __init__()
     @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams() "OraPoolCreateParams should have sizeof $(sizeof_dpiPoolCreateParams()) bytes"
     @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams() "OraConnCreateParams should have sizeof $(sizeof_dpiConnCreateParams()) bytes"
     @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo() "OraQueryInfo should have sizeof $(sizeof_dpiQueryInfo()) bytes"
+    @assert sizeof(OraVersionInfo) == sizeof_dpiVersionInfo() "OraVersionInfo should have sizeof $(sizeof_dpiVersionInfo()) bytes"
     #@assert sizeof(OraNumber) == sizeof_dpiNumber() # see issue #21
 end
 

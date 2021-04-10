@@ -49,24 +49,21 @@ include("credentials.jl")
 
 conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
 
-# Client Version
-let
-    v = Oracle.client_version(Oracle.Context())
+@testset "Client Version" begin
+    v = Oracle.client_version(Oracle.context(conn))
     println("")
     println("### CLIENT VERSION ###")
     println(v)
 end
 
-# Server Version
-let
+@testset "Server Version" begin
     release, server_version = Oracle.server_version(conn)
     println("### SERVER VERSION ###")
     println("release = $release")
     println("server_version = $server_version")
 end
 
-# Database Encoding
-let
+@testset "Database Encoding" begin
     Oracle.query(conn, "select value from nls_database_parameters where parameter='NLS_CHARACTERSET'") do cursor
         for row in cursor
             println("Database NLS_CHARACTERSET = ", row["VALUE"])
@@ -75,9 +72,7 @@ let
 end
 
 # Connection Encoding Info
-let
-    println("Connection encoding info: ", conn.encoding_info)
-end
+println("Connection encoding info: ", conn.encoding_info)
 
 # Current Schema
 println("Current Schema: ", Oracle.current_schema(conn))

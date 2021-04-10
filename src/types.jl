@@ -49,8 +49,10 @@ struct OraVersionInfo
     update::Int32 # Specifies the update version of the Oracle Client or Database.
     port_release::Int32 # Specifies the port specific release version of the Oracle Client or Database.
     port_update::Int32 # Specifies the port specific update version of the Oracle Client or Database.
-    full_version::Int32 # Specifies the full version (all five components) as a number that is suitable for comparison with the result of the macro DPI_ORACLE_VERSION_TO_NUMBER.
+    full_version::UInt32 # Specifies the full version (all five components) as a number that is suitable for comparison with the result of the macro DPI_ORACLE_VERSION_TO_NUMBER.
 end
+
+Base.show(io::IO, version::OraVersionInfo) = print(io, "Oracle.OraVersionInfo($(version.version), $(version.release), $(version.update), $(version.port_release), $(version.port_update), $(Int(version.full_version)))")
 
 mutable struct OraCommonCreateParams
     create_mode::OraCreateMode # Specifies the mode used for creating connections. It is expected to be one or more of the values from the enumeration OraCreateMode, OR’ed together. The default value is DPI_MODE_CREATE_DEFAULT.

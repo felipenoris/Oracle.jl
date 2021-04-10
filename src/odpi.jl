@@ -28,14 +28,9 @@ function sizeof_dpiQueryInfo()
     ccall((:sizeof_dpiQueryInfo, libdpi), Csize_t, ())
 end
 
-# dpiOracleTypeNum dpiLob_getOracleType(dpiLob *lob)
-function dpiLob_getOracleTypeNum(lob_handle::Ptr{Cvoid})
-    ccall((:dpiLob_getOracleTypeNum, libdpi), OraOracleTypeNum, (Ptr{Cvoid},), lob_handle)
-end
-
-# int dpiLob_isCharacterData(dpiLob *lob)
-function dpiLob_isCharacterData(lob_handle::Ptr{Cvoid})
-    ccall((:dpiLob_isCharacterData, libdpi), Int32, (Ptr{Cvoid},), lob_handle)
+# size_t sizeof_dpiVersionInfo()
+function sizeof_dpiVersionInfo()
+    ccall((:sizeof_dpiVersionInfo, libdpi), Csize_t, ())
 end
 
 # see issue #21
@@ -58,9 +53,9 @@ function dpiContext_destroy(dpi_context_handle::Ptr{Cvoid})
     ccall((:dpiContext_destroy, libdpi), OraResult, (Ptr{Cvoid},), dpi_context_handle)
 end
 
-# void dpiContext_getClientVersion(const dpiContext *context, dpiVersionInfo *versionInfo)
+# int dpiContext_getClientVersion(const dpiContext *context, dpiVersionInfo *versionInfo)
 function dpiContext_getClientVersion(dpi_context_handle::Ptr{Cvoid}, version_info_ref::Ref{OraVersionInfo})
-    ccall((:dpiContext_getClientVersion, libdpi), Cvoid, (Ptr{Cvoid}, Ref{OraVersionInfo}), dpi_context_handle, version_info_ref)
+    ccall((:dpiContext_getClientVersion, libdpi), OraResult, (Ptr{Cvoid}, Ref{OraVersionInfo}), dpi_context_handle, version_info_ref)
 end
 
 # int dpiContext_initCommonCreateParams(const dpiContext *context, dpiContextParams *params)
