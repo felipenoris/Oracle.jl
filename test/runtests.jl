@@ -30,7 +30,8 @@ end
     @test_throws ErrorException Oracle.subtract_missing(Union{Int, Union{Float64, Missing}})
 end
 
-@assert isfile(joinpath(@__DIR__, "credentials.jl")) """
+if !isfile(joinpath(@__DIR__, "credentials.jl"))
+    msg = """
 Before running tests, create a file `test/credentials.jl` with the content:
 
 username = "your-username"
@@ -38,6 +39,11 @@ password = "your-password"
 connect_string = "your-connect-string"
 auth_mode = Oracle.ORA_MODE_AUTH_DEFAULT # or Oracle.ORA_MODE_AUTH_SYSDBA if user is SYSDBA
 """
+
+    @warn(msg)
+    exit()
+end
+
 include("credentials.jl")
 
 conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
