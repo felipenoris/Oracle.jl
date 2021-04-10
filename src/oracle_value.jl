@@ -103,10 +103,11 @@ end
             return quote
                 dpiData_getUint64(data_handle)
             end
-        elseif N == ORA_NATIVE_TYPE_NUMBER
-            return quote
-                dpiData_getNumber(data_handle)
-            end
+# see issue #21
+#        elseif N == ORA_NATIVE_TYPE_NUMBER
+#            return quote
+#                dpiData_getNumber(data_handle)
+#            end
         else
             error("Native type $N not expected for value with numeric oracle type.")
         end

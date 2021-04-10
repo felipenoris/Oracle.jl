@@ -113,7 +113,7 @@ end
     ORA_NATIVE_TYPE_STMT        = 3010
     ORA_NATIVE_TYPE_BOOLEAN     = 3011
     ORA_NATIVE_TYPE_ROWID       = 3012
-    ORA_NATIVE_TYPE_NUMBER      = 3013
+    #ORA_NATIVE_TYPE_NUMBER      = xxxx # see issue #21
 end
 
 @enum OraStatementType::UInt16 begin
