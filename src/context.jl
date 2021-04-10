@@ -11,7 +11,7 @@
 function Context()
     error_info_ref = Ref{OraErrorInfo}()
     context_handle_ref = Ref{Ptr{Cvoid}}()
-    result = dpiContext_create(ORA_MAJOR_VERSION, ORA_MINOR_VERSION, context_handle_ref, error_info_ref)
+    result = dpiContext_createWithParams(ORA_MAJOR_VERSION, ORA_MINOR_VERSION, context_handle_ref, error_info_ref)
 
     if result == ORA_FAILURE
         error_info = error_info_ref[]

@@ -48,9 +48,9 @@ end
 # ODPI Context Functions
 #
 
-# int dpiContext_create(unsigned int majorVersion, unsigned int minorVersion, dpiContext **context, dpiErrorInfo *errorInfo)
-function dpiContext_create(major_version::UInt32, minor_version::UInt32, dpi_context_ref::Ref{Ptr{Cvoid}}, error_info::Ref{OraErrorInfo})
-    ccall((:dpiContext_create, libdpi), OraResult, (Cuint, Cuint, Ref{Ptr{Cvoid}}, Ref{OraErrorInfo}), major_version, minor_version, dpi_context_ref, error_info)
+# int dpiContext_createWithParams(unsigned int majorVersion, unsigned int minorVersion, dpiContextCreateParams *params, dpiContext **context, dpiErrorInfo *errorInfo)
+function dpiContext_createWithParams(major_version::UInt32, minor_version::UInt32, dpi_context_ref::Ref{Ptr{Cvoid}}, error_info::Ref{OraErrorInfo})
+    ccall((:dpiContext_createWithParams, libdpi), OraResult, (Cuint, Cuint, Ptr{Cvoid}, Ref{Ptr{Cvoid}}, Ref{OraErrorInfo}), major_version, minor_version, C_NULL, dpi_context_ref, error_info)
 end
 
 # int dpiContext_destroy(dpiContext *context)

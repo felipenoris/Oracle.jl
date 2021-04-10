@@ -38,11 +38,11 @@ function __init__()
     check_deps()
 
     # check size of structs affected by C unions
-    @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer()
-    @assert sizeof(OraData) == sizeof_dpiData()
-    @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams()
-    @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams()
-    @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo()
+    @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer() "OraDataBuffer should have sizeof $(sizeof_dpiDataBuffer()) bytes"
+    @assert sizeof(OraData) == sizeof_dpiData() "OraData should have sizeof $(sizeof_dpiData()) bytes"
+    @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams() "OraPoolCreateParams should have sizeof $(sizeof_dpiPoolCreateParams()) bytes"
+    @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams() "OraConnCreateParams should have sizeof $(sizeof_dpiConnCreateParams()) bytes"
+    @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo() "OraQueryInfo should have sizeof $(sizeof_dpiQueryInfo()) bytes"
     #@assert sizeof(OraNumber) == sizeof_dpiNumber() # see issue #21
 end
 

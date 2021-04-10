@@ -6,12 +6,12 @@ const SRC_DIR = joinpath(PREFIX, "src")
 const LIB_DIR = joinpath(PREFIX, "lib")
 
 # upstream odpi
-#const ODPI_VERSION_NUMBER = "3.1.2"
-#const ODPI_SOURCE_URL = "https://github.com/oracle/odpi/archive/v$(ODPI_VERSION_NUMBER).tar.gz"
+const ODPI_VERSION_NUMBER = v"4.1.0"
+const ODPI_SOURCE_URL = "https://github.com/oracle/odpi/archive/v$(ODPI_VERSION_NUMBER).tar.gz"
 
-# patched odpi
-const ODPI_VERSION_NUMBER = "3.1.2-dev-numeric"
-const ODPI_SOURCE_URL = "https://github.com/felipenoris/odpi/archive/v$(ODPI_VERSION_NUMBER).tar.gz"
+# patched odpi: see issue #21
+#const ODPI_VERSION_NUMBER = "3.1.2-dev-numeric"
+#const ODPI_SOURCE_URL = "https://github.com/felipenoris/odpi/archive/v$(ODPI_VERSION_NUMBER).tar.gz"
 
 const ODPI_SOURCE_LOCAL_FILEPATH = joinpath(DOWNLOADS, "odpi_source.tar.gz")
 

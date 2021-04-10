@@ -1,6 +1,6 @@
 
-# 24 bytes -> sizeof dpiDataBuffer on 64bit arch
-primitive type OraDataBuffer 24 * 8 end
+# 40 bytes -> sizeof dpiDataBuffer on 64bit arch
+primitive type OraDataBuffer 40 * 8 end
 
 struct OraData
     is_null::Int32 # Specifies if the value refers to a null value (1) or not (0).
