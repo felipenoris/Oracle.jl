@@ -25,7 +25,7 @@ To install it, follow these instructions:
 * Unzip and add `instantclient` folder to your `LD_LIBRARY_PATH`:
 
 ```shell
-export LD_LIBRARY_PATH=/path-to-folder/instantclient_XX_Y:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/path-to-folder/instantclient:$LD_LIBRARY_PATH
 ```
 
 Check [ODPI-C documentation](https://oracle.github.io/odpi/doc/installation.html),
@@ -80,7 +80,7 @@ in the Jupyter environment.
 
 To solve this, edit your `kernel.json` file, usually located at `~/.local/share/jupyter/kernels/julia-v`
 where `v` is the Julia version, and add an environment variable for your `LD_LIBRARY_PATH`,
-as in the following example, where `/myhomedir/local/instantclient_18_3` is the location for
+as in the following example, where `/myhomedir/local/instantclient` is the location for
 the instant client library.
 
 ```json
@@ -88,7 +88,7 @@ the instant client library.
   "display_name": "Julia 1.1.0",
   "argv": [
     "env",
-    "LD_LIBRARY_PATH=/myhomedir/local/instantclient_18_3",
+    "LD_LIBRARY_PATH=/myhomedir/local/instantclient",
     "/myhomedir/local/julia-1.1.0/bin/julia",
     "-i",
     "--startup-file=yes",
