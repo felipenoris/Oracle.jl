@@ -454,8 +454,8 @@ end
     @testset "Temp Lob" begin
         for lob_type_num in ( Oracle.ORA_ORACLE_TYPE_BLOB, Oracle.ORA_ORACLE_TYPE_CLOB, Oracle.ORA_ORACLE_TYPE_NCLOB )
             lob = Oracle.Lob(conn, lob_type_num)
-            @test Oracle.is_character_data(lob) == Bool(Oracle.dpiLob_isCharacterData(lob.handle))
-            @test Oracle.oracle_type(lob) == Oracle.dpiLob_getOracleTypeNum(lob.handle)
+            @test Oracle.oracle_type(lob) == lob_type_num
+            @test Oracle.is_character_data(lob) == (lob_type_num != Oracle.ORA_ORACLE_TYPE_BLOB)
             @test Oracle.chunk_size(lob) != 0
             Oracle.close(lob)
         end

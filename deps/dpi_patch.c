@@ -21,14 +21,6 @@ size_t sizeof_dpiQueryInfo() {
     return sizeof(dpiQueryInfo);
 }
 
-dpiOracleTypeNum dpiLob_getOracleTypeNum(dpiLob *lob) {
-    return lob->type->oracleTypeNum;
-}
-
-int dpiLob_isCharacterData(dpiLob *lob) {
-    return lob->type->isCharacterData;
-}
-
 size_t sizeof_dpiNumber() {
     return sizeof(dpiNumber);
 }
