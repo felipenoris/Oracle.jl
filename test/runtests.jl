@@ -241,6 +241,7 @@ end
         @test isempty(rs)
         @test size(rs) == (0, 3)
         @test_throws AssertionError rs[1,1]
+        @test "ID" ∈ names(rs)
     end
 
     col_id = [1, 2, 3, 4]
@@ -1342,6 +1343,13 @@ end
             Oracle.commit(conn)
 
             Oracle.query(conn, "SELECT ID, STR, LB, FEW_BYTES FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
+
+                column_names = names(cursor)
+                @test "ID" ∈ column_names
+                @test "STR" ∈ column_names
+                @test "LB" ∈ column_names
+                @test "FEW_BYTES" ∈ column_names
+
                 i = 1
                 for row in cursor
 

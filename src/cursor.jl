@@ -23,6 +23,19 @@ end
 @inline Base.isempty(rs::ResultSet) = isempty(rs.rows)
 @inline Base.size(rs::ResultSet) = ( nrow(rs), ncol(rs) )
 
+"""
+    names(schema::CursorSchema) :: Vector{String}
+    names(row::ResultSetRow) :: Vector{String}
+    names(cursor::Cursor) :: Vector{String}
+    names(rs::ResultSet) :: Vector{String}
+
+Return a freshly allocated `Vector{String}` of names of columns contained in schema, row, cursor, or result set.
+"""
+Base.names(schema::CursorSchema) = [ column_name(orainfo) for orainfo in schema.column_query_info ]
+Base.names(cursor::Cursor) = names(cursor.schema)
+Base.names(row::ResultSetRow) = names(row.schema)
+Base.names(rs::ResultSet) = names(rs.schema)
+
 @inline stmt(cursor::Cursor) = cursor.stmt
 
 function Cursor(stmt::QueryStmt)
