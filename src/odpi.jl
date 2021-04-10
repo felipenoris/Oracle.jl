@@ -38,10 +38,11 @@ function dpiLob_isCharacterData(lob_handle::Ptr{Cvoid})
     ccall((:dpiLob_isCharacterData, libdpi), Int32, (Ptr{Cvoid},), lob_handle)
 end
 
+# see issue #21
 # size_t sizeof_dpiNumber()
-function sizeof_dpiNumber()
-    ccall((:sizeof_dpiNumber, libdpi), Csize_t, ())
-end
+#function sizeof_dpiNumber()
+#    ccall((:sizeof_dpiNumber, libdpi), Csize_t, ())
+#end
 
 #
 # ODPI Context Functions
@@ -406,10 +407,11 @@ function dpiData_getLOB(data_handle::Ref{OraData})
     ccall((:dpiData_getLOB, libdpi), Ptr{Cvoid}, (Ref{OraData},), data_handle)
 end
 
-# dpiNumber dpiData_getNumber(dpiData *data);
-function dpiData_getNumber(data_handle::Ref{OraData})
-    ccall((:dpiData_getNumber, libdpi), OraNumber, (Ref{OraData},), data_handle)
-end
+# see issue #21
+## dpiNumber dpiData_getNumber(dpiData *data);
+#function dpiData_getNumber(data_handle::Ref{OraData})
+#    ccall((:dpiData_getNumber, libdpi), OraNumber, (Ref{OraData},), data_handle)
+#end
 
 #
 # NOTE ON SET FUNCTIONS
@@ -461,10 +463,11 @@ function dpiData_setLOB(dpi_data_ptr::Ref{OraData}, lob_handle::Ptr{Cvoid})
     ccall((:dpiData_setLOB, libdpi), Cvoid, (Ref{OraData}, Ptr{Cvoid}), dpi_data_ptr, lob_handle)
 end
 
-# void dpiData_setNumber(dpiData *data, dpiNumber number);
-function dpiData_setNumber(dpi_data_ptr::Ref{OraData}, number::OraNumber)
-    ccall((:dpiData_setNumber, libdpi), Cvoid, (Ref{OraData}, OraNumber), dpi_data_ptr, number)
-end
+# see issue #21
+## void dpiData_setNumber(dpiData *data, dpiNumber number);
+#function dpiData_setNumber(dpi_data_ptr::Ref{OraData}, number::OraNumber)
+#    ccall((:dpiData_setNumber, libdpi), Cvoid, (Ref{OraData}, OraNumber), dpi_data_ptr, number)
+#end
 
 # void dpiData_setBool(dpiData *data, int value)
 function dpiData_setBool(dpi_data_ptr::Ref{OraData}, val::Union{Bool, Integer})

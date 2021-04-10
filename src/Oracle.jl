@@ -10,8 +10,9 @@ if !isfile(DEPS_FILE)
 end
 include(DEPS_FILE)
 
-include("oranumbers/oranumbers.jl")
-import .OraNumbers.OraNumber
+# see issue #21
+#include("oranumbers/oranumbers.jl")
+#import .OraNumbers.OraNumber
 
 include("macros.jl")
 include("constants.jl")
@@ -42,7 +43,7 @@ function __init__()
     @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams()
     @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams()
     @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo()
-    @assert sizeof(OraNumber) == sizeof_dpiNumber()
+    #@assert sizeof(OraNumber) == sizeof_dpiNumber() # see issue #21
 end
 
 @inline function error_check(ctx::Context, result::OraResult)

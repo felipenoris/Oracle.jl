@@ -21,6 +21,9 @@ size_t sizeof_dpiQueryInfo() {
     return sizeof(dpiQueryInfo);
 }
 
+// see issue #21
+/*
 size_t sizeof_dpiNumber() {
     return sizeof(dpiNumber);
 }
+*/
