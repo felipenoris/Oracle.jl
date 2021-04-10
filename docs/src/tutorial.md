@@ -85,16 +85,31 @@ All data is fetched from the statement before returning the `ResultSet`.
 ```julia
 rs = Oracle.query(conn, "SELECT ID, FLT, STR, DT FROM TB_BIND")
 
+println(names(rs)) # print column names
 println(rs[2, 1]) # will print the element at row 2, column 1.
 println(rs[2, "ID"]) # will print element at row 2, column ID (same as column 1).
 println(rs[:, 1]) # will print all the elements in column 1.
 ```
 
 The last example was easy to use, but maybe your memory can't hold all the data in the ResultSet.
+
+`ResultSet` implements [Tables.jl](https://github.com/JuliaData/Tables.jl) interface.
+That means that you can transform it into a [DataFrame](https://github.com/JuliaData/DataFrames.jl).
+
+```julia
+using DataFrames
+rs = Oracle.query(conn, "SELECT ID, FLT, STR, DT FROM TB_BIND")
+println(DataFrame(rs))
+```
+
 Use `Oracle.query` method with *do-syntax* to get a reference to a cursor, which will fetch one row at a time.
 
 ```julia
 Oracle.query(conn, "SELECT * FROM TB_BIND") do cursor
+
+    # prints column names
+    println(names(cursor))
+
     for row in cursor
         # row values can be accessed using column name or position
         println( row["ID"]  ) # same as row[1]

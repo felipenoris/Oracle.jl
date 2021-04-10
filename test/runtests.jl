@@ -12,6 +12,7 @@ import Oracle
 
 using Test
 using Dates
+import DataFrames
 
 @testset "exec mode" begin
     a = Oracle.ORA_MODE_EXEC_DESCRIBE_ONLY
@@ -275,6 +276,8 @@ end
         @test rs[:, "ID"] == col_id
         @test rs[end, 1] == col_id[end]
         @test rs[2:4, 1] == col_id[2:4]
+
+        println(DataFrames.DataFrame(rs))
     end
 
     Oracle.execute(conn, "DROP TABLE TB_TEST_QUERY")
