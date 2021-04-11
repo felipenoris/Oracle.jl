@@ -17,11 +17,6 @@ function close(lob::Lob)
     nothing
 end
 
-function add_ref(lob::Lob)
-    result = dpiLob_addRef(lob.handle)
-    error_check(context(lob), result)
-end
-
 @inline function check_valid_temp_lob_oracle_type_num(t::OraOracleTypeNum)
     is_valid = ( t == ORA_ORACLE_TYPE_CLOB
               || t == ORA_ORACLE_TYPE_NCLOB

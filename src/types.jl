@@ -156,7 +156,6 @@ struct StmtInfo
     is_returning::Bool
 
     function StmtInfo(ora_stmt_info::OraStmtInfo)
-
         return new(
                 Bool(ora_stmt_info.is_query),
                 Bool(ora_stmt_info.is_PLSQL),
@@ -508,7 +507,8 @@ mutable struct Lob{ORATYPE,T}
         finalizer(destroy!, new_lob)
 
         if use_add_ref
-            add_ref(new_lob)
+            result = dpiLob_addRef(new_lob.handle)
+            error_check(context(new_lob), result)
         end
 
         return new_lob
@@ -520,6 +520,92 @@ function destroy!(lob::Lob)
         result = dpiLob_release(lob.handle)
         error_check(context(lob), result)
         lob.handle = C_NULL
+    end
+    nothing
+end
+
+# wraps dpiQueue
+mutable struct Queue
+    connection::Connection
+    handle::Ptr{Cvoid}
+    name::String
+
+    function Queue(conn::Connection, handle::Ptr{Cvoid}, name::AbstractString)
+        new_queue = new(conn, handle, name)
+        finalizer(destroy!, new_queue)
+        return new_queue
+    end
+end
+
+function destroy!(queue::Queue)
+    if queue.handle != C_NULL
+        result = dpiQueue_release(queue.handle)
+        error_check(context(queue), result)
+        queue.handle = C_NULL
+    end
+    nothing
+end
+
+# dpiObjectTypeInfo
+struct OraObjectTypeInfo
+    schema::Ptr{UInt8}
+    schema_length::UInt32
+    name::Ptr{UInt8}
+    name_length::UInt32
+    is_collection::Cint
+    element_type_info::OraDataTypeInfo # is only valid if the object type if a collection
+    num_attributes::UInt16
+end
+
+# wraps a handle to dpiObjectType
+# TODO: OraDataTypeInfo.object_type_handle owns a pointer to dpiObjectType.
+# In the current implementation, we can't get a OraObjectType out of it.
+# A solution would involve using parent::T instead of connection, apply dpiObjectType_addRef,
+# and refactor OraDataTypeInfo to hold a reference to its context.
+mutable struct ObjectType
+    connection::Connection
+    handle::Ptr{Cvoid}
+    type_info::OraObjectTypeInfo
+
+    function ObjectType(conn::Connection, handle::Ptr{Cvoid})
+        type_info_ref = Ref{OraObjectTypeInfo}()
+        err = dpiObjectType_getInfo(handle, type_info_ref)
+        error_check(context(conn), err)
+
+        result = new(conn, handle, type_info_ref[])
+
+        finalizer(destroy!, result)
+        return result
+    end
+end
+
+function destroy!(obj_type::ObjectType)
+    if obj_type.handle != C_NULL
+        result = dpiObjectType_release(obj_type.handle)
+        error_check(context(obj_type), result)
+        obj_type.handle = C_NULL
+    end
+    nothing
+end
+
+# wraps dpiMsgProps
+mutable struct Message{T<:Union{Connection, Queue}}
+    parent::T
+    handle::Ptr{Cvoid}
+
+    function Message(parent::T, handle::Ptr{Cvoid}) where {T<:Union{Connection, Queue}}
+        @assert handle != C_NULL
+        result = new{T}(parent, handle)
+        finalizer(destroy!, result)
+        return result
+    end
+end
+
+function destroy!(msg_props::Message)
+    if msg_props.handle != C_NULL
+        result = dpiMsgProps_release(msg_props.handle)
+        error_check(context(msg_props), result)
+        msg_props.handle = C_NULL
     end
     nothing
 end
