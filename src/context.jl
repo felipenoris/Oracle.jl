@@ -7,6 +7,9 @@
 @inline context(lob::Lob) = context(lob.parent)
 @inline context(v::JuliaOracleValue) = v.context
 @inline context(v::ExternOracleValue) = context(v.parent)
+@inline context(queue::Queue) = context(queue.connection)
+@inline context(obj_type::ObjectType) = context(obj_type.connection)
+@inline context(msg_props::Message) = context(msg_props.parent)
 
 function Context()
     error_info_ref = Ref{OraErrorInfo}()

@@ -3,7 +3,7 @@
 # functions added by deps/dpi_patch.c
 #
 
-#size_t sizeof_dpiDataBuffer()
+# size_t sizeof_dpiDataBuffer()
 function sizeof_dpiDataBuffer()
     ccall((:sizeof_dpiDataBuffer, libdpi), Csize_t, ())
 end
@@ -11,6 +11,26 @@ end
 # size_t sizeof_dpiData()
 function sizeof_dpiData()
     ccall((:sizeof_dpiData, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiTimestamp()
+function sizeof_dpiTimestamp()
+    ccall((:sizeof_dpiTimestamp, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiErrorInfo()
+function sizeof_dpiErrorInfo()
+    ccall((:sizeof_dpiErrorInfo, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiCommonCreateParams()
+function sizeof_dpiCommonCreateParams()
+    ccall((:sizeof_dpiCommonCreateParams, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiAppContext()
+function sizeof_dpiAppContext()
+    ccall((:sizeof_dpiAppContext, libdpi), Csize_t, ())
 end
 
 # size_t sizeof_dpiPoolCreateParams()
@@ -23,14 +43,39 @@ function sizeof_dpiConnCreateParams()
     ccall((:sizeof_dpiConnCreateParams, libdpi), Csize_t, ())
 end
 
+# size_t sizeof_dpiDataTypeInfo()
+function sizeof_dpiDataTypeInfo()
+    ccall((:sizeof_dpiDataTypeInfo, libdpi), Csize_t, ())
+end
+
 # size_t sizeof_dpiQueryInfo()
 function sizeof_dpiQueryInfo()
     ccall((:sizeof_dpiQueryInfo, libdpi), Csize_t, ())
 end
 
+# size_t sizeof_dpiStmtInfo()
+function sizeof_dpiStmtInfo()
+    ccall((:sizeof_dpiStmtInfo, libdpi), Csize_t, ())
+end
+
 # size_t sizeof_dpiVersionInfo()
 function sizeof_dpiVersionInfo()
     ccall((:sizeof_dpiVersionInfo, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiBytes()
+function sizeof_dpiBytes()
+    ccall((:sizeof_dpiBytes, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiEncodingInfo()
+function sizeof_dpiEncodingInfo()
+    ccall((:sizeof_dpiEncodingInfo, libdpi), Csize_t, ())
+end
+
+# size_t sizeof_dpiObjectTypeInfo()
+function sizeof_dpiObjectTypeInfo()
+    ccall((:sizeof_dpiObjectTypeInfo, libdpi), Csize_t, ())
 end
 
 # see issue #21
@@ -570,4 +615,91 @@ end
 # int dpiLob_setFromBytes(dpiLob *lob, const char *value, uint64_t valueLength)
 function dpiLob_setFromBytes(lob_handle::Ptr{Cvoid}, buffer::Ptr{UInt8}, buffer_len::UInt64)
     ccall((:dpiLob_setFromBytes, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt64), lob_handle, buffer, buffer_len)
+end
+
+#
+# ODPI-C Object Functions
+#
+
+# int dpiObjectType_release(dpiObjectType *objType)
+function dpiObjectType_release(obj_type_handle::Ptr{Cvoid})
+    ccall((:dpiObjectType_release, libdpi), OraResult, (Ptr{Cvoid},), obj_type_handle)
+end
+
+# int dpiConn_getObjectType(dpiConn *conn, const char *name, uint32_t nameLength, dpiObjectType **objType)
+function dpiConn_getObjectType(conn_handle::Ptr{Cvoid}, name::AbstractString, obj_type_handle_ref::Ref{Ptr{Cvoid}})
+    ccall((:dpiConn_getObjectType, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ref{Ptr{Cvoid}}), conn_handle, name, sizeof(name), obj_type_handle_ref)
+end
+
+# int dpiObjectType_getInfo(dpiObjectType *objType, dpiObjectTypeInfo *info)
+function dpiObjectType_getInfo(obj_type_handle::Ptr{Cvoid}, type_info_ref::Ref{OraObjectTypeInfo})
+    ccall((:dpiObjectType_getInfo, libdpi), OraResult, (Ptr{Cvoid}, Ref{OraObjectTypeInfo}), obj_type_handle, type_info_ref)
+end
+
+#
+# ODPI-C Message Properties Functions
+#
+
+# int dpiMsgProps_release(dpiMsgProps *props)
+function dpiMsgProps_release(msg_props_handle::Ptr{Cvoid})
+    ccall((:dpiMsgProps_release, libdpi), OraResult, (Ptr{Cvoid},), msg_props_handle)
+end
+
+# int dpiConn_newMsgProps(dpiConn *conn, dpiMsgProps **props)
+function dpiConn_newMsgProps(conn_handle::Ptr{Cvoid}, msg_props_handle_ref::Ref{Ptr{Cvoid}})
+    ccall((:dpiConn_newMsgProps, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{Cvoid}}), conn_handle, msg_props_handle_ref)
+end
+
+# int dpiMsgProps_setPayloadBytes(dpiMsgProps *props, const char *value, uint32_t valueLength)
+function dpiMsgProps_setPayloadBytes(msg_props_handle::Ptr{Cvoid}, bytes::Ptr{UInt8}, len::Integer)
+    ccall((:dpiMsgProps_setPayloadBytes, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), msg_props_handle, bytes, len)
+end
+
+# int dpiMsgProps_getPayload(dpiMsgProps *props, dpiObject **obj, const char **value, uint32_t *valueLength)
+function dpiMsgProps_getPayload(msg_props_handle::Ptr{Cvoid}, obj_handle_ref::Ref{Ptr{Cvoid}}, bytes_ptr_ref::Ref{Ptr{UInt8}}, bytes_len_ref::Ref{UInt32})
+    ccall((:dpiMsgProps_getPayload, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{Cvoid}}, Ref{Ptr{UInt8}}, Ref{UInt32}), msg_props_handle, obj_handle_ref, bytes_ptr_ref, bytes_len_ref)
+end
+
+# int dpiMsgProps_setCorrelation(dpiMsgProps *props, const char *value, uint32_t valueLength)
+function dpiMsgProps_setCorrelation(msg_handle::Ptr{Cvoid}, val::Ptr{UInt8}, val_length::Integer)
+    ccall((:dpiMsgProps_setCorrelation, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32), msg_handle, val, val_length)
+end
+
+# int dpiMsgProps_getCorrelation(dpiMsgProps *props, const char **value, uint32_t *valueLength)
+function dpiMsgProps_getCorrelation(msg_handle::Ptr{Cvoid}, val_ref::Ref{Ptr{UInt8}}, val_length_ref::Ref{UInt32})
+    ccall((:dpiMsgProps_getCorrelation, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{UInt8}}, Ref{UInt32}), msg_handle, val_ref, val_length_ref)
+end
+
+#
+# ODPI-C Queue Functions
+#
+
+# int dpiQueue_release(dpiQueue *queue)
+function dpiQueue_release(queue_handle::Ptr{Cvoid})
+    ccall((:dpiQueue_release, libdpi), OraResult, (Ptr{Cvoid},), queue_handle)
+end
+
+# int dpiConn_newQueue(dpiConn *conn, const char *name, uint32_t nameLength, dpiObjectType *payloadType, dpiQueue **queue)
+function dpiConn_newQueue(conn_handle::Ptr{Cvoid}, name::AbstractString, payload_type::Ptr{Cvoid}, queue_handle_ref::Ref{Ptr{Cvoid}})
+    ccall((:dpiConn_newQueue, libdpi), OraResult, (Ptr{Cvoid}, Ptr{UInt8}, UInt32, Ptr{Cvoid}, Ref{Ptr{Cvoid}}), conn_handle, name, sizeof(name), payload_type, queue_handle_ref)
+end
+
+# int dpiQueue_enqOne(dpiQueue *queue, dpiMsgProps *props)
+function dpiQueue_enqOne(queue_handle::Ptr{Cvoid}, msg_props_handle::Ptr{Cvoid})
+    ccall((:dpiQueue_enqOne, libdpi), OraResult, (Ptr{Cvoid}, Ptr{Cvoid}), queue_handle, msg_props_handle)
+end
+
+# int dpiQueue_enqMany(dpiQueue *queue, uint32_t numProps, dpiMsgProps **props)
+function dpiQueue_enqMany(queue_handle::Ptr{Cvoid}, num_props::Integer, props_handle_array::Ptr{Ptr{Cvoid}})
+    ccall((:dpiQueue_enqMany, libdpi), OraResult, (Ptr{Cvoid}, UInt32, Ptr{Ptr{Cvoid}}), queue_handle, num_props, props_handle_array)
+end
+
+# int dpiQueue_deqOne(dpiQueue *queue, dpiMsgProps **props)
+function dpiQueue_deqOne(queue_handle::Ptr{Cvoid}, msg_props_handle_ref::Ref{Ptr{Cvoid}})
+    ccall((:dpiQueue_deqOne, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{Cvoid}}), queue_handle, msg_props_handle_ref)
+end
+
+# int dpiQueue_deqMany(dpiQueue *queue, uint32_t *numProps, dpiMsgProps **props)
+function dpiQueue_deqMany(queue_handle::Ptr{Cvoid}, in_out_num_props_ref::Ref{UInt32}, props_handle_array_ptr::Ptr{Ptr{Cvoid}})
+    ccall((:dpiQueue_deqMany, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}, Ptr{Ptr{Cvoid}}), queue_handle, in_out_num_props_ref, props_handle_array_ptr)
 end

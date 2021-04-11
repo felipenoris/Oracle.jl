@@ -1634,6 +1634,134 @@ end
 #    end
 end
 
+@testset "ObjectType" begin
+
+    obj_name = "MY_CUSTOM_TYPE"
+
+    Oracle.execute(conn, """
+CREATE TYPE $obj_name AS OBJECT
+(
+    ID NUMBER(5),
+    NAME VARCHAR2(50)
+)
+""")
+
+    object_type = Oracle.ObjectType(conn, obj_name)
+
+    @test Oracle.object_type_schema(object_type) == "SYS"
+    @test Oracle.object_type_name(object_type) == obj_name
+    @test Oracle.object_type_num_attributes(object_type) == 2
+    @test !Oracle.object_type_is_collection(object_type)
+    @test Oracle.object_type_element_type_info(object_type) == nothing
+
+    Oracle.execute(conn, "DROP TYPE $obj_name")
+end
+
+function init_raw_queue(connection::Oracle.Connection)
+        Oracle.execute(connection, """
+DECLARE
+BEGIN
+    dbms_aqadm.CREATE_queue_table(
+        queue_table => 'my_queue_table',
+        multiple_consumers => FALSE,
+        queue_payload_type => 'RAW',
+        compatible => '8.1.3',
+        comment => 'Creating prop queue table');
+END;
+""")
+
+        Oracle.execute(connection, """
+DECLARE
+BEGIN
+    dbms_aqadm.CREATE_queue(
+        queue_name => 'my_queue',
+        queue_table => 'my_queue_table',
+        comment => 'My Queue');
+END;
+""")
+
+        Oracle.execute(connection, """
+DECLARE
+BEGIN
+    dbms_aqadm.start_queue(
+        queue_name => 'my_queue');
+END;
+""")
+end
+
+function drop_raw_queue(connection::Oracle.Connection)
+    Oracle.execute(connection, """
+DECLARE
+BEGIN
+ dbms_aqadm.stop_queue
+    (
+        queue_name => 'my_queue',
+        wait       => TRUE
+    );
+END;
+""")
+
+Oracle.execute(connection, """
+DECLARE
+BEGIN
+ dbms_aqadm.drop_queue
+    (
+        queue_name => 'my_queue'
+    );
+END;
+""")
+
+Oracle.execute(connection, """
+DECLARE
+BEGIN
+    dbms_aqadm.drop_queue_table
+    (
+        queue_table => 'my_queue_table',
+        force => TRUE
+    );
+END;
+""")
+end
+
+# https://docs.oracle.com/database/121/ADQUE/aq_intro.htm#ADQUE2507
+@testset "Queue" begin
+
+    init_raw_queue(conn)
+
+    try
+        queue = Oracle.Queue(conn, "my_queue")
+        msg = Oracle.Message(conn)
+        Oracle.set_correlation!(msg, "correl")
+        Oracle.set_payload_bytes!(msg, UInt8[10, 20, 30, 40, 50])
+        @test Oracle.get_payload_bytes(msg) == UInt8[10, 20, 30, 40, 50]
+
+        Oracle.enqueue(queue, msg)
+        Oracle.enqueue(queue, fill(msg, 9))
+        @test Oracle.get_correlation(msg) == "correl"
+        #Oracle.clear_correlation!(msg)
+        #@test Oracle.get_correlation(msg) == nothing
+
+        dequeued_message = Oracle.dequeue(queue)
+        @test Oracle.get_payload_bytes(dequeued_message) == UInt8[10, 20, 30, 40, 50]
+        @test Oracle.get_correlation(dequeued_message) == "correl"
+
+        dequeued_vec = Oracle.dequeue(queue, 4)
+        @test length(dequeued_vec) == 4
+        for msg in dequeued_vec
+            @test Oracle.get_payload_bytes(dequeued_message) == UInt8[10, 20, 30, 40, 50]
+        end
+
+        dequeued_vec = Oracle.dequeue(queue, 100)
+        @test length(dequeued_vec) == 5
+        for msg in dequeued_vec
+            @test Oracle.get_payload_bytes(dequeued_message) == UInt8[10, 20, 30, 40, 50]
+        end
+
+    finally
+        drop_raw_queue(conn)
+    end
+end
+
 if auth_mode != Oracle.ORA_MODE_AUTH_SYSDBA
     @testset "Pool" begin
 
