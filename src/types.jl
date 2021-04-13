@@ -31,14 +31,16 @@ end
 
 struct OraErrorInfo <: Exception
     code::Int32 # The OCI error code if an OCI error has taken place. If no OCI error has taken place the value is 0.
-    offset::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
+    offset16::UInt16 # The parse error offset (in bytes) when executing a statement or the row offset when fetching batch error information. If neither of these cases are true, the value is 0.
     message::Ptr{UInt8} # The error message as a byte string in the encoding specified by the OraErrorInfo.encoding member.
     message_length::UInt32 # The length of the OraErrorInfo.message member, in bytes.
     encoding::Cstring # The encoding in which the error message is encoded as a null-terminated string. For OCI errors this is the CHAR encoding used when the connection was created. For ODPI-C specific errors this is UTF-8.
     fn_name::Cstring # The public ODPI-C function name which was called in which the error took place. This is a null-terminated ASCII string.
     action::Cstring # The internal action that was being performed when the error took place. This is a null-terminated ASCII string.
     sql_state::Cstring # The SQLSTATE code associated with the error. This is a 5 character null-terminated string.
-    is_recoverable::Int32 # A boolean value indicating if the error is recoverable. This member always has a value of 0 unless both client and server are at release 12.1 or higher.
+    is_recoverable::Cint # A boolean value indicating if the error is recoverable. This member always has a value of 0 unless both client and server are at release 12.1 or higher.
+    is_warning::Cint # A boolean value indicating if the error information is for a warning returned by Oracle that does not prevent the requested operation from proceeding.
+    offset::UInt32 # The parse error offset (in bytes) when executing a statement or the row offset when performing bulk operations or fetching batch error information. If neither of these cases are true, the value is 0.
 end
 
 Base.showerror(io::IO, err::OraErrorInfo) = print(io, unsafe_string(err.message, err.message_length))
