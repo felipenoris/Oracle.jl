@@ -123,32 +123,30 @@ end
 You can also use a prepared statement to execute a query.
 
 ```julia
-stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND WHERE ID = :id")
-stmt[:id] = 1
+Oracle.stmt(conn, "SELECT FLT FROM TB_BIND WHERE ID = :id") do stmt
+    stmt[:id] = 1
 
-Oracle.query(stmt) do cursor
-    for row in cursor
-      println(row["FLT"])
+    Oracle.query(stmt) do cursor
+        for row in cursor
+          println(row["FLT"])
+        end
     end
 end
-
-Oracle.close(stmt)
 ```
 
 There is also the possibility to fetch one row at a time manually,
 with a small overhead when compared to previous methods.
 
 ```julia
-stmt = Oracle.Stmt(conn, "SELECT FLT FROM TB_BIND")
-Oracle.execute(stmt)
+Oracle.stmt(conn, "SELECT FLT FROM TB_BIND") do stmt
+    Oracle.execute(stmt)
 
-row = Oracle.fetchrow(stmt)
-while row != nothing
-    println(row[1])
     row = Oracle.fetchrow(stmt)
+    while row != nothing
+        println(row[1])
+        row = Oracle.fetchrow(stmt)
+    end
 end
-
-Oracle.close(stmt)
 ```
 
 ## Batch statement execution
@@ -193,11 +191,14 @@ var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
 
 vars = Dict(:var_input => var_input, :var_blob => var_blob, :var_output => var_output)
 
-stmt = Oracle.Stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR, LB ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input, :var_blob ) RETURNING ID INTO :var_output")
-try
+sql_insert = "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR, LB ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input, :var_blob ) RETURNING ID INTO :var_output"
+Oracle.stmt(conn, sql_insert) do stmt
     Oracle.execute_many(stmt, num_iters, vars)
-    Oracle.commit(conn)
+end
 
+Oracle.commit(conn)
+
+try
     Oracle.query(conn, "SELECT ID, STR, LB FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
         i = 1
         for row in cursor
@@ -213,7 +214,6 @@ try
     end
 
 finally
-    Oracle.close(stmt)
     Oracle.execute(conn, "DROP SEQUENCE SQ_TB_EXEC_MANY_INOUT")
     Oracle.execute(conn, "DROP TABLE TB_EXEC_MANY_INOUT")
 end
@@ -313,13 +313,13 @@ write(blob, test_data)
 # wraps the blob in a Variable
 ora_var = Oracle.Variable(conn, blob)
 
-stmt = Oracle.Stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )")
+Oracle.stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )") do stmt
 
-# binds the variable to the statement
-stmt[1] = ora_var
+    # binds the variable to the statement
+    stmt[1] = ora_var
 
-Oracle.execute(stmt)
-Oracle.close(stmt)
+    Oracle.execute(stmt)
+end
 ```
 
 ## Transactions
