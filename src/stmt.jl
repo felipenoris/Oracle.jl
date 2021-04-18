@@ -67,6 +67,7 @@ function stmt(f::Function, connection::Connection, sql::AbstractString; scrollab
         f(stmt)
     finally
         close(stmt)
+        destroy!(stmt)
     end
 
     nothing
