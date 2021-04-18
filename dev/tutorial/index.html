@@ -51,25 +51,23 @@ println(DataFrame(rs))</code></pre><p>The last example was easy to use, but mayb
         println( row[&quot;STR&quot;] )
         println( row[&quot;DT&quot;]  ) # same as row[4]
     end
-end</code></pre><p>You can also use a prepared statement to execute a query.</p><pre><code class="language-julia">stmt = Oracle.Stmt(conn, &quot;SELECT FLT FROM TB_BIND WHERE ID = :id&quot;)
-stmt[:id] = 1
+end</code></pre><p>You can also use a prepared statement to execute a query.</p><pre><code class="language-julia">Oracle.stmt(conn, &quot;SELECT FLT FROM TB_BIND WHERE ID = :id&quot;) do stmt
+    stmt[:id] = 1
 
-Oracle.query(stmt) do cursor
-    for row in cursor
-      println(row[&quot;FLT&quot;])
+    Oracle.query(stmt) do cursor
+        for row in cursor
+          println(row[&quot;FLT&quot;])
+        end
     end
-end
+end</code></pre><p>There is also the possibility to fetch one row at a time manually, with a small overhead when compared to previous methods.</p><pre><code class="language-julia">Oracle.stmt(conn, &quot;SELECT FLT FROM TB_BIND&quot;) do stmt
+    Oracle.execute(stmt)
 
-Oracle.close(stmt)</code></pre><p>There is also the possibility to fetch one row at a time manually, with a small overhead when compared to previous methods.</p><pre><code class="language-julia">stmt = Oracle.Stmt(conn, &quot;SELECT FLT FROM TB_BIND&quot;)
-Oracle.execute(stmt)
-
-row = Oracle.fetchrow(stmt)
-while row != nothing
-    println(row[1])
     row = Oracle.fetchrow(stmt)
-end
-
-Oracle.close(stmt)</code></pre><h2 id="Batch-statement-execution"><a class="docs-heading-anchor" href="#Batch-statement-execution">Batch statement execution</a><a id="Batch-statement-execution-1"></a><a class="docs-heading-anchor-permalink" href="#Batch-statement-execution" title="Permalink"></a></h2><p>If you need to execute the same statement many times but binding different values each time, pass a vector of columns to <code>Oracle.execute</code> method.</p><p>This will use the ODPI-C <em>executeMany</em> feature.</p><pre><code class="language-julia">NUM_ROWS = 1_000
+    while row != nothing
+        println(row[1])
+        row = Oracle.fetchrow(stmt)
+    end
+end</code></pre><h2 id="Batch-statement-execution"><a class="docs-heading-anchor" href="#Batch-statement-execution">Batch statement execution</a><a id="Batch-statement-execution-1"></a><a class="docs-heading-anchor-permalink" href="#Batch-statement-execution" title="Permalink"></a></h2><p>If you need to execute the same statement many times but binding different values each time, pass a vector of columns to <code>Oracle.execute</code> method.</p><p>This will use the ODPI-C <em>executeMany</em> feature.</p><pre><code class="language-julia">NUM_ROWS = 1_000
 
 column_1 = [ i for i in 1:NUM_ROWS ]
 column_2 = .5 * column_1
@@ -95,11 +93,14 @@ var_output = Oracle.Variable(conn, Int, buffer_capacity=num_iters)
 
 vars = Dict(:var_input =&gt; var_input, :var_blob =&gt; var_blob, :var_output =&gt; var_output)
 
-stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR, LB ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input, :var_blob ) RETURNING ID INTO :var_output&quot;)
-try
+sql_insert = &quot;INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR, LB ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input, :var_blob ) RETURNING ID INTO :var_output&quot;
+Oracle.stmt(conn, sql_insert) do stmt
     Oracle.execute_many(stmt, num_iters, vars)
-    Oracle.commit(conn)
+end
 
+Oracle.commit(conn)
+
+try
     Oracle.query(conn, &quot;SELECT ID, STR, LB FROM TB_EXEC_MANY_INOUT ORDER BY ID&quot;) do cursor
         i = 1
         for row in cursor
@@ -115,7 +116,6 @@ try
     end
 
 finally
-    Oracle.close(stmt)
     Oracle.execute(conn, &quot;DROP SEQUENCE SQ_TB_EXEC_MANY_INOUT&quot;)
     Oracle.execute(conn, &quot;DROP TABLE TB_EXEC_MANY_INOUT&quot;)
 end</code></pre><h2 id="Session-Pools"><a class="docs-heading-anchor" href="#Session-Pools">Session Pools</a><a id="Session-Pools-1"></a><a class="docs-heading-anchor-permalink" href="#Session-Pools" title="Permalink"></a></h2><p>A <em>Pool</em> represents a pool of connections, and provides a faster way to acquire connections to the database.</p><pre><code class="language-julia"># creates a pool for a maximum of 2 sessions
@@ -159,15 +159,15 @@ write(blob, test_data)
 # wraps the blob in a Variable
 ora_var = Oracle.Variable(conn, blob)
 
-stmt = Oracle.Stmt(conn, &quot;INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )&quot;)
+Oracle.stmt(conn, &quot;INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )&quot;) do stmt
 
-# binds the variable to the statement
-stmt[1] = ora_var
+    # binds the variable to the statement
+    stmt[1] = ora_var
 
-Oracle.execute(stmt)
-Oracle.close(stmt)</code></pre><h2 id="Transactions"><a class="docs-heading-anchor" href="#Transactions">Transactions</a><a id="Transactions-1"></a><a class="docs-heading-anchor-permalink" href="#Transactions" title="Permalink"></a></h2><p>The way Oracle Database works, <a href="https://docs.oracle.com/cd/B19306_01/server.102/b14220/transact.htm">“a transaction in Oracle begins when the first executable SQL statement is encountered”</a>.</p><p>Use <a href="../api/#Oracle.commit"><code>Oracle.commit</code></a> to commit and <a href="../api/#Oracle.rollback"><code>Oracle.rollback</code></a> to abort a transaction.</p><p>The following example is a valid transaction.</p><pre><code class="language-julia">Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 1 )&quot;) # will start a transaction
+    Oracle.execute(stmt)
+end</code></pre><h2 id="Transactions"><a class="docs-heading-anchor" href="#Transactions">Transactions</a><a id="Transactions-1"></a><a class="docs-heading-anchor-permalink" href="#Transactions" title="Permalink"></a></h2><p>The way Oracle Database works, <a href="https://docs.oracle.com/cd/B19306_01/server.102/b14220/transact.htm">“a transaction in Oracle begins when the first executable SQL statement is encountered”</a>.</p><p>Use <a href="../api/#Oracle.commit"><code>Oracle.commit</code></a> to commit and <a href="../api/#Oracle.rollback"><code>Oracle.rollback</code></a> to abort a transaction.</p><p>The following example is a valid transaction.</p><pre><code class="language-julia">Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 1 )&quot;) # will start a transaction
 Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( null )&quot;)
 Oracle.commit(conn) # will commit 2 lines
 
 Oracle.execute(conn, &quot;INSERT INTO TB_TEST ( ID ) VALUES ( 3 )&quot;) # will start a new transaction
-Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 18 April 2021 20:58">Sunday 18 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+Oracle.rollback(conn) # abort insertion of the third line</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 18 April 2021 21:07">Sunday 18 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
