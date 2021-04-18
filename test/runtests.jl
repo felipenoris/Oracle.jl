@@ -492,9 +492,14 @@ end
         end
 
         function query_and_check_blob_data(test_data::String, buffer_size)
-            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_BLOB")
-            Oracle.execute(stmt)
-            row = Oracle.fetchrow(stmt)
+
+            local row
+
+            Oracle.stmt(conn, "SELECT B FROM TB_BLOB") do stmt
+                Oracle.execute(stmt)
+                row = Oracle.fetchrow(stmt)
+            end
+
             @test row != nothing
             blob = row[1]
             check_blob_data(test_data, blob, buffer_size)
@@ -574,14 +579,15 @@ end
         Oracle.execute(conn, "INSERT INTO TB_CLOB ( B ) VALUES ( '$(test_string)' )")
 
         let
-            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
             local clob::Oracle.Lob
 
             try
-                Oracle.execute(stmt)
-                row = Oracle.fetchrow(stmt)
-                @test row != nothing
-                clob = row[1]
+                Oracle.stmt(conn, "SELECT B FROM TB_CLOB") do stmt
+                    Oracle.execute(stmt)
+                    row = Oracle.fetchrow(stmt)
+                    @test row != nothing
+                    clob = row[1]
+                end
 
                 open(clob, "r") do io
                     i = 1
@@ -600,38 +606,38 @@ end
                 end
             finally
                 Oracle.close(clob)
-                Oracle.close(stmt)
             end
         end
 
         let
-            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
             local clob::Oracle.Lob
 
             try
-                Oracle.execute(stmt)
-                row = Oracle.fetchrow(stmt)
-                @test row != nothing
-                clob = row[1]
+                Oracle.stmt(conn, "SELECT B FROM TB_CLOB") do stmt
+                    Oracle.execute(stmt)
+                    row = Oracle.fetchrow(stmt)
+                    @test row != nothing
+                    clob = row[1]
+                end
 
                 open(clob, "r") do io
                     @test read(io, String) == test_string
                 end
             finally
                 Oracle.close(clob)
-                Oracle.close(stmt)
             end
         end
 
         let
-            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
             local clob::Oracle.Lob
 
             try
-                Oracle.execute(stmt)
-                row = Oracle.fetchrow(stmt)
-                @test row != nothing
-                clob = row[1]
+                Oracle.stmt(conn, "SELECT B FROM TB_CLOB") do stmt
+                    Oracle.execute(stmt)
+                    row = Oracle.fetchrow(stmt)
+                    @test row != nothing
+                    clob = row[1]
+                end
 
                 open(clob, "r", buffer_size=2000) do io
 
@@ -647,26 +653,25 @@ end
                 end
             finally
                 Oracle.close(clob)
-                Oracle.close(stmt)
             end
         end
 
         let
-            stmt = Oracle.Stmt(conn, "SELECT B FROM TB_CLOB")
             local clob::Oracle.Lob
 
             try
-                Oracle.execute(stmt)
-                row = Oracle.fetchrow(stmt)
-                @test row != nothing
-                clob = row[1]
+                Oracle.stmt(conn, "SELECT B FROM TB_CLOB") do stmt
+                    Oracle.execute(stmt)
+                    row = Oracle.fetchrow(stmt)
+                    @test row != nothing
+                    clob = row[1]
+                end
 
                 open(clob, "r", buffer_size=2000) do io
                     @test read(io, String) == test_string
                 end
             finally
                 Oracle.close(clob)
-                Oracle.close(stmt)
             end
         end
 
@@ -683,17 +688,17 @@ end
         Oracle.execute(conn, "INSERT INTO TB_TEST_FETCH_MANY ( ID, VAL ) VALUES ( :1, :2 )", [col1, col2])
     end
 
-    stmt = Oracle.Stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY")
-    Oracle.execute(stmt)
-    @test Oracle.ncol(stmt) == 2
+    Oracle.stmt(conn, "SELECT ID, VAL FROM TB_TEST_FETCH_MANY") do stmt
+        Oracle.execute(stmt)
+        @test Oracle.ncol(stmt) == 2
 
-    fetch_rows_result = Oracle.fetchrows(stmt, 3)
+        fetch_rows_result = Oracle.fetchrows(stmt, 3)
 
-    @test fetch_rows_result.buffer_row_index == 0
-    @test fetch_rows_result.num_rows_fetched == 3
-    @test fetch_rows_result.more_rows == 1
+        @test fetch_rows_result.buffer_row_index == 0
+        @test fetch_rows_result.num_rows_fetched == 3
+        @test fetch_rows_result.more_rows == 1
+    end
 
-    Oracle.close(stmt)
     Oracle.execute(conn, "DROP TABLE TB_TEST_FETCH_MANY")
 end
 
@@ -827,18 +832,19 @@ end
     Oracle.execute(conn, "CREATE TABLE TB_ACCOUNTS ( ID NUMBER(4,0), AMOUNT NUMBER(12,2) )")
 
     let
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_ACCOUNTS ( ID, AMOUNT ) VALUES ( :ID, :AMT )")
-        stmt[:ID] = 1
-        stmt[:AMT] = 20.50
-        Oracle.execute(stmt)
+        Oracle.stmt(conn, "INSERT INTO TB_ACCOUNTS ( ID, AMOUNT ) VALUES ( :ID, :AMT )") do stmt
+            stmt[:ID] = 1
+            stmt[:AMT] = 20.50
+            Oracle.execute(stmt)
 
-        stmt[:ID] = 2
-        stmt[:AMT] = 100.00
-        Oracle.execute(stmt)
+            stmt[:ID] = 2
+            stmt[:AMT] = 100.00
+            Oracle.execute(stmt)
 
-        stmt[:ID] = 3
-        stmt[:AMT] = 150.00
-        Oracle.execute(stmt)
+            stmt[:ID] = 3
+            stmt[:AMT] = 150.00
+            Oracle.execute(stmt)
+        end
 
         Oracle.commit(conn)
     end
@@ -1064,13 +1070,16 @@ end
     @testset "Bind DateTime and Timestamp" begin
         Oracle.execute(conn, "CREATE TABLE TB_BIND_TIMESTAMP ( TS TIMESTAMP(9) NULL )")
 
-        dt_now = Dates.now()
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP ( TS ) VALUES ( :ts )")
-        stmt[:ts] = dt_now
-        Oracle.execute(stmt)
         ts = Oracle.Timestamp(2018, 12, 31, 23, 58, 59, 999_200_300)
-        stmt[:ts] = ts
-        Oracle.execute(stmt)
+
+        dt_now = Dates.now()
+        Oracle.stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP ( TS ) VALUES ( :ts )") do stmt
+            stmt[:ts] = dt_now
+            Oracle.execute(stmt)
+            stmt[:ts] = ts
+            Oracle.execute(stmt)
+        end
+
         Oracle.commit(conn)
 
         let row_number = 0
@@ -1092,7 +1101,6 @@ end
             @test row_number == 2
         end
 
-        Oracle.close(stmt)
         Oracle.execute(conn, "DROP TABLE TB_BIND_TIMESTAMP")
     end
 
@@ -1102,8 +1110,7 @@ end
         ts_tz = Oracle.TimestampTZ(false, 2018, 12, 31, 23, 58, 59, 999_200_300, 5, 30)
         ts_ltz = Oracle.TimestampTZ(true, 2018, 12, 31, 23, 58, 59, 999_200_400)
 
-        let
-            stmt = Oracle.Stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )")
+        Oracle.stmt(conn, "INSERT INTO TB_BIND_TIMESTAMP_TZ ( TS_TZ, TS_LTZ ) VALUES ( :ts_tz, :ts_ltz )") do stmt
 
             @test_throws ErrorException stmt[:ts_tz] = ts_tz
             @test_throws ErrorException stmt[:ts_ltz] = ts_ltz
@@ -1111,12 +1118,11 @@ end
             stmt[:ts_tz] = Oracle.Variable(conn, ts_tz)
             stmt[:ts_ltz] = Oracle.Variable(conn, ts_ltz)
             Oracle.execute(stmt)
-            Oracle.commit(conn)
-            Oracle.close(stmt)
         end
 
-        let
-            query_stmt = Oracle.Stmt(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ")
+        Oracle.commit(conn)
+
+        Oracle.stmt(conn, "SELECT TS_TZ, TS_LTZ FROM TB_BIND_TIMESTAMP_TZ") do query_stmt
             Oracle.execute(query_stmt)
             row = Oracle.fetchrow(query_stmt)
             @test row != nothing
@@ -1126,8 +1132,6 @@ end
 
             @test ts_tz == read_ts_tz
             @test nanosecond(ts_ltz) == nanosecond(read_ts_ltz)
-
-            Oracle.close(query_stmt)
         end
 
         Oracle.execute(conn, "DROP TABLE TB_BIND_TIMESTAMP_TZ")
@@ -1136,22 +1140,20 @@ end
     @testset "Bind RAW" begin
         Oracle.execute(conn, "CREATE TABLE TB_RAW ( RAW_BYTES RAW(2000) )")
 
-        bytes = rand(UInt8, 5);
+        bytes = rand(UInt8, 5)
 
-        let
-            stmt = Oracle.Stmt(conn, "INSERT INTO TB_RAW ( RAW_BYTES ) VALUES ( :a )")
+        Oracle.stmt(conn, "INSERT INTO TB_RAW ( RAW_BYTES ) VALUES ( :a )") do stmt
             @test_throws ErrorException stmt[1] = bytes
             @test_throws ErrorException Oracle.Variable(conn, bytes)
             ora_var = Oracle.Variable(conn, Vector{UInt8}, Oracle.ORA_ORACLE_TYPE_RAW, Oracle.ORA_NATIVE_TYPE_BYTES)
             ora_var[1] = bytes
             stmt[1] = ora_var
             Oracle.execute(stmt)
-            Oracle.commit(conn)
-            Oracle.close(stmt)
         end
 
-        let
-            stmt = Oracle.Stmt(conn, "SELECT RAW_BYTES FROM TB_RAW")
+        Oracle.commit(conn)
+
+        Oracle.stmt(conn, "SELECT RAW_BYTES FROM TB_RAW") do stmt
             Oracle.execute(stmt)
             row = Oracle.fetchrow(stmt)
             @test row != nothing
@@ -1335,9 +1337,11 @@ end
 
         vars = Dict(:var_input => var_input, :var_blob => var_blob, :var_raw => var_raw, :var_output => var_output)
 
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR, LB, FEW_BYTES ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input, :var_blob, :var_raw ) RETURNING ID INTO :var_output")
         try
-            Oracle.execute_many(stmt, num_iters, vars)
+            Oracle.stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR, LB, FEW_BYTES ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input, :var_blob, :var_raw ) RETURNING ID INTO :var_output") do stmt
+                Oracle.execute_many(stmt, num_iters, vars)
+            end
+
             Oracle.commit(conn)
 
             Oracle.query(conn, "SELECT ID, STR, LB, FEW_BYTES FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
@@ -1371,7 +1375,6 @@ end
             end
 
         finally
-            Oracle.close(stmt)
             Oracle.execute(conn, "DROP SEQUENCE SQ_TB_EXEC_MANY_INOUT")
             Oracle.execute(conn, "DROP TABLE TB_EXEC_MANY_INOUT")
         end
@@ -1389,9 +1392,11 @@ end
 
         vars = [ var_input, var_output ]
 
-        stmt = Oracle.Stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input ) RETURNING ID INTO :var_output")
         try
-            Oracle.execute_many(stmt, num_iters, vars)
+            Oracle.stmt(conn, "INSERT INTO TB_EXEC_MANY_INOUT ( ID, STR ) VALUES ( SQ_TB_EXEC_MANY_INOUT.nextval, :var_input ) RETURNING ID INTO :var_output") do stmt
+                Oracle.execute_many(stmt, num_iters, vars)
+            end
+
             Oracle.commit(conn)
 
             Oracle.query(conn, "SELECT ID, STR FROM TB_EXEC_MANY_INOUT ORDER BY ID") do cursor
@@ -1410,7 +1415,6 @@ end
             end
 
         finally
-            Oracle.close(stmt)
             Oracle.execute(conn, "DROP SEQUENCE SQ_TB_EXEC_MANY_INOUT")
             Oracle.execute(conn, "DROP TABLE TB_EXEC_MANY_INOUT")
         end
@@ -1427,10 +1431,10 @@ end
 
             ora_var = Oracle.Variable(conn, blob)
 
-            stmt = Oracle.Stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )")
-            stmt[1] = ora_var
-            Oracle.execute(stmt)
-            Oracle.close(stmt)
+            Oracle.stmt(conn, "INSERT INTO TB_BLOB_VARIABLE ( B ) VALUES ( :1 )") do stmt
+                stmt[1] = ora_var
+                Oracle.execute(stmt)
+            end
         end
 
         let
@@ -1459,10 +1463,10 @@ end
 
             ora_var = Oracle.Variable(conn, clob)
 
-            stmt = Oracle.Stmt(conn, "INSERT INTO TB_CLOB_VARIABLE ( C ) VALUES ( :1 )")
-            stmt[1] = ora_var
-            Oracle.execute(stmt)
-            Oracle.close(stmt)
+            Oracle.stmt(conn, "INSERT INTO TB_CLOB_VARIABLE ( C ) VALUES ( :1 )") do stmt
+                stmt[1] = ora_var
+                Oracle.execute(stmt)
+            end
         end
 
         let

@@ -64,6 +64,7 @@ function query(f::Function, conn::Connection, sql::AbstractString;
         cursor = Cursor(stmt)
         f(cursor)
     end
+
     nothing
 end
 
