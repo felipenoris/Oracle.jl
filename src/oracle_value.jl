@@ -121,7 +121,7 @@ end
                 ptr_bytes = dpiData_getBytes(data_handle) # get a Ptr{OraBytes}
                 ora_bytes = unsafe_load(ptr_bytes) # get a OraBytes
                 unsafe_array = unsafe_wrap(Vector{UInt8}, ora_bytes.ptr, ora_bytes.length)
-                return return copy(unsafe_array)
+                return copy(unsafe_array)
             end
         else
             # character data
