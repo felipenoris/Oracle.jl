@@ -1,5 +1,13 @@
 
-function Pool(ctx::Context, user::String, password::String, connect_string::String, common_params::CommonCreateParams, pool_create_params::OraPoolCreateParams)
+function Pool(
+            ctx::Context,
+            user::String,
+            password::String,
+            connect_string::String,
+            common_params::CommonCreateParams,
+            pool_create_params::OraPoolCreateParams
+        )
+
     ora_common_params = OraCommonCreateParams(ctx, common_params)
     dpi_pool_handle_ref = Ref{Ptr{Cvoid}}()
     result = dpiPool_create(ctx.handle, user, password, connect_string, Ref(ora_common_params), Ref(pool_create_params), dpi_pool_handle_ref)
@@ -12,12 +20,18 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
     return Pool(ctx, dpi_pool_handle_ref[], pool_name)
 end
 
-function Pool(ctx::Context, user::String, password::String, connect_string::String;
+function Pool(
+            ctx::Context,
+            user::String,
+            password::String,
+            connect_string::String;
             encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
             nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
             create_mode::Union{Nothing, OraCreateMode}=nothing,
             edition::Union{Nothing, String}=nothing,
             driver_name::Union{Nothing, String}=nothing,
+            enable_soda_metadata_cache::Bool=false,
+            stmt_cache_size::Integer=0,
             min_sessions::Union{Nothing, Integer}=nothing,
             max_sessions::Union{Nothing, Integer}=nothing,
             session_increment::Union{Nothing, Integer}=nothing,
@@ -53,16 +67,21 @@ function Pool(ctx::Context, user::String, password::String, connect_string::Stri
     @parse_opt_field_param(pool_create_params, wait_timeout, UInt32)
     @parse_opt_field_param(pool_create_params, max_lifetime_session, UInt32)
 
-    common_params = CommonCreateParams(create_mode, encoding, nencoding, edition, driver_name)
+    common_params = CommonCreateParams(create_mode, encoding, nencoding, edition, driver_name, enable_soda_metadata_cache, stmt_cache_size)
     return Pool(ctx, user, password, connect_string, common_params, pool_create_params)
 end
 
-function Pool(user::String, password::String, connect_string::String;
+function Pool(
+            user::String,
+            password::String,
+            connect_string::String;
             encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
             nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
             create_mode::Union{Nothing, OraCreateMode}=nothing,
             edition::Union{Nothing, String}=nothing,
             driver_name::Union{Nothing, String}=nothing,
+            enable_soda_metadata_cache::Bool=false,
+            stmt_cache_size::Integer=0,
             min_sessions::Union{Nothing, Integer}=nothing,
             max_sessions::Union{Nothing, Integer}=nothing,
             session_increment::Union{Nothing, Integer}=nothing,
@@ -81,6 +100,8 @@ function Pool(user::String, password::String, connect_string::String;
             create_mode=create_mode,
             edition=edition,
             driver_name=driver_name,
+            enable_soda_metadata_cache=enable_soda_metadata_cache,
+            stmt_cache_size=stmt_cache_size,
             min_sessions=min_sessions,
             max_sessions=max_sessions,
             session_increment=session_increment,
