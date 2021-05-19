@@ -64,6 +64,8 @@ mutable struct OraCommonCreateParams
     edition_length::UInt32 # Specifies the length of the OraCommonCreateParams.edition member, in bytes. The default value is 0.
     driver_name::Ptr{UInt8} # Specifies the name of the driver that is being used. It is expected to be NULL or a byte string in the encoding specified by the OraCommonCreateParams.encoding member. The default value is NULL.
     driver_name_length::UInt32 # Specifies the length of the OraCommonCreateParams.driverName member, in bytes. The default value is 0.
+    soda_metadata_cache::Cint # Specifies whether to enable the SODA metadata cache or not
+    stmt_cache_size::UInt32 # Specifies the number of statements to retain in the statement cache. Use a value of 0 to disable the statement cache completely.
 end
 
 struct OraAppContext
@@ -437,6 +439,8 @@ mutable struct CommonCreateParams
     nencoding::String
     edition::Union{Nothing, String}
     driver_name::Union{Nothing, String}
+    enable_soda_metadata_cache::Bool
+    stmt_cache_size::Int
 end
 
 "Safe version of OraConnCreateParams"

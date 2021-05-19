@@ -3,7 +3,7 @@
 function OraCommonCreateParams(ctx::Context, safe_params::CommonCreateParams)
 
     function EmptyOraCommonCreateParams(ctx::Context)
-        common_create_params_ref = Ref{OraCommonCreateParams}(OraCommonCreateParams(ORA_MODE_CREATE_DEFAULT, C_NULL, C_NULL, C_NULL, 0, C_NULL, 0))
+        common_create_params_ref = Ref{OraCommonCreateParams}(OraCommonCreateParams(ORA_MODE_CREATE_DEFAULT, C_NULL, C_NULL, C_NULL, 0, C_NULL, 0, 0, 0))
         result = dpiContext_initCommonCreateParams(ctx.handle, common_create_params_ref)
         error_check(ctx, result)
         return common_create_params_ref[]
@@ -27,6 +27,9 @@ function OraCommonCreateParams(ctx::Context, safe_params::CommonCreateParams)
         result.driver_name = pointer(safe_params.driver_name)
         result.driver_name_length = sizeof(safe_params.driver_name)
     end
+
+    result.soda_metadata_cache = safe_params.enable_soda_metadata_cache ? 1 : 0
+    result.stmt_cache_size = safe_params.stmt_cache_size
 
     return result
 end
@@ -53,7 +56,15 @@ function OraConnCreateParams(ctx::Context, safe_params::ConnCreateParams)
     return result
 end
 
-function Connection(ctx::Context, user::String, password::String, connect_string::String, common_params::CommonCreateParams, conn_create_params::ConnCreateParams)
+function Connection(
+            ctx::Context,
+            user::String,
+            password::String,
+            connect_string::String,
+            common_params::CommonCreateParams,
+            conn_create_params::ConnCreateParams
+        )
+
     conn_handle_ref = Ref{Ptr{Cvoid}}()
     ora_common_params = OraCommonCreateParams(ctx, common_params)
     ora_conn_create_params = OraConnCreateParams(ctx, conn_create_params)
@@ -62,17 +73,23 @@ function Connection(ctx::Context, user::String, password::String, connect_string
     return Connection(ctx, conn_handle_ref[], conn_create_params.pool)
 end
 
-function Connection(ctx::Context, user::String, password::String, connect_string::String;
-        encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
-        nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
-        create_mode::Union{Nothing, OraCreateMode}=nothing,
-        edition::Union{Nothing, String}=nothing,
-        driver_name::Union{Nothing, String}=nothing,
-        auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT,
-        pool::Union{Nothing, Pool}=nothing
+function Connection(
+            ctx::Context,
+            user::String,
+            password::String,
+            connect_string::String;
+            encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
+            nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
+            create_mode::Union{Nothing, OraCreateMode}=nothing,
+            edition::Union{Nothing, String}=nothing,
+            driver_name::Union{Nothing, String}=nothing,
+            auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT,
+            pool::Union{Nothing, Pool}=nothing,
+            enable_soda_metadata_cache::Bool=false,
+            stmt_cache_size::Integer=0
     )
 
-    common_params = CommonCreateParams(create_mode, encoding, nencoding, edition, driver_name)
+    common_params = CommonCreateParams(create_mode, encoding, nencoding, edition, driver_name, enable_soda_metadata_cache, stmt_cache_size)
     conn_create_params = ConnCreateParams(auth_mode, pool)
 
     return Connection(ctx, user, password, connect_string, common_params, conn_create_params)
@@ -109,14 +126,19 @@ conn = Oracle.Connection(username, password, connect_string)
 Oracle.close(conn)
 ```
 """
-function Connection(user::AbstractString, password::AbstractString, connect_string::AbstractString;
+function Connection(
+        user::AbstractString,
+        password::AbstractString,
+        connect_string::AbstractString;
         encoding::AbstractString=DEFAULT_CONNECTION_ENCODING,
         nencoding::AbstractString=DEFAULT_CONNECTION_NENCODING,
         create_mode::Union{Nothing, OraCreateMode}=nothing,
         edition::Union{Nothing, String}=nothing,
         driver_name::Union{Nothing, String}=nothing,
         auth_mode::OraAuthMode=ORA_MODE_AUTH_DEFAULT,
-        pool::Union{Nothing, Pool}=nothing
+        pool::Union{Nothing, Pool}=nothing,
+        enable_soda_metadata_cache::Bool=false,
+        stmt_cache_size::Integer=0
     )
 
     return Connection(Context(), String(user), String(password), String(connect_string),
@@ -126,7 +148,9 @@ function Connection(user::AbstractString, password::AbstractString, connect_stri
                 edition=edition,
                 driver_name=driver_name,
                 auth_mode=auth_mode,
-                pool=pool
+                pool=pool,
+                enable_soda_metadata_cache=enable_soda_metadata_cache,
+                stmt_cache_size=stmt_cache_size
             )
 end
 
