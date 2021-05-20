@@ -1748,9 +1748,10 @@ end
 
     try
         queue = Oracle.Queue(conn, "my_queue")
+
         msg = Oracle.Message(conn)
-        Oracle.set_correlation!(msg, "correl")
-        Oracle.set_payload_bytes!(msg, UInt8[10, 20, 30, 40, 50])
+        Oracle.set_correlation(msg, "correl")
+        Oracle.set_payload_bytes(msg, UInt8[10, 20, 30, 40, 50])
         @test Oracle.get_payload_bytes(msg) == UInt8[10, 20, 30, 40, 50]
 
         Oracle.enqueue(queue, msg)
@@ -1775,6 +1776,20 @@ end
             @test Oracle.get_payload_bytes(dequeued_message) == UInt8[10, 20, 30, 40, 50]
         end
 
+    finally
+        drop_raw_queue(conn)
+    end
+end
+
+@testset "Queue Options" begin
+    init_raw_queue(conn)
+    try
+        queue = Oracle.Queue(conn, "my_queue")
+        opt = Oracle.DeqOptions(queue)
+        @test Oracle.get_correlation(opt) == nothing
+        Oracle.set_correlation(opt, "corr_value")
+        opt = Oracle.DeqOptions(queue)
+        @test Oracle.get_correlation(opt) == "corr_value"
     finally
         drop_raw_queue(conn)
     end
