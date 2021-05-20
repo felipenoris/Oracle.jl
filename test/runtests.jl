@@ -54,10 +54,21 @@ end
 
 include("credentials.jl")
 
+@testset "Test multiple contexts" begin
+    # see issue #22
+    let
+        conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
+        Oracle.close(conn)
+
+        conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
+        Oracle.close(conn)
+    end
+end
+
 conn = Oracle.Connection(username, password, connect_string, auth_mode=auth_mode)
 
 @testset "Client Version" begin
-    v = Oracle.client_version(Oracle.context(conn))
+    v = Oracle.client_version(Oracle.Context())
     println("")
     println("### CLIENT VERSION ###")
     println(v)
