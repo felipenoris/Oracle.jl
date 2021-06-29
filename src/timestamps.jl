@@ -125,4 +125,8 @@ function Base.convert(::Type{DateTime}, ts::Timestamp)
     return DateTime(ts.date, ts.time)
 end
 
+function Base.convert(::Type{Date}, ts::Timestamp)
+    return convert(Date, convert(DateTime, ts))
+end
+
 end # module Timestamps

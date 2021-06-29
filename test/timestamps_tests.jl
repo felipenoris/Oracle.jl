@@ -92,5 +92,12 @@ using Dates
             datetime2 = convert(DateTime, timestamp)
             @test datetime2 == datetime
         end
+
+        @testset "Date conversion" begin
+            date = Dates.today()
+            datetime = Dates.DateTime(date)
+            timestamp = Timestamps.Timestamp(datetime)
+            @test convert(Date, timestamp) == date
+        end
     end
 end
