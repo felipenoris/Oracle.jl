@@ -1,6 +1,10 @@
 
 // this file will be appended to src/embed/dpi.c
 
+int32_t odpi_version_number() {
+    return DPI_VERSION_NUMBER;
+}
+
 size_t sizeof_dpiDataBuffer() {
     return sizeof(dpiDataBuffer);
 }

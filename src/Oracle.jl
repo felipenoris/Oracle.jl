@@ -71,4 +71,13 @@ end
     nothing
 end
 
+function odpi_version(vnum::Integer=odpi_version_number()) :: VersionNumber
+    t1 = 100 # threshold 1
+    t2 = 10000 # threshold 2
+    major = div(vnum, t2)
+    minor = div(mod(vnum, t2), t1)
+    patch = mod(vnum, t1)
+    return VersionNumber("$major.$minor.$patch")
+end
+
 end # module Oracle

@@ -3,6 +3,11 @@
 # functions added by deps/dpi_patch.c
 #
 
+# int32_t odpi_version_number()
+function odpi_version_number()
+    ccall((:odpi_version_number, libdpi), Cint, ())
+end
+
 # size_t sizeof_dpiDataBuffer()
 function sizeof_dpiDataBuffer()
     ccall((:sizeof_dpiDataBuffer, libdpi), Csize_t, ())

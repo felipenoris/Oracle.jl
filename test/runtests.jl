@@ -14,6 +14,13 @@ using Test
 using Dates
 import DataFrames
 
+@testset "ODPI version number" begin
+    @test Oracle.odpi_version(998877) == v"99.88.77"
+    @test Oracle.odpi_version(98877) == v"9.88.77"
+    @test Oracle.odpi_version(90807) == v"9.8.7"
+    println("ODPI Version Number: $(Oracle.odpi_version())")
+end
+
 @testset "exec mode" begin
     a = Oracle.ORA_MODE_EXEC_DESCRIBE_ONLY
     b = Oracle.ORA_MODE_EXEC_COMMIT_ON_SUCCESS
