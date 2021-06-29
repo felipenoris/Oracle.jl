@@ -554,42 +554,12 @@ end
 mutable struct EnqOptions
     queue::Queue
     handle::Ptr{Cvoid}
-
-    function EnqOptions(queue::Queue, handle::Ptr{Cvoid})
-        enq_options = new(queue, handle)
-        #finalizer(destroy!, enq_options)
-        return enq_options
-    end
-end
-
-function destroy!(opt::EnqOptions)
-    if opt.handle != C_NULL
-        result = dpiEnqOptions_release(opt.handle)
-        error_check(context(opt), result)
-        opt.handle = C_NULL
-    end
-    nothing
 end
 
 # dpiDeqOptions
 mutable struct DeqOptions
     queue::Queue
     handle::Ptr{Cvoid}
-
-    function DeqOptions(queue::Queue, handle::Ptr{Cvoid})
-        deq_options = new(queue, handle)
-        #finalizer(destroy!, deq_options)
-        return deq_options
-    end
-end
-
-function destroy!(opt::DeqOptions)
-    if opt.handle != C_NULL
-        result = dpiDeqOptions_release(opt.handle)
-        error_check(context(opt), result)
-        opt.handle = C_NULL
-    end
-    nothing
 end
 
 # dpiObjectTypeInfo
