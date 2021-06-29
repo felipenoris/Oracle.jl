@@ -709,16 +709,6 @@ function dpiQueue_deqMany(queue_handle::Ptr{Cvoid}, in_out_num_props_ref::Ref{UI
     ccall((:dpiQueue_deqMany, libdpi), OraResult, (Ptr{Cvoid}, Ref{UInt32}, Ptr{Ptr{Cvoid}}), queue_handle, in_out_num_props_ref, props_handle_array_ptr)
 end
 
-# int dpiDeqOptions_release(dpiDeqOptions *options)
-function dpiDeqOptions_release(opt_handle::Ptr{Cvoid})
-    ccall((:dpiDeqOptions_release, libdpi), OraResult, (Ptr{Cvoid},), opt_handle)
-end
-
-# int dpiEnqOptions_release(dpiEnqOptions *options)
-function dpiEnqOptions_release(opt_handle::Ptr{Cvoid})
-    ccall((:dpiEnqOptions_release, libdpi), OraResult, (Ptr{Cvoid},), opt_handle)
-end
-
 # int dpiQueue_getDeqOptions(dpiQueue *queue, dpiDeqOptions **options)
 function dpiQueue_getDeqOptions(queue_handle::Ptr{Cvoid}, deq_opt_handle_ref::Ref{Ptr{Cvoid}})
     ccall((:dpiQueue_getDeqOptions, libdpi), OraResult, (Ptr{Cvoid}, Ref{Ptr{Cvoid}}), queue_handle, deq_opt_handle_ref)
