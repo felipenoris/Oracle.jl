@@ -6,7 +6,7 @@ function Message(conn::Connection)
     return Message(conn, msg_props_handle_ref[])
 end
 
-function set_payload_bytes!(msg::Message, bytes::Vector{UInt8})
+function set_payload_bytes(msg::Message, bytes::Vector{UInt8})
     result = dpiMsgProps_setPayloadBytes(msg.handle, pointer(bytes), length(bytes))
     error_check(context(msg), result)
     nothing
@@ -25,17 +25,11 @@ function get_payload_bytes(msg::Message) :: Vector{UInt8}
     return deepcopy(unsafe_wrap(Vector{UInt8}, bytes_array_ptr_ref[], bytes_array_len_ref[]))
 end
 
-function set_correlation!(msg::Message, correlation::AbstractString)
+function set_correlation(msg::Message, correlation::AbstractString)
     err = dpiMsgProps_setCorrelation(msg.handle, pointer(correlation), sizeof(correlation))
     error_check(context(msg), err)
     nothing
 end
-
-#function clear_correlation!(msg::Message)
-#    err = dpiMsgProps_setCorrelation(msg.handle, Ptr{UInt8}(C_NULL), 0)
-#    error_check(context(msg), err)
-#    nothing
-#end
 
 function get_correlation(msg::Message) :: Union{Nothing, String}
     val_ref = Ref{Ptr{UInt8}}()
