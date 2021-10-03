@@ -16,7 +16,7 @@ const NameOrPositionTypes = Union{Integer, String, Symbol}
 # Bind Variable to Stmt
 #
 
-@inline function Base.setindex!(stmt::Stmt, value::Variable, name_or_position::NameOrPositionTypes)
+function Base.setindex!(stmt::Stmt, value::Variable, name_or_position::NameOrPositionTypes)
     bind!(stmt, value, name_or_position)
 end
 
@@ -83,25 +83,25 @@ end
     end
 end
 
-@inline function Base.setindex!(stmt::Stmt, value::JuliaOracleValue, name_or_position::N) where {N<:NameOrPositionTypes}
+function Base.setindex!(stmt::Stmt, value::JuliaOracleValue, name_or_position::N) where {N<:NameOrPositionTypes}
     bind!(stmt, value, name_or_position)
 end
 
-@inline function Base.setindex!(stmt::Stmt, value::T, name_or_position::N) where {T, N<:NameOrPositionTypes}
+function Base.setindex!(stmt::Stmt, value::T, name_or_position::N) where {T, N<:NameOrPositionTypes}
     bind!(stmt, JuliaOracleValue(value), name_or_position)
 end
 
-@inline function Base.setindex!(stmt::Stmt, ::Missing, name_or_position::N) where {N<:NameOrPositionTypes}
+function Base.setindex!(stmt::Stmt, ::Missing, name_or_position::N) where {N<:NameOrPositionTypes}
     error("Cannot bind missing value to statement without type information. Use `stmt[pos, julia_type] = value` or `stmt[pos, oracle_type, native_type] = value`.")
 end
 
-@inline function Base.setindex!(stmt::Stmt, ::Missing, name_or_position::N, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum) where {N<:NameOrPositionTypes}
+function Base.setindex!(stmt::Stmt, ::Missing, name_or_position::N, oracle_type::OraOracleTypeNum, native_type::OraNativeTypeNum) where {N<:NameOrPositionTypes}
     val = JuliaOracleValue(oracle_type, native_type, Missing)
     val[] = missing
     bind!(stmt, val, name_or_position)
 end
 
-@inline function Base.setindex!(stmt::Stmt, m::Missing, name_or_position::N, ::Type{T}) where {T,N<:NameOrPositionTypes}
+function Base.setindex!(stmt::Stmt, m::Missing, name_or_position::N, ::Type{T}) where {T,N<:NameOrPositionTypes}
     ott = infer_oracle_type_tuple(T)
     setindex!(stmt, m, name_or_position, ott.oracle_type, ott.native_type)
 end
