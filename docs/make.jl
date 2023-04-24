@@ -4,10 +4,11 @@ using Documenter, Oracle
 makedocs(
     sitename = "Oracle.jl",
     modules = [ Oracle ],
-    pages = [ "Home" => "index.md",
-              "Tutorial" => "tutorial.md",
-              "API Reference" => "api.md"
-            ],
+    pages = [
+        "Home" => "index.md",
+        "Tutorial" => "tutorial.md",
+        "API Reference" => "api.md",
+    ],
 )
 
 deploydocs(
