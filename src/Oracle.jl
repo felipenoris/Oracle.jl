@@ -71,6 +71,11 @@ end
     nothing
 end
 
+"""
+    odpi_version() :: VersionNumber
+
+Returns the underlying [odpi library](https://github.com/oracle/odpi) version.
+"""
 function odpi_version(vnum::Integer=odpi_version_number()) :: VersionNumber
     t1 = 100 # threshold 1
     t2 = 10000 # threshold 2

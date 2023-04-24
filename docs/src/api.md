@@ -53,3 +53,9 @@ Oracle.define
 ```@docs
 Oracle.chunk_size
 ```
+
+## Misc
+
+```@docs
+Oracle.odpi_version
+```
