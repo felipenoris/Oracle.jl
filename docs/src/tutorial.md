@@ -155,7 +155,7 @@ A nullable column is marked as `NULL` in SQL.
 
 From the Julia perspective, a `NULL` value will be translated as `missing`.
 
-As an example, given the following column definition on SQL:
+As an example, given the following column SQL definition:
 
 ```sql
 STR VARCHAR(255) NULL
