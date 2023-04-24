@@ -48,26 +48,20 @@ jobs:
         with:
           file: lcov.info
   docs:
-on:
-  push:
-    branches:
-      - master # update to match your development branch (master, main, dev, trunk, ...)
-    tags: '*'
-  pull_request:
-
-jobs:
-  build:
-    permissions:
-      contents: write
+    name: Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
-          version: '1.8'
-      - name: Install dependencies
-        run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
-      - name: Build and deploy
+          version: '1'
+      - run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.build()
+            Pkg.instantiate()'
+      - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: julia --project=docs/ docs/make.jl
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
