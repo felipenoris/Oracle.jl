@@ -19,7 +19,7 @@ based on [ODPI-C](https://github.com/oracle/odpi) bindings.
 
 ## Requirements
 
-* [Julia](https://julialang.org/) v1.0 or newer.
+* [Julia](https://julialang.org/) v1.6 or newer.
 
 * Oracle's [Instant Client](https://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html).
 
