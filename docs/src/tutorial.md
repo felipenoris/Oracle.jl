@@ -70,7 +70,7 @@ Oracle.stmt(conn, "INSERT INTO TB_BIND ( ID, FLT, STR, DT ) VALUES ( :id, :flt, 
     stmt[1] = 1
     stmt[2] = 10.1234
     stmt[3] = "this is a string"
-    stmt[4, Date] = missing # we must inform the type when setting value as missing
+    stmt[4, Date] = missing # we must inform the column type when setting value as missing
 
     Oracle.execute(stmt)
     Oracle.commit(conn)
@@ -147,6 +147,32 @@ Oracle.stmt(conn, "SELECT FLT FROM TB_BIND") do stmt
         row = Oracle.fetchrow(stmt)
     end
 end
+```
+
+## Nullable columns
+
+A nullable column is marked as `NULL` in SQL.
+
+From the Julia perspective, a `NULL` value will be translated as `missing`.
+
+As an example, given the following column definition on SQL:
+
+```sql
+STR VARCHAR(255) NULL
+```
+
+When reading from the column `STR`, we get values of type `Union{Missing, String}`.
+
+When setting values on a statement, we must inform the column type for non-null values.
+
+```julia
+stmt[:str, String] = missing
+```
+
+When reading from a row with a `NULL` value, we get `missing` values:
+
+```julia
+row[:str] :: Missing
 ```
 
 ## Batch statement execution
