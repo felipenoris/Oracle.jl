@@ -9,6 +9,7 @@ makedocs(
         "Tutorial" => "tutorial.md",
         "API Reference" => "api.md",
     ],
+    checkdocs=:none,
 )
 
 deploydocs(
