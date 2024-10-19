@@ -1,4 +1,6 @@
 
+import Downloads
+
 const PREFIX = joinpath(@__DIR__, "usr")
 const DOWNLOADS = joinpath(PREFIX, "downloads")
 const DEPS_FILE = joinpath(@__DIR__, "deps.jl")
@@ -53,7 +55,7 @@ function download_source_files(; verbose::Bool=false)
 
     if !isfile(ODPI_SOURCE_LOCAL_FILEPATH)
         verbose && println("Downloading $ODPI_SOURCE_URL...")
-        download(ODPI_SOURCE_URL, ODPI_SOURCE_LOCAL_FILEPATH)
+        Downloads.download(ODPI_SOURCE_URL, ODPI_SOURCE_LOCAL_FILEPATH)
     end
 
     untar_source_files(verbose=verbose)
