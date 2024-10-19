@@ -1,6 +1,4 @@
 
-import Pkg
-Pkg.build("Oracle")
 using Documenter, Oracle
 
 makedocs(
