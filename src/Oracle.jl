@@ -41,21 +41,21 @@ function __init__()
     check_deps()
 
     # check size of structs affected by C unions
-    @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer() "OraDataBuffer should have sizeof $(sizeof_dpiDataBuffer()) bytes"
-    @assert sizeof(OraData) == sizeof_dpiData() "OraData should have sizeof $(sizeof_dpiData()) bytes"
-    @assert sizeof(OraTimestamp) == sizeof_dpiTimestamp() "OraTimestamp should have sizeof $(sizeof_dpiTimestamp()) bytes"
-    @assert sizeof(OraErrorInfo) == sizeof_dpiErrorInfo() "OraErrorInfo should have sizeof $(sizeof_dpiErrorInfo()) bytes"
-    @assert sizeof(OraCommonCreateParams) == sizeof_dpiCommonCreateParams() "OraCommonCreateParams should have size of $(sizeof_dpiCommonCreateParams()) bytes"
-    @assert sizeof(OraAppContext) == sizeof_dpiAppContext() "OraAppContext should have size of $(sizeof_dpiAppContext()) bytes"
-    @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams() "OraPoolCreateParams should have sizeof $(sizeof_dpiPoolCreateParams()) bytes"
-    @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams() "OraConnCreateParams should have sizeof $(sizeof_dpiConnCreateParams()) bytes"
-    @assert sizeof(OraDataTypeInfo) == sizeof_dpiDataTypeInfo() "OraDataTypeInfo should have size of $(sizeof_dpiDataTypeInfo()) bytes"
-    @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo() "OraQueryInfo should have sizeof $(sizeof_dpiQueryInfo()) bytes"
-    @assert sizeof(OraStmtInfo) == sizeof_dpiStmtInfo() "OraStmtInfo should have sizeof $(sizeof_dpiStmtInfo()) bytes"
-    @assert sizeof(OraVersionInfo) == sizeof_dpiVersionInfo() "OraVersionInfo should have sizeof $(sizeof_dpiVersionInfo()) bytes"
-    @assert sizeof(OraBytes) == sizeof_dpiBytes() "OraBytes should have sizeof $(sizeof_dpiBytes()) bytes"
-    @assert sizeof(OraEncodingInfo) == sizeof_dpiEncodingInfo() "OraEncodingInfo should have sizeof $(sizeof_dpiEncodingInfo()) bytes"
-    @assert sizeof(OraObjectTypeInfo) == sizeof_dpiObjectTypeInfo() "OraObjectTypeInfo should have sizeof $(sizeof_dpiObjectTypeInfo()) bytes"
+    @assert sizeof(OraDataBuffer) == sizeof_dpiDataBuffer() "OraDataBuffer should have sizeof $(sizeof_dpiDataBuffer()) bytes. Found $(sizeof(OraDataBuffer)) bytes."
+    @assert sizeof(OraData) == sizeof_dpiData() "OraData should have sizeof $(sizeof_dpiData()) bytes. Found $(sizeof(OraData)) bytes."
+    @assert sizeof(OraTimestamp) == sizeof_dpiTimestamp() "OraTimestamp should have sizeof $(sizeof_dpiTimestamp()) bytes. Found $(sizeof(OraTimestamp)) bytes."
+    @assert sizeof(OraErrorInfo) == sizeof_dpiErrorInfo() "OraErrorInfo should have sizeof $(sizeof_dpiErrorInfo()) bytes. Found $(sizeof(OraErrorInfo)) bytes."
+    @assert sizeof(OraCommonCreateParams) == sizeof_dpiCommonCreateParams() "OraCommonCreateParams should have size of $(sizeof_dpiCommonCreateParams()) bytes. Found $(sizeof(OraCommonCreateParams)) bytes."
+    @assert sizeof(OraAppContext) == sizeof_dpiAppContext() "OraAppContext should have size of $(sizeof_dpiAppContext()) bytes. Found $(sizeof(OraAppContext)) bytes."
+    @assert sizeof(OraPoolCreateParams) == sizeof_dpiPoolCreateParams() "OraPoolCreateParams should have sizeof $(sizeof_dpiPoolCreateParams()) bytes. Found $(sizeof(OraPoolCreateParams)) bytes."
+    @assert sizeof(OraConnCreateParams) == sizeof_dpiConnCreateParams() "OraConnCreateParams should have sizeof $(sizeof_dpiConnCreateParams()) bytes. Found $(sizeof(OraConnCreateParams)) bytes."
+    @assert sizeof(OraDataTypeInfo) == sizeof_dpiDataTypeInfo() "OraDataTypeInfo should have size of $(sizeof_dpiDataTypeInfo()) bytes. Found $(sizeof(OraDataTypeInfo)) bytes."
+    @assert sizeof(OraQueryInfo) == sizeof_dpiQueryInfo() "OraQueryInfo should have sizeof $(sizeof_dpiQueryInfo()) bytes. Found $(sizeof(OraQueryInfo)) bytes."
+    @assert sizeof(OraStmtInfo) == sizeof_dpiStmtInfo() "OraStmtInfo should have sizeof $(sizeof_dpiStmtInfo()) bytes. Found $(sizeof(OraStmtInfo)) bytes."
+    @assert sizeof(OraVersionInfo) == sizeof_dpiVersionInfo() "OraVersionInfo should have sizeof $(sizeof_dpiVersionInfo()) bytes. Found $(sizeof(OraVersionInfo)) bytes."
+    @assert sizeof(OraBytes) == sizeof_dpiBytes() "OraBytes should have sizeof $(sizeof_dpiBytes()) bytes. Found $(sizeof(OraBytes)) bytes."
+    @assert sizeof(OraEncodingInfo) == sizeof_dpiEncodingInfo() "OraEncodingInfo should have sizeof $(sizeof_dpiEncodingInfo()) bytes. Found $(sizeof(OraEncodingInfo)) bytes."
+    @assert sizeof(OraObjectTypeInfo) == sizeof_dpiObjectTypeInfo() "OraObjectTypeInfo should have sizeof $(sizeof_dpiObjectTypeInfo()) bytes. Found $(sizeof(OraObjectTypeInfo)) bytes."
     #@assert sizeof(OraNumber) == sizeof_dpiNumber() # see issue #21
 end
 
