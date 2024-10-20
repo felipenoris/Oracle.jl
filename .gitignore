@@ -5,3 +5,4 @@ deps/build.log
 **/credentials.jl
 docs/build/
 docs/Manifest.toml
+**/.DS_Store
