@@ -48,3 +48,35 @@ function dequeue(queue::Queue, max_msgs::Integer) :: Vector{Message}
 
     return result
 end
+
+function EnqOptions(queue::Queue)
+    opt_handle_ref = Ref{Ptr{Cvoid}}()
+    err = dpiQueue_getEnqOptions(queue.handle, opt_handle_ref)
+    error_check(context(queue), err)
+    return EnqOptions(queue, opt_handle_ref[])
+end
+
+function DeqOptions(queue::Queue)
+    opt_handle_ref = Ref{Ptr{Cvoid}}()
+    err = dpiQueue_getDeqOptions(queue.handle, opt_handle_ref)
+    error_check(context(queue), err)
+    return DeqOptions(queue, opt_handle_ref[])
+end
+
+function set_correlation(opt::DeqOptions, value::AbstractString)
+    err = dpiDeqOptions_setCorrelation(opt.handle, pointer(value), sizeof(value))
+    error_check(context(opt), err)
+    nothing
+end
+
+function get_correlation(opt::DeqOptions) :: Union{Nothing, String}
+    val_ref = Ref{Ptr{UInt8}}()
+    val_length_ref = Ref{UInt32}()
+    err = dpiDeqOptions_getCorrelation(opt.handle, val_ref, val_length_ref)
+    error_check(context(opt), err)
+    if val_ref[] == C_NULL
+        return nothing
+    else
+        return unsafe_string(val_ref[], val_length_ref[])
+    end
+end
