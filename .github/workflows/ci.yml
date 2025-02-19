@@ -26,16 +26,12 @@ jobs:
         arch:
           - x64
         include:
-          - os: windows-latest
-            version: '1'
-            arch: x86
           - os: macos-latest
             version: '1'
             arch: aarch64
           - os: ubuntu-latest
             version: 'nightly'
-            arch: x64
-            allow_failure: true
+            arch: aarch64
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
