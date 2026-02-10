@@ -203,9 +203,9 @@ end
     error("Couldn't parse value for oracle type $O, native type $N.")
 end
 
-@inline Base.getindex(val::AbstractOracleValue) = parse_oracle_value(val)
-@inline Base.getindex(val::AbstractOracleValue, offset::Integer) = parse_oracle_value(val, offset)
-@inline Base.setindex!(oracle_value::AbstractOracleValue, value, offset::Integer=1) = set_oracle_value!(oracle_value, value, offset)
+Base.getindex(val::AbstractOracleValue) = parse_oracle_value(val)
+Base.getindex(val::AbstractOracleValue, offset::Integer) = parse_oracle_value(val, offset)
+Base.setindex!(oracle_value::AbstractOracleValue, value, offset::Integer=1) = set_oracle_value!(oracle_value, value, offset)
 
 @inline function set_oracle_value!(oracle_value::JuliaOracleValue{O,N,T}, val::T, offset::Integer=1) where {O,N,T}
     @assert offset > 0 "Invalid offset $offset."

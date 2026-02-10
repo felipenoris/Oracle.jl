@@ -10,6 +10,8 @@
 @inline context(queue::Queue) = context(queue.connection)
 @inline context(obj_type::ObjectType) = context(obj_type.connection)
 @inline context(msg_props::Message) = context(msg_props.parent)
+@inline context(opt::EnqOptions) = context(opt.queue)
+@inline context(opt::DeqOptions) = context(opt.queue)
 
 function Context()
     error_info_ref = Ref{OraErrorInfo}()

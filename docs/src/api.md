@@ -21,6 +21,12 @@ Safe equivalent Julia structs drop the `Ora` prefix.
 
 ODPI-C *function wrappers* have their name preserved, as in `dpiContext_create`.
 
+## Driver Info
+
+```@docs
+Oracle.odpi_version
+```
+
 ## Connection
 
 ```@docs
