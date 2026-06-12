@@ -87,9 +87,9 @@ Base.eps(t::AbstractTimestamp) = Nanosecond(1)
 Base.:(==)(t1::Timestamp, t2::Timestamp) = t1.date == t2.date && t1.time == t2.time
 Base.:(==)(o1::TimeZoneOffset, o2::TimeZoneOffset) = o1.hour == o2.hour && o1.minute == o2.minute
 Base.:(==)(t1::TimestampTZ, t2::TimestampTZ) = t1.ts == t2.ts && t1.tz_offset == t2.tz_offset
-Base.hash(ts::Timestamp) = 1 + hash(ts.date) + hash(ts.time)
-Base.hash(ts::TimestampTZ) = 2 + hash(ts.ts) + hash(ts.tz_offset)
-Base.hash(o::TimeZoneOffset) = 4 + hash(o.hour) + hash(o.minute)
+Base.hash(ts::Timestamp, h::UInt) = hash(ts.time, hash(ts.date, h))
+Base.hash(ts::TimestampTZ, h::UInt) = hash(ts.tz_offset, hash(ts.ts, h))
+Base.hash(o::TimeZoneOffset, h::UInt) = hash(o.minute, hash(o.hour, h))
 
 function Base.:(==)(ts::Timestamp, dt::DateTime)
     if microsecond(ts) == 0 && nanosecond(ts) == 0
