@@ -20,8 +20,8 @@ end
 
 @inline nrow(rs::ResultSet) = length(rs.rows)
 
-@inline Base.isempty(rs::ResultSet) = isempty(rs.rows)
-@inline Base.size(rs::ResultSet) = ( nrow(rs), ncol(rs) )
+Base.isempty(rs::ResultSet) = isempty(rs.rows)
+Base.size(rs::ResultSet) = ( nrow(rs), ncol(rs) )
 
 """
     names(schema::CursorSchema) :: Vector{String}
@@ -123,12 +123,12 @@ end
 Base.length(row::ResultSetRow) = length(row.data)
 Base.isempty(row::ResultSetRow) = isempty(row.data)
 
-@inline function Base.getindex(row::ResultSetRow, column_index::Integer)
+function Base.getindex(row::ResultSetRow, column_index::Integer)
     check_inbounds(row, column_index)
     @inbounds return row.data[column_index]
 end
 
-@inline function Base.getindex(row::ResultSetRow, column_name::AbstractString)
+function Base.getindex(row::ResultSetRow, column_name::AbstractString)
     check_inbounds(row, column_name)
     column_index = row.schema.column_names_index[column_name]
     @inbounds return row.data[column_index]

@@ -556,6 +556,18 @@ function destroy!(queue::Queue)
     nothing
 end
 
+# dpiEnqOptions
+mutable struct EnqOptions
+    queue::Queue
+    handle::Ptr{Cvoid}
+end
+
+# dpiDeqOptions
+mutable struct DeqOptions
+    queue::Queue
+    handle::Ptr{Cvoid}
+end
+
 # dpiObjectTypeInfo
 struct OraObjectTypeInfo
     schema::Ptr{UInt8}
